@@ -1,0 +1,349 @@
+{
+ "t_morning": {
+  "who": "teacher",
+  "text": "Good... morning... class.",
+  "dur": 3.605
+ },
+ "t_today": {
+  "who": "teacher",
+  "text": "Today... we will learn about... about...",
+  "dur": 4.598
+ },
+ "t_page": {
+  "who": "teacher",
+  "text": "Open your books... to page... forty... seven.",
+  "dur": 6.008
+ },
+ "t_answer": {
+  "who": "teacher",
+  "text": "The answer is... is... is...",
+  "dur": 3.605
+ },
+ "t_who": {
+  "who": "teacher",
+  "text": "Who... is talking?",
+  "dur": 2.664
+ },
+ "t_quiet": {
+  "who": "teacher",
+  "text": "Quiet.",
+  "dur": 0.81
+ },
+ "t_eyes": {
+  "who": "teacher",
+  "text": "Eyes... on the board.",
+  "dur": 2.299
+ },
+ "t_hear": {
+  "who": "teacher",
+  "text": "I can... hear you.",
+  "dur": 2.56
+ },
+ "t_see": {
+  "who": "teacher",
+  "text": "I see you.",
+  "dur": 1.019
+ },
+ "t_still": {
+  "who": "teacher",
+  "text": "Sit... still.",
+  "dur": 2.116
+ },
+ "t_attention": {
+  "who": "teacher",
+  "text": "You are not... paying attention.",
+  "dur": 3.239
+ },
+ "t_continue": {
+  "who": "teacher",
+  "text": "Let us... continue.",
+  "dur": 2.821
+ },
+ "t_math": {
+  "who": "teacher",
+  "text": "Two plus two... is... five.",
+  "dur": 4.049
+ },
+ "t_forgot": {
+  "who": "teacher",
+  "text": "I... forgot.",
+  "dur": 2.194
+ },
+ "t_last": {
+  "who": "teacher",
+  "text": "This is your... last... warning.",
+  "dur": 4.336
+ },
+ "t_dismissed": {
+  "who": "teacher",
+  "text": "Class... dismissed.",
+  "dur": 2.586
+ },
+ "t_stay": {
+  "who": "teacher",
+  "text": "You... will stay... after class.",
+  "dur": 4.754
+ },
+ "t_good": {
+  "who": "teacher",
+  "text": "Such a... good... student.",
+  "dur": 4.049
+ },
+ "t_notover": {
+  "who": "teacher",
+  "text": "Class... is not... over.",
+  "dur": 3.736
+ },
+ "t_phone": {
+  "who": "teacher",
+  "text": "Put it... away.",
+  "dur": 2.273
+ },
+ "t_mito": {
+  "who": "teacher",
+  "text": "The mitochondria... is the... the...",
+  "dur": 4.598
+ },
+ "t_water": {
+  "who": "teacher",
+  "text": "Water boils at... ... I do not know.",
+  "dur": 4.963
+ },
+ "t_silence": {
+  "who": "teacher",
+  "text": "Today's lesson... is... silence.",
+  "dur": 4.336
+ },
+ "t_writedown": {
+  "who": "teacher",
+  "text": "Write this... down.",
+  "dur": 2.638
+ },
+ "t_history": {
+  "who": "teacher",
+  "text": "In ten sixty-six... nothing... happened.",
+  "dur": 5.669
+ },
+ "t_question": {
+  "who": "teacher",
+  "text": "Any... questions?",
+  "dur": 2.508
+ },
+ "t_nobody": {
+  "who": "teacher",
+  "text": "No one... leaves.",
+  "dur": 2.403
+ },
+ "t_laugh": {
+  "who": "teacher",
+  "text": "Heh... heh... heh...",
+  "dur": 2.952
+ },
+ "t_where": {
+  "who": "teacher",
+  "text": "Where... is your friend?",
+  "dur": 2.847
+ },
+ "t_hmm": {
+  "who": "teacher",
+  "text": "Hmmmmm...",
+  "dur": 2.142
+ },
+ "t_wrong": {
+  "who": "teacher",
+  "text": "No. No. That is wrong.",
+  "dur": 4.153
+ },
+ "tw_turn": {
+  "who": "teacher",
+  "text": "Turn... around.",
+  "whisper": true,
+  "dur": 2.351
+ },
+ "tw_behind": {
+  "who": "teacher",
+  "text": "I am... behind you.",
+  "whisper": true,
+  "dur": 3.004
+ },
+ "tw_here": {
+  "who": "teacher",
+  "text": "Right... here.",
+  "whisper": true,
+  "dur": 2.168
+ },
+ "tw_shh": {
+  "who": "teacher",
+  "text": "Shhhhhh...",
+  "whisper": true,
+  "dur": 4.075
+ },
+ "s_psst": {
+  "who": "sam",
+  "text": "Psst. Hey.",
+  "whisper": true,
+  "dur": 1.045
+ },
+ "s_psst2": {
+  "who": "sam",
+  "text": "Psst! Hey, over here!",
+  "whisper": true,
+  "dur": 1.776
+ },
+ "s_face": {
+  "who": "sam",
+  "text": "Bro, why is his face like that?",
+  "whisper": true,
+  "dur": 1.907
+ },
+ "s_arms": {
+  "who": "sam",
+  "text": "Did you see his arms? They go past his knees.",
+  "whisper": true,
+  "dur": 2.534
+ },
+ "s_board": {
+  "who": "sam",
+  "text": "He's been staring at the board for like, five minutes.",
+  "whisper": true,
+  "dur": 2.821
+ },
+ "s_math": {
+  "who": "sam",
+  "text": "I don't think he knows any math.",
+  "whisper": true,
+  "dur": 1.593
+ },
+ "s_blink": {
+  "who": "sam",
+  "text": "Dude. He doesn't blink. Ever.",
+  "whisper": true,
+  "dur": 2.351
+ },
+ "s_real": {
+  "who": "sam",
+  "text": "Where is our real teacher?",
+  "whisper": true,
+  "dur": 1.149
+ },
+ "s_game": {
+  "who": "sam",
+  "text": "Did you beat level three yet?",
+  "whisper": true,
+  "dur": 1.411
+ },
+ "s_after": {
+  "who": "sam",
+  "text": "We're getting out of here after class. Right?",
+  "whisper": true,
+  "dur": 2.508
+ },
+ "s_scared": {
+  "who": "sam",
+  "text": "I'm not scared. You're scared.",
+  "whisper": true,
+  "dur": 1.802
+ },
+ "s_sorry": {
+  "who": "sam",
+  "text": "Sorry, sorry. I'll be quiet.",
+  "whisper": true,
+  "dur": 2.064
+ },
+ "s_warn": {
+  "who": "sam",
+  "text": "Stop! He's looking at you!",
+  "whisper": true,
+  "dur": 1.802
+ },
+ "n_psst": {
+  "who": "nora",
+  "text": "Psst. Over here.",
+  "whisper": true,
+  "dur": 1.306
+ },
+ "n_psst2": {
+  "who": "nora",
+  "text": "Hey! Psst! Look at me!",
+  "whisper": true,
+  "dur": 2.22
+ },
+ "n_look": {
+  "who": "nora",
+  "text": "Don't look at him. Don't look at him.",
+  "whisper": true,
+  "dur": 2.429
+ },
+ "n_writing": {
+  "who": "nora",
+  "text": "What is he even writing?",
+  "whisper": true,
+  "dur": 1.176
+ },
+ "n_phone": {
+  "who": "nora",
+  "text": "My phone keeps buzzing. Unknown number.",
+  "whisper": true,
+  "dur": 2.482
+ },
+ "n_quiet": {
+  "who": "nora",
+  "text": "I heard he keeps the quiet ones after class.",
+  "whisper": true,
+  "dur": 2.482
+ },
+ "n_chalk": {
+  "who": "nora",
+  "text": "When the chalk stops, we stop talking. Okay?",
+  "whisper": true,
+  "dur": 3.213
+ },
+ "n_head": {
+  "who": "nora",
+  "text": "Did his head just turn all the way around?",
+  "whisper": true,
+  "dur": 2.011
+ },
+ "n_clock": {
+  "who": "nora",
+  "text": "The clock. It's going backwards.",
+  "whisper": true,
+  "dur": 2.011
+ },
+ "n_notes": {
+  "who": "nora",
+  "text": "I wrote you a note. Read it.",
+  "whisper": true,
+  "dur": 1.567
+ },
+ "n_hands": {
+  "who": "nora",
+  "text": "Why does he keep clapping like that?",
+  "whisper": true,
+  "dur": 1.933
+ },
+ "n_sorry": {
+  "who": "nora",
+  "text": "Okay, okay. Shh.",
+  "whisper": true,
+  "dur": 1.959
+ },
+ "n_warn": {
+  "who": "nora",
+  "text": "He's coming. Stop talking!",
+  "whisper": true,
+  "dur": 1.985
+ },
+ "s_hey": {
+  "who": "sam",
+  "text": "HEY! ARE YOU EVEN LISTENING?",
+  "shout": true,
+  "dur": 1.411
+ },
+ "n_hey": {
+  "who": "nora",
+  "text": "HEY! ANSWER ME!",
+  "shout": true,
+  "dur": 1.123
+ }
+}

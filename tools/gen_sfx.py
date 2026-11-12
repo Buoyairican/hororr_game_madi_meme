@@ -1,0 +1,598 @@
+#!/usr/bin/env python3
+"""Synthesise all sound effects used by the game (no samples, no licences).
+
+    python3 tools/gen_sfx.py          (needs numpy + ffmpeg)
+
+Writes assets/audio/sfx/*.mp3. Every sound is built from noise, oscillators,
+filters and a synthetic room impulse response, so it can be tweaked freely.
+"""
+import os
+import subprocess
+import tempfile
+import wave
+
+import numpy as np
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(ROOT, "assets", "audio", "sfx")
+VOICE = os.path.join(ROOT, "assets", "audio", "voice")
+os.makedirs(OUT, exist_ok=True)
+TMP = tempfile.mkdtemp(prefix="sfx_")
+SR = 44100
+rng = np.random.default_rng(1337)
+
+
+# ----------------------------------------------------------------- helpers
+def t_axis(dur):
+    return np.arange(int(dur * SR)) / SR
+
+
+def noise(dur):
+    return rng.standard_normal(int(dur * SR)).astype(np.float64)
+
+
+def biquad(x, kind, f0, q=0.707, gain_db=0.0):
+    """RBJ cookbook biquad, causal (keeps transients crisp)."""
+    w0 = 2 * np.pi * f0 / SR
+    cw, sw = np.cos(w0), np.sin(w0)
+    alpha = sw / (2 * q)
+    A = 10 ** (gain_db / 40)
+    if kind == "lp":
+        b = [(1 - cw) / 2, 1 - cw, (1 - cw) / 2]; a = [1 + alpha, -2 * cw, 1 - alpha]
+    elif kind == "hp":
+        b = [(1 + cw) / 2, -(1 + cw), (1 + cw) / 2]; a = [1 + alpha, -2 * cw, 1 - alpha]
+    elif kind == "bp":
+        b = [alpha, 0, -alpha]; a = [1 + alpha, -2 * cw, 1 - alpha]
+    elif kind == "peak":
+        b = [1 + alpha * A, -2 * cw, 1 - alpha * A]; a = [1 + alpha / A, -2 * cw, 1 - alpha / A]
+    else:
+        raise ValueError(kind)
+    b = np.array(b) / a[0]; a = np.array(a) / a[0]
+    y = np.zeros_like(x)
+    x1 = x2 = y1 = y2 = 0.0
+    b0, b1, b2, a1, a2 = b[0], b[1], b[2], a[1], a[2]
+    for i in range(len(x)):
+        xi = x[i]
+        yi = b0 * xi + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+        x2, x1, y2, y1 = x1, xi, y1, yi
+        y[i] = yi
+    return y
+
+
+def fft_filter(x, resp):
+    """Zero-phase filter; resp(freqs)->gain."""
+    n = len(x)
+    X = np.fft.rfft(x)
+    f = np.fft.rfftfreq(n, 1 / SR)
+    return np.fft.irfft(X * resp(f), n)
+
+
+def lowpass_f(fc, order=2):
+    return lambda f: 1 / np.sqrt(1 + (f / fc) ** (2 * order))
+
+
+def highpass_f(fc, order=2):
+    return lambda f: 1 / np.sqrt(1 + (fc / np.maximum(f, 1e-3)) ** (2 * order))
+
+
+def band_f(fc, octaves=1.0):
+    return lambda f: np.exp(-0.5 * (np.log2(np.maximum(f, 1) / fc) / (octaves / 2)) ** 2)
+
+
+def env_exp(dur, tau, attack=0.002):
+    t = t_axis(dur)
+    e = np.exp(-t / tau)
+    a = np.clip(t / max(attack, 1e-5), 0, 1)
+    return e * a
+
+
+def impulse_response(dur=2.5, decay=0.6, damp=4000, pre=0.0, seed=3):
+    r = np.random.default_rng(seed)
+    t = t_axis(dur)
+    ir = r.standard_normal(len(t)) * np.exp(-t / decay)
+    # high frequencies die faster: blend progressively low-passed copies
+    lp = fft_filter(ir, lowpass_f(damp * 0.35, 1))
+    mix = np.clip(t / (dur * 0.5), 0, 1)
+    ir = ir * (1 - mix) + lp * mix
+    # a few early reflections
+    for d, g in ((0.011, 0.6), (0.019, 0.45), (0.027, 0.35), (0.041, 0.3), (0.063, 0.22)):
+        i = int(d * SR)
+        if i < len(ir):
+            ir[i] += g * 3
+    ir[0] = 4.0
+    ir *= np.clip((dur - t) / (dur * 0.45), 0, 1) ** 2  # smooth tail, no hard cut
+    return ir / np.max(np.abs(ir))
+
+
+def convolve(x, ir):
+    n = len(x) + len(ir) - 1
+    N = 1 << (n - 1).bit_length()
+    return np.fft.irfft(np.fft.rfft(x, N) * np.fft.rfft(ir, N), N)[:n]
+
+
+def reverb(x, wet=0.3, **kw):
+    ir = impulse_response(**kw)
+    w = convolve(x, ir)
+    w = w / (np.max(np.abs(w)) + 1e-9) * np.max(np.abs(x))
+    d = np.concatenate([x, np.zeros(len(w) - len(x))])
+    return d * (1 - wet) + w * wet
+
+
+def pad(x, dur):
+    n = int(dur * SR)
+    return np.concatenate([x, np.zeros(max(0, n - len(x)))])[:n] if n >= len(x) else x
+
+
+def place(dst, src, at):
+    i = int(at * SR)
+    end = min(len(dst), i + len(src))
+    if i < len(dst):
+        dst[i:end] += src[: end - i]
+    return dst
+
+
+def normalize(x, peak=0.89):
+    return x * (peak / (np.max(np.abs(x)) + 1e-9))
+
+
+def fade(x, fin=0.005, fout=0.02):
+    n_in, n_out = int(fin * SR), int(fout * SR)
+    y = x.copy()
+    if n_in:
+        y[:n_in] *= np.linspace(0, 1, n_in)
+    if n_out:
+        y[-n_out:] *= np.linspace(1, 0, n_out)
+    return y
+
+
+def save(name, x, peak=0.89, bitrate="96k", stereo=None):
+    x = normalize(fade(x), peak)
+    wav = os.path.join(TMP, name + ".wav")
+    with wave.open(wav, "w") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
+        w.writeframes((np.clip(x, -1, 1) * 32767).astype(np.int16).tobytes())
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-ac", "1",
+                    "-b:a", bitrate, os.path.join(OUT, name + ".mp3")], check=True)
+    print("  ", name, round(len(x) / SR, 2), "s")
+
+
+def loop_save(name, x, xfade=0.5, **kw):
+    """Make a seamless loop by cross-fading the tail into the head."""
+    n = int(xfade * SR)
+    head, body, tail = x[:n], x[n:-n], x[-n:]
+    ramp = np.linspace(0, 1, n)
+    joined = np.concatenate([body, tail * (1 - ramp) + head * ramp])
+    x2 = normalize(joined, kw.pop("peak", 0.8))
+    wav = os.path.join(TMP, name + ".wav")
+    with wave.open(wav, "w") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
+        w.writeframes((np.clip(x2, -1, 1) * 32767).astype(np.int16).tobytes())
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-ac", "1",
+                    "-b:a", kw.get("bitrate", "96k"), os.path.join(OUT, name + ".mp3")], check=True)
+    print("  ", name, "(loop)", round(len(x2) / SR, 2), "s")
+
+
+def read_mp3(path):
+    wav = os.path.join(TMP, "rd.wav")
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", path, "-ac", "1", "-ar", str(SR), wav], check=True)
+    with wave.open(wav) as w:
+        return np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float64) / 32768
+
+
+# ------------------------------------------------------------------ sounds
+def one_clap(seed, body=1.0):
+    r = np.random.default_rng(seed)
+    dur = 0.25
+    out = np.zeros(int(dur * SR))
+    # a real clap is several micro-impacts a few ms apart
+    t0 = 0.0
+    for k in range(r.integers(3, 5)):
+        n = noise(0.12) * env_exp(0.12, r.uniform(0.006, 0.012), 0.0004)
+        place(out, n * r.uniform(0.6, 1.0), t0)
+        t0 += r.uniform(0.002, 0.007)
+    out = biquad(out, "bp", r.uniform(1050, 1500), 0.9) * 1.6 + biquad(out, "hp", 3000, 0.7) * 0.25
+    # hollow palm cavity resonance
+    thump = np.sin(2 * np.pi * r.uniform(170, 230) * t_axis(dur)) * env_exp(dur, 0.018, 0.001)
+    out += thump * 0.35 * body
+    return out
+
+
+def make_claps():
+    for i in range(3):
+        save(f"clap_{i+1}", pad(one_clap(10 + i), 0.3), 0.9)
+    # the frightening clap: heavier, slowed, with a long hall tail and a sub hit
+    c = one_clap(99, body=2.0)
+    slowed = np.interp(np.arange(0, len(c), 0.8), np.arange(len(c)), c)
+    sub = np.sin(2 * np.pi * 48 * t_axis(0.6) * np.exp(-t_axis(0.6) * 1.5)) * env_exp(0.6, 0.18, 0.002)
+    x = pad(slowed, 0.6) * 1.0 + sub * 0.5
+    x = reverb(pad(x, 3.4), wet=0.55, dur=3.0, decay=0.9, damp=3500)
+    save("clap_big", x, 0.95)
+
+
+def chalk_stroke_sequence(dur, seed, squeak_prob=0.35):
+    r = np.random.default_rng(seed)
+    out = np.zeros(int(dur * SR))
+    t = 0.05
+    while t < dur - 0.15:
+        sl = r.uniform(0.06, 0.32)
+        n = noise(sl)
+        # stick-slip grit: noise gated by fast random pulses
+        grit_rate = r.uniform(140, 320)
+        tt = t_axis(sl)
+        gate = (np.sin(2 * np.pi * grit_rate * tt + r.uniform(0, 6)) > r.uniform(-0.2, 0.5)).astype(float)
+        gate = fft_filter(gate, lowpass_f(2500, 1))
+        stroke = n * (0.35 + gate)
+        env = np.sin(np.pi * np.clip(tt / sl, 0, 1)) ** 0.6
+        stroke *= env * r.uniform(0.5, 1.0)
+        place(out, stroke, t)
+        if r.random() < squeak_prob:
+            ql = r.uniform(0.04, 0.16)
+            qt = t_axis(ql)
+            f0 = r.uniform(1800, 3600)
+            vib = 1 + 0.02 * np.sin(2 * np.pi * r.uniform(20, 45) * qt)
+            ph = 2 * np.pi * np.cumsum(f0 * vib) / SR
+            sq = (np.sin(ph) + 0.4 * np.sin(2 * ph) + 0.2 * np.sin(3 * ph)) * np.sin(np.pi * qt / ql)
+            place(out, sq * r.uniform(0.08, 0.2), t + r.uniform(0, sl * 0.6))
+        # tap at the start of some strokes
+        if r.random() < 0.5:
+            tap = noise(0.02) * env_exp(0.02, 0.002, 0.0002)
+            place(out, tap * 0.8, t)
+        t += sl + r.uniform(0.02, 0.18)
+    out = biquad(out, "hp", 1200, 0.7)
+    out = biquad(out, "peak", 3200, 1.2, 6)
+    out = biquad(out, "lp", 9000, 0.7)
+    return out
+
+
+def make_chalk():
+    for i in range(4):
+        save(f"chalk_{i+1}", chalk_stroke_sequence(2.2, 40 + i), 0.7)
+    # long nails-on-a-board screech for scares
+    dur = 1.8
+    tt = t_axis(dur)
+    f = 2400 + 500 * np.sin(2 * np.pi * 0.7 * tt) + 120 * np.sin(2 * np.pi * 11 * tt)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    s = sum(np.sin(k * ph + rng.uniform(0, 6)) / k ** 0.8 for k in range(1, 7))
+    s *= (0.6 + 0.4 * (np.sin(2 * np.pi * 31 * tt) > 0))  # stick-slip chatter
+    s += noise(dur) * 0.25
+    s = biquad(s, "hp", 900, 0.7)
+    s *= np.clip(tt / 0.05, 0, 1) * np.clip((dur - tt) / 0.4, 0, 1)
+    save("chalk_screech", reverb(s, 0.25, dur=1.2, decay=0.35), 0.8)
+    # tap of chalk on board / chalk set down
+    tap = noise(0.08) * env_exp(0.08, 0.004, 0.0002)
+    tap = biquad(tap, "bp", 2600, 1.5) + np.sin(2 * np.pi * 900 * t_axis(0.08)) * env_exp(0.08, 0.01) * 0.3
+    save("chalk_tap", pad(tap, 0.12), 0.7)
+
+
+def make_eraser():
+    dur = 2.0
+    tt = t_axis(dur)
+    strokes = 0.5 + 0.5 * np.sin(2 * np.pi * 3.2 * tt) ** 2
+    x = noise(dur) * strokes
+    x = fft_filter(x, lambda f: band_f(700, 2.5)(f) + 0.2 * band_f(2500, 1.5)(f))
+    save("erase", x, 0.6)
+
+
+def make_bell():
+    dur = 4.2
+    out = np.zeros(int(dur * SR))
+    partials = [(1.0, 1.0, 0.9), (2.32, 0.6, 0.6), (4.25, 0.35, 0.35), (6.63, 0.2, 0.2), (9.38, 0.12, 0.12)]
+    f0 = 1180
+    strike_rate = 24.0
+    t = 0.0
+    ring_len = 3.2
+    one = np.zeros(int(0.5 * SR))
+    tt = t_axis(0.5)
+    for ratio, amp, tau in partials:
+        one += amp * np.sin(2 * np.pi * f0 * ratio * tt + rng.uniform(0, 6)) * np.exp(-tt / (tau * 0.5))
+    click = noise(0.004) * 0.6
+    one[: len(click)] += click
+    while t < ring_len:
+        place(out, one * rng.uniform(0.75, 1.0), t + rng.uniform(-0.002, 0.002))
+        t += 1 / strike_rate
+    out = np.tanh(out * 0.6) * 1.2
+    out = biquad(out, "peak", 2400, 1.0, 4)
+    out = reverb(out, 0.35, dur=2.0, decay=0.5)
+    save("bell", out, 0.85)
+
+
+def make_scream():
+    dur = 2.2
+    tt = t_axis(dur)
+    env = np.clip(tt / 0.015, 0, 1) * np.clip((dur - tt) / 0.9, 0, 1)
+    # FM screech that bends up then wails down
+    fc = 780 + 650 * np.clip(tt / 0.25, 0, 1) - 300 * np.clip((tt - 0.6) / 1.4, 0, 1)
+    fc *= 1 + 0.03 * np.sin(2 * np.pi * 7.5 * tt)
+    ph_m = 2 * np.pi * np.cumsum(fc * 1.48) / SR
+    ph_c = 2 * np.pi * np.cumsum(fc) / SR + (3.5 + 2 * np.sin(2 * np.pi * 3 * tt)) * np.sin(ph_m)
+    fm = np.sin(ph_c)
+    # dissonant saw cluster
+    cluster = np.zeros_like(tt)
+    for semis in (0, 1, 6, 11, 13):
+        f = 330 * 2 ** (semis / 12) * (1 + 0.004 * rng.standard_normal())
+        ph = 2 * np.pi * f * tt * (1 + 0.01 * np.sin(2 * np.pi * 5 * tt + semis))
+        cluster += 2 * ((ph / (2 * np.pi)) % 1) - 1
+    cluster /= 5
+    rasp = biquad(noise(dur), "bp", 2200, 0.6) * (0.6 + 0.4 * np.sin(2 * np.pi * 37 * tt))
+    hit_t = t_axis(0.9)
+    hit = np.sin(2 * np.pi * np.cumsum(90 * np.exp(-hit_t * 4) + 30) / SR) * np.exp(-hit_t / 0.3)
+    hit += biquad(noise(0.9), "lp", 400) * np.exp(-hit_t / 0.08) * 2
+    x = (fm * 0.7 + cluster * 0.6 + rasp * 1.1) * env
+    x = place(x, hit * 1.4, 0)
+    x = np.tanh(x * 2.2)
+    x = biquad(x, "peak", 3000, 0.8, 5)
+    x = reverb(x, 0.25, dur=1.5, decay=0.4)
+    save("scream", x, 0.98)
+
+
+def make_stingers():
+    # 1: string cluster stab with bow noise (sharp attack, long reverb)
+    dur = 2.4
+    tt = t_axis(dur)
+    s = np.zeros_like(tt)
+    for semis in (0, 1, 2, 6, 7, 13):
+        f = 587 * 2 ** (semis / 12)
+        vib = 1 + 0.006 * np.sin(2 * np.pi * (5.5 + semis * 0.1) * tt)
+        ph = 2 * np.pi * np.cumsum(f * vib) / SR
+        s += (2 * ((ph / (2 * np.pi)) % 1) - 1)
+    s = biquad(s / 6, "lp", 5000) + biquad(noise(dur), "bp", 3000, 0.8) * 0.15
+    s *= np.clip(tt / 0.01, 0, 1) * np.exp(-tt / 0.6)
+    save("stinger_1", reverb(pad(s, 3.6), 0.5, dur=3.0, decay=0.8), 0.92)
+    # 2: low boom + metal
+    dur = 4.0
+    tt = t_axis(dur)
+    boom = np.sin(2 * np.pi * np.cumsum(70 * np.exp(-tt * 3) + 32) / SR) * np.exp(-tt / 0.9)
+    metal = np.zeros_like(tt)
+    for r_ in (1.0, 1.41, 2.03, 2.76, 3.9, 5.1):
+        metal += np.sin(2 * np.pi * 210 * r_ * tt + rng.uniform(0, 6)) * np.exp(-tt / (1.2 / r_))
+    x = boom * 1.2 + metal * 0.25 + biquad(noise(dur), "lp", 300) * np.exp(-tt / 0.15)
+    save("stinger_2", reverb(np.tanh(x * 1.5), 0.45, dur=3.5, decay=1.0), 0.95)
+    # 3: reverse swell that ends on a cut (place right before a scare)
+    dur = 2.5
+    tt = t_axis(dur)
+    sw = noise(dur) * (tt / dur) ** 3
+    sw = fft_filter(sw, band_f(900, 3))
+    tone = np.zeros_like(tt)
+    for semis in (0, 1, 5):
+        tone += np.sin(2 * np.pi * 110 * 2 ** (semis / 12) * tt * (1 + 0.15 * tt / dur))
+    x = sw + tone * (tt / dur) ** 2.5 * 0.4
+    save("stinger_swell", x, 0.85)
+    # 4: sub drop / dread hit
+    dur = 3.0
+    tt = t_axis(dur)
+    x = np.sin(2 * np.pi * np.cumsum(55 - 25 * tt / dur) / SR) * np.exp(-tt / 1.2)
+    x += biquad(noise(dur), "lp", 120) * np.exp(-tt / 0.5) * 0.6
+    save("sub_hit", np.tanh(x * 1.6), 0.95)
+
+
+def make_breath():
+    dur = 6.0
+    tt = t_axis(dur)
+    out = np.zeros_like(tt)
+    for start, length, inhale in ((0.1, 1.5, True), (1.8, 2.0, False), (3.9, 1.4, True), (5.4, 0.55, False)):
+        n = noise(length)
+        lt = t_axis(length)
+        env = np.sin(np.pi * np.clip(lt / length, 0, 1)) ** (1.3 if inhale else 0.8)
+        fc = 1500 + 600 * lt / length if inhale else 900 - 300 * lt / length
+        y = np.zeros_like(n)
+        # crude time-varying band: process in short blocks
+        blk = 2048
+        for i in range(0, len(n), blk):
+            seg = n[i:i + blk]
+            f_mid = fc[min(i, len(fc) - 1)]
+            y[i:i + blk] = fft_filter(seg, band_f(f_mid, 1.8))
+        rasp = 1 + 0.5 * np.sin(2 * np.pi * (28 if inhale else 22) * lt)
+        place(out, y * env * rasp * (0.7 if inhale else 1.0), start)
+    out = fft_filter(out, lambda f: band_f(1100, 3.5)(f))
+    save("breath", out, 0.7)
+
+
+def make_thunder():
+    dur = 7.0
+    tt = t_axis(dur)
+    crack = biquad(noise(0.4), "hp", 400) * env_exp(0.4, 0.06, 0.003)
+    rumble = fft_filter(noise(dur), lowpass_f(160, 3)) * 6
+    mod = np.zeros_like(tt)
+    for _ in range(9):
+        c = rng.uniform(0.2, 4.5)
+        w = rng.uniform(0.15, 0.6)
+        mod += rng.uniform(0.3, 1.0) * np.exp(-0.5 * ((tt - c) / w) ** 2)
+    mod = mod * np.exp(-tt / 3.5) + 0.05
+    x = rumble * mod
+    x = place(x, crack * 0.8, 0.0)
+    save("thunder", reverb(x, 0.3, dur=2.5, decay=0.8), 0.95)
+
+
+def make_rain():
+    dur = 10.5
+    tt = t_axis(dur)
+    hiss = fft_filter(noise(dur), lambda f: highpass_f(900, 1)(f) * lowpass_f(9000, 1)(f) / np.sqrt(np.maximum(f, 50) / 1000))
+    drops = np.zeros_like(tt)
+    for _ in range(1300):
+        d = noise(0.01) * env_exp(0.01, rng.uniform(0.0008, 0.002), 0.0001)
+        d = np.sin(2 * np.pi * rng.uniform(2000, 6000) * t_axis(0.01)) * np.abs(d)
+        place(drops, d * rng.uniform(0.05, 0.5), rng.uniform(0, dur - 0.02))
+    # heavier drops on the window glass
+    for _ in range(140):
+        d = np.sin(2 * np.pi * rng.uniform(600, 1400) * t_axis(0.03)) * env_exp(0.03, 0.006, 0.0005)
+        place(drops, d * rng.uniform(0.2, 0.7), rng.uniform(0, dur - 0.04))
+    x = hiss * 0.5 + drops * 0.8
+    x = fft_filter(x, lowpass_f(7000, 1))
+    loop_save("rain_loop", x, 0.5, peak=0.7)
+
+
+def make_whisper_bed():
+    files = ["s_face", "n_quiet", "tw_turn", "n_look", "s_blink", "tw_behind", "n_chalk", "s_real"]
+    dur = 14.0
+    out = np.zeros(int(dur * SR))
+    for i, f in enumerate(files):
+        x = read_mp3(os.path.join(VOICE, f + ".mp3"))
+        if i % 2 == 0:
+            x = x[::-1]
+        rate = rng.uniform(0.82, 1.05)
+        x = np.interp(np.arange(0, len(x), rate), np.arange(len(x)), x)
+        place(out, x * rng.uniform(0.4, 0.9), rng.uniform(0, dur - len(x) / SR - 0.1) if len(x) / SR < dur else 0)
+    out = reverb(out, 0.6, dur=3.0, decay=0.9)[: int(dur * SR) + int(1.0 * SR)]
+    loop_save("whispers_loop", out, 1.0, peak=0.7)
+
+
+def music_box_note(f, dur=2.5):
+    tt = t_axis(dur)
+    x = np.zeros_like(tt)
+    for ratio, amp, tau in ((1, 1.0, 1.1), (2.0, 0.25, 0.5), (3.01, 0.18, 0.25), (5.43, 0.1, 0.12), (8.1, 0.05, 0.06)):
+        x += amp * np.sin(2 * np.pi * f * ratio * tt) * np.exp(-tt / tau)
+    x[: int(0.002 * SR)] *= np.linspace(0, 1, int(0.002 * SR))
+    return x
+
+
+def make_music_box():
+    # An original lullaby in A minor (not based on any existing tune).
+    A4 = 440.0
+    def nf(semi):
+        return A4 * 2 ** (semi / 12)
+    melody = [  # (semitones from A4, beats)
+        (12, 1), (7, 1), (8, 1), (7, 1), (3, 2), (0, 2),
+        (2, 1), (3, 1), (7, 1), (3, 1), (2, 3), (-1, 1),
+        (12, 1), (14, 1), (15, 1), (14, 1), (12, 2), (7, 2),
+        (8, 1), (7, 1), (3, 1), (2, 1), (0, 4),
+    ]
+    beat = 0.62
+    total = sum(b for _, b in melody) * beat + 3
+    out = np.zeros(int(total * SR))
+    t = 0.3
+    for semi, beats in melody:
+        out = place(out, music_box_note(nf(semi + 12)) * 0.6, t + rng.uniform(-0.01, 0.01))
+        if beats >= 2:  # a low accompaniment note on long notes
+            out = place(out, music_box_note(nf(semi - 12)) * 0.3, t)
+        t += beats * beat
+    # tape wow: slow pitch wobble
+    tt = np.arange(len(out)) / SR
+    warp = tt + 0.004 * np.sin(2 * np.pi * 0.35 * tt) + 0.0015 * np.sin(2 * np.pi * 2.1 * tt)
+    out = np.interp(warp * SR, np.arange(len(out)), out)
+    out = reverb(out, 0.45, dur=3.0, decay=0.9)
+    save("music_box", out, 0.75)
+
+
+def make_misc():
+    # chair scrape (stick-slip)
+    dur = 1.4
+    tt = t_axis(dur)
+    rate = 45 + 35 * np.sin(np.pi * tt / dur)
+    ph = np.cumsum(rate) / SR
+    pulses = (ph % 1 < 0.12).astype(float)
+    x = fft_filter(pulses + noise(dur) * 0.2, lambda f: band_f(650, 2)(f) + 0.5 * band_f(1800, 1)(f))
+    x *= np.sin(np.pi * tt / dur) ** 0.5
+    save("chair_scrape", reverb(x, 0.25, dur=1.5, decay=0.4), 0.85)
+    # door slam
+    dur = 2.5
+    tt = t_axis(dur)
+    thud = np.sin(2 * np.pi * np.cumsum(110 * np.exp(-tt * 8) + 55) / SR) * np.exp(-tt / 0.12)
+    wood = fft_filter(noise(dur), band_f(400, 1.5)) * np.exp(-tt / 0.05) * 3
+    rattle = biquad(noise(dur), "bp", 2500, 2) * np.exp(-tt / 0.2) * (np.sin(2 * np.pi * 18 * tt) > 0.3)
+    save("door_slam", reverb(thud + wood + rattle * 0.3, 0.4, dur=2.2, decay=0.6), 0.95)
+    # glitch
+    dur = 0.9
+    x = np.zeros(int(dur * SR))
+    t = 0
+    while t < dur - 0.05:
+        l = rng.uniform(0.01, 0.07)
+        kind = rng.integers(0, 3)
+        tt = t_axis(l)
+        if kind == 0:
+            seg = np.sign(np.sin(2 * np.pi * rng.uniform(80, 1800) * tt))
+        elif kind == 1:
+            seg = np.round(noise(l) * 2) / 2
+        else:
+            seg = np.zeros_like(tt)
+        place(x, seg * rng.uniform(0.3, 1.0), t)
+        t += l
+    save("glitch", biquad(x, "lp", 7000), 0.6)
+    # heartbeat: single lub-dub
+    dur = 0.7
+    tt = t_axis(dur)
+    def beat(at, f, amp):
+        b = np.sin(2 * np.pi * np.cumsum(f * np.exp(-t_axis(0.25) * 6) + 30) / SR) * env_exp(0.25, 0.05, 0.004)
+        return at, b * amp
+    hb = np.zeros_like(tt)
+    for at, b in (beat(0.0, 60, 1.0), beat(0.17, 50, 0.7)):
+        place(hb, b, at)
+    save("heartbeat", biquad(hb, "lp", 160), 0.95)
+    # bone crack / neck creak (head turning around)
+    dur = 1.6
+    tt = t_axis(dur)
+    x = np.zeros_like(tt)
+    t = 0.05
+    while t < dur - 0.1:
+        c = biquad(noise(0.03), "bp", rng.uniform(1500, 4500), 2.5) * env_exp(0.03, 0.003, 0.0002)
+        place(x, c * rng.uniform(0.4, 1.2), t)
+        t += rng.exponential(0.06)
+    creak_f = 90 + 40 * np.sin(2 * np.pi * 0.6 * tt)
+    creak = np.sign(np.sin(2 * np.pi * np.cumsum(creak_f) / SR)) * 0.2
+    creak = fft_filter(creak, band_f(700, 2)) * np.sin(np.pi * tt / dur)
+    save("neck_crack", x + creak * 0.6, 0.85)
+    # lights breaker "chunk" + buzz cut
+    dur = 1.2
+    tt = t_axis(dur)
+    chunk = biquad(noise(dur), "lp", 900) * env_exp(dur, 0.03, 0.001) * 2
+    buzz = np.sign(np.sin(2 * np.pi * 120 * tt)) * 0.25 * np.exp(-tt / 0.08)
+    save("lights_off", reverb(chunk + biquad(buzz, "lp", 3000), 0.35, dur=1.5, decay=0.5), 0.85)
+    # electrical zap for flickers
+    dur = 0.25
+    tt = t_axis(dur)
+    zap = (np.sign(np.sin(2 * np.pi * 120 * tt)) * 0.5 + biquad(noise(dur), "hp", 2000)) * (rng.random(len(tt)) > 0.4)
+    save("zap", biquad(zap * np.exp(-tt / 0.08), "lp", 8000), 0.5)
+    # paper note
+    dur = 0.8
+    tt = t_axis(dur)
+    crinkle = np.zeros_like(tt)
+    for _ in range(60):
+        c = biquad(noise(0.02), "hp", 2500) * env_exp(0.02, 0.003, 0.0003)
+        place(crinkle, c * rng.uniform(0.2, 1.0), rng.uniform(0, dur - 0.03))
+    save("paper", crinkle + biquad(noise(dur), "bp", 3000, 0.6) * 0.1 * np.sin(np.pi * tt / dur), 0.6)
+    # whoosh (fast glide)
+    dur = 1.3
+    tt = t_axis(dur)
+    sw = np.exp(-0.5 * ((tt - 0.55) / 0.22) ** 2)
+    w = fft_filter(noise(dur), band_f(500, 2.5)) * sw
+    save("whoosh", w, 0.6)
+    # book drop
+    dur = 1.2
+    tt = t_axis(dur)
+    slap = biquad(noise(dur), "bp", 900, 0.8) * env_exp(dur, 0.025, 0.0005) * 2
+    body = np.sin(2 * np.pi * 95 * tt) * env_exp(dur, 0.07, 0.001)
+    save("book_drop", reverb(slap + body, 0.35, dur=1.6, decay=0.5), 0.9)
+    # phone ringtone (cheerful marimba – horribly out of place in the dark)
+    notes = [(0, 0.15), (4, 0.15), (7, 0.15), (12, 0.3), (7, 0.15), (12, 0.45)]
+    out = np.zeros(int(3.2 * SR))
+    t = 0
+    for rep in range(2):
+        for semi, l in notes:
+            f = 880 * 2 ** (semi / 12)
+            tt = t_axis(0.5)
+            n = (np.sin(2 * np.pi * f * tt) + 0.3 * np.sin(2 * np.pi * 4 * f * tt) * np.exp(-tt / 0.02)) * np.exp(-tt / 0.15)
+            place(out, n, t)
+            t += l
+        t += 0.25
+    save("ringtone", out, 0.8)
+    # vibration buzz
+    dur = 0.9
+    tt = t_axis(dur)
+    vib = np.sign(np.sin(2 * np.pi * 160 * tt)) * ((tt % 0.45) < 0.32)
+    save("phone_buzz", biquad(vib * 0.6 + biquad(noise(dur), "lp", 300) * 0.3, "lp", 1200), 0.7)
+
+
+if __name__ == "__main__":
+    print("Synthesising sound effects ->", OUT)
+    make_claps()
+    make_chalk()
+    make_eraser()
+    make_bell()
+    make_scream()
+    make_stingers()
+    make_breath()
+    make_thunder()
+    make_rain()
+    make_whisper_bed()
+    make_music_box()
+    make_misc()
+    print("done")
