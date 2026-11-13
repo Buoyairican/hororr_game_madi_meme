@@ -128,6 +128,9 @@ TEACHER = {
     "t_onehour": "One | more | hour.",
     "t_important": "This | is | very | important.",
     "t_hale": "Mister Hale | is | resting.",
+    "t_nohale": "There is | no | Mister Hale.",
+    "t_readnote": "He is not | a real | teacher.",
+    "t_dark": "Do not | be afraid | of the dark.",
 }
 SUBS = {
     "t_iam": "I am... your... teacher.",
@@ -230,6 +233,9 @@ SUBS = {
     "t_onehour": "One... more... hour.",
     "t_important": "This... is... very... important.",
     "t_hale": "Mister Hale... is... resting.",
+    "t_nohale": "There is... no... Mister Hale.",
+    "t_readnote": "\u201cHe is not... a real... teacher.\u201d",
+    "t_dark": "Do not... be afraid... of the dark.",
 }
 TEACHER_WHISPER = {
     "tw_turn": ("Turn | around.", "Turn... around."),
@@ -273,6 +279,10 @@ SAM = {
     "s_hungry": "I'm so hungry. When is lunch?",
     "s_ready": "Get ready. When the bell rings, we go.",
     "s_close": "That was close.",
+    "s_note": "Pass this to Nora. Quick, while he's writing.",
+    "s_chair": "Kevin's chair... it just moved.",
+    "s_dark": "I can't see anything.",
+    "s_noted": "Bro. He read it out loud.",
 }
 NORA = {
     "n_free": "Maybe we get a free period.",
@@ -310,6 +320,17 @@ NORA = {
     "n_almost": "Almost there. Just a little longer.",
     "n_quietone": "Don't be too quiet. He likes the quiet ones.",
     "n_poor": "Poor kid.",
+    "n_pa": "Mister Hale is in the office?",
+    "n_gotnote": "Got it.",
+    "n_closed": "Nobody in the building? Then who is teaching us?",
+    "n_dark": "Don't make a sound.",
+}
+# The school PA speaker: (text, subtitle)
+PA = {
+    "pa_hale": ("Attention, please. Mister Hale, please report to the main office. | Mister Hale, to the main office.",
+                "Attention, please. Mister Hale, please report to the main office. Mister Hale, to the main office."),
+    "pa_closed": ("Attention, students. | The school is closed today. | There is nobody in the building.",
+                  "Attention, students. The school is closed today. There is nobody in the building."),
 }
 # Lines spoken aloud: (voice, speed, espeak pitch, rubberband pitch, who, text)
 ALOUD = {
@@ -588,6 +609,20 @@ for base, (text, sub, extra) in MEMES.items():
         ffmpeg_proc(raw, os.path.join(OUT, key + ".mp3"),
                     f"rubberband=pitch={r}:tempo={tempo}:formant=preserved,{extra}highpass=f=110,lowpass=f=9000,"
                     "acompressor=threshold=-22dB:ratio=4,loudnorm=I=-14:TP=-1.2", "64k")
+
+for key, (text, sub) in PA.items():
+    manifest[key] = {"who": "pa", "text": sub}
+    if not need(key):
+        continue
+    x = speak("mb-us1", 150, 46, text, gap=0.5)
+    raw = os.path.join(TMP, key + "_raw.wav")
+    rng = np.random.default_rng(len(key))
+    hiss = rng.standard_normal(len(x)).astype(np.float32) * 0.03
+    write_wav(raw, norm(x) * 0.9 + hiss, SR)
+    # old ceiling speaker: narrow band, a bit of crunch, the empty hallway behind it
+    ffmpeg_proc(raw, os.path.join(OUT, key + ".mp3"),
+                "highpass=f=450,lowpass=f=3200,acrusher=bits=8:mix=0.25:mode=log,"
+                "aecho=0.8:0.5:90|160:0.35|0.2,loudnorm=I=-16:TP=-1.5", "48k")
 
 for key in manifest:
     manifest[key]["dur"] = duration(os.path.join(OUT, key + ".mp3"))

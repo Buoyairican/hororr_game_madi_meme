@@ -89,7 +89,7 @@ kbd { border: 1px solid var(--line); padding: 0 5px; border-radius: 3px; font-fa
 #anger-fill { height: 100%; width: 0%; background: var(--blood-hi); transition: width .15s; }
 #crosshair { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: rgba(230,230,220,.55); }
 #prompt { position: absolute; left: 50%; top: calc(50% + 26px); transform: translateX(-50%); font-size: 14px; color: var(--ink); text-shadow: 0 0 6px #000, 0 0 2px #000; white-space: nowrap; letter-spacing: 1px; }
-#hint { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); width: min(560px, 88vw); text-align: center; font-size: 15px; line-height: 1.5; color: #e9e3cf; text-shadow: 0 0 8px #000, 0 0 3px #000; opacity: 0; transition: opacity .6s; }
+#hint { position: absolute; right: max(18px, env(safe-area-inset-right)); top: 48px; width: min(400px, 44vw); text-align: right; font-size: 15px; line-height: 1.5; color: #e9e3cf; text-shadow: 0 0 8px #000, 0 0 3px #000; opacity: 0; transition: opacity .6s; }
 #hint.show { opacity: 1; }
 #subtitle { position: absolute; left: 50%; bottom: calc(max(22px, env(safe-area-inset-bottom)) + 70px); transform: translateX(-50%); width: min(720px, 80vw); text-align: center;
   font-size: clamp(15px, 2.3vw, 20px); line-height: 1.4; text-shadow: 0 0 6px #000, 0 0 3px #000, 0 0 1px #000; }
@@ -138,12 +138,23 @@ body:not(.touch) .touch-only { display: none !important; }
 }
 
 /* ---------- v2: Madi Class ---------- */
-#hud-left { display: flex; flex-direction: column; gap: 8px; max-width: 34vw; }
-#objectives { list-style: none; margin: 0; padding: 0; font-size: 12px; letter-spacing: 0.5px; line-height: 1.45; color: var(--ink); text-shadow: 0 0 5px #000, 0 0 2px #000; }
-#objectives li { opacity: 0.9; }
-#objectives li::before { content: "☐ "; color: var(--dim); }
-#objectives li.done { opacity: 0.45; text-decoration: line-through; }
-#objectives li.done::before { content: "☑ "; color: #9fd08a; }
+#hud-left { display: flex; flex-direction: column; gap: 8px; max-width: min(460px, 42vw); }
+/* the task list: big and easy to read */
+#objectives { list-style: none; margin: 0; padding: 10px 14px 10px 12px; font-size: 18px; letter-spacing: 0.3px; line-height: 1.4; color: #f2ecd8;
+  background: rgba(6, 8, 7, 0.62); border-left: 3px solid var(--blood-hi); text-shadow: 0 0 4px #000; }
+#objectives:empty { display: none; }
+#objectives::before { content: "TASKS"; display: block; font-size: 12px; letter-spacing: 4px; color: var(--dim); margin-bottom: 4px; }
+#objectives li { padding: 3px 0 3px 28px; position: relative; }
+#objectives li::before { content: "☐"; position: absolute; left: 0; top: 2px; color: #f0c27a; font-size: 1.05em; }
+#objectives li.done { opacity: 0.5; text-decoration: line-through; }
+#objectives li.done::before { content: "☑"; color: #9fd08a; }
+#objectives li.new { animation: task-new 2.4s ease-out; }
+@keyframes task-new { 0% { background: rgba(240, 194, 122, 0.45); } 100% { background: transparent; } }
+#subtitle .pa { color: #cfe3d8; font-family: "Special Elite", monospace; font-size: 0.92em; }
+.diff-row { display: flex; gap: 6px; justify-content: center; margin-top: 4px; }
+.diff-row button { min-width: 0; margin: 0; padding: 9px 18px; font-size: 14px; letter-spacing: 2px; opacity: 0.55; }
+.diff-row button.on { opacity: 1; border-color: var(--blood-hi); background: rgba(90, 14, 12, 0.6); color: #fff; }
+#diff-note { font-size: 13px; color: var(--dim); margin: 6px 0 2px; min-height: 1.2em; }
 #eye-label { font-size: 10px; letter-spacing: 2px; min-height: 12px; color: var(--dim); }
 #eye-slash { stroke: transparent; stroke-width: 3; }
 #eye.half { opacity: 1; }
@@ -190,14 +201,15 @@ body.touch .desk-only { display: none !important; }
 #chapter-list button .t { color: var(--dim); }
 #chapter-list button:disabled { opacity: 0.35; cursor: default; border-color: var(--line); background: rgba(20, 22, 20, 0.5); color: var(--ink); }
 @media (max-height: 500px) {
-  #objectives { font-size: 11px; }
+  #objectives { font-size: 14px; padding: 6px 10px 6px 8px; }
+  #objectives li { padding-left: 22px; }
   .tbtn.small { width: 54px; height: 54px; }
   #choices { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 70px); padding: 8px 10px; }
   #choices-list button { padding: 7px 10px; font-size: 14px; }
   #echo-cue { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 80px); }
 }
 @media (max-height: 500px) {
-  #hint { top: 36%; width: min(520px, 56vw); font-size: 14px; }
+  #hint { top: 52px; width: min(360px, 44vw); font-size: 13px; }
 }
 @media (max-height: 500px) {
   #choices { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 100px); }

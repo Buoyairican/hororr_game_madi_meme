@@ -180,7 +180,7 @@ export class MP {
     this.hook('lobby');
   }
 
-  sendLobby() { this.net.broadcast({ t: 'lobby', players: this.lobby, code: this.code }); }
+  sendLobby() { this.net.broadcast({ t: 'lobby', players: this.lobby, code: this.code, diff: this.difficulty || 'easy' }); }
 
   async makeAvatar(p) {
     const model = await instantiate(AVATAR_MODELS[p.seat] || 'kid_a');
@@ -316,7 +316,7 @@ export class MP {
         g.seatPlayer(g.me, m.seat);
         break;
       case 'full': if (CURRENT === this) this.hook('lost', 'That class is full (4 players max).'); break;
-      case 'lobby': this.lobby = m.players || []; this.syncPlayers(); this.hook('lobby'); break;
+      case 'lobby': this.lobby = m.players || []; this.difficulty = m.diff === 'hard' ? 'hard' : 'easy'; this.syncPlayers(); this.hook('lobby'); break;
       case 'start': this.startGuest(m); break;
       case 'b': for (const e of m.e) this.apply(e); break;
       case 'bye': if (CURRENT === this) this.hook('lost', 'The host closed the class.'); break;
