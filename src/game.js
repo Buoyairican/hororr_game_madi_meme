@@ -21,7 +21,7 @@ const BUZZ_GAP = [[44, 60], [38, 54], [34, 48], [30, 44]];
 const STEPS = ['step_1', 'step_2', 'step_3', 'step_4'];
 const FRONT = new THREE.Vector3(0, 1.2, -1.0); // roughly where the class is, for "looking at the class"
 // walking between the desks: aisles run front to back; the walkways are in front of and behind the rows
-const AISLES = [-2.25, -0.75, 0.75, 2.25];
+const AISLES = [-3.75, -2.25, -0.75, 0.75, 2.25, 3.75]; // between the desk columns, plus along both walls
 const FRONT_Z = -3.0, BACK_Z = 4.3;
 const region = (z) => (z <= -2.75 ? 0 : z >= 3.95 ? 2 : 1); // 0 front, 1 among the desks, 2 back
 const nearestAisle = (x) => AISLES.reduce((b, a) => (Math.abs(a - x) < Math.abs(b - x) ? a : b), AISLES[0]);
@@ -740,6 +740,7 @@ export class Game {
   pickChoice(i, p = this.me) {
     const c = p.local ? this.choice : p.choice;
     if (!c) return;
+    if (!Number.isInteger(i) || i >= c.labels.length) i = -1; // nothing odd from the network gets through
     if (p.local) { this.choice = null; this.ui.closeChoices(); } else { p.choice = null; if (this.mp) this.mp.closeChoice(p); }
     c.onPick(i);
   }

@@ -15,7 +15,11 @@ import { MP, cleanName } from './mp.js';
 import { cleanCode } from './net.js';
 
 const ui = new UI();
-window.addEventListener('error', (e) => ui.error('Something broke: ' + e.message));
+window.addEventListener('error', (e) => {
+  // a hiccup inside the network library (a bad packet from someone) must not stop the game
+  if (/peerjs/.test(e.filename || '')) { console.warn('network:', e.message); e.preventDefault(); return; }
+  ui.error('Something broke: ' + e.message);
+});
 window.addEventListener('unhandledrejection', (e) => ui.error('Something broke: ' + ((e.reason && e.reason.message) || e.reason)));
 
 const query = new URLSearchParams(location.search);

@@ -68,7 +68,7 @@ export class Net {
   }
 
   write(c, msg) {
-    if (!c || !c.open) return;
+    if (!c || !c.open || !msg || typeof msg !== 'object') return;
     try {
       const s = JSON.stringify(msg);
       if (s.length <= PART) { c.send(msg); return; }
@@ -104,8 +104,14 @@ export class Net {
     this.role = 'guest'; this.code = code;
     return new Promise((res, rej) => {
       const c = this.peer.connect(PREFIX + code, { reliable: true, serialization: 'json' });
-      const fail = setTimeout(() => rej(new Error('no class with that code (or it is full)')), 15000);
-      this.peer.on('error', (e) => { if (e.type === 'peer-unavailable') { clearTimeout(fail); rej(new Error('no class with that code')); } });
+      const blocked = 'could not connect to the host. One of your networks may block game connections: try again, or use another Wi-Fi or a phone hotspot';
+      const fail = setTimeout(() => rej(new Error(blocked)), 20000);
+      this.peer.on('error', (e) => {
+        clearTimeout(fail);
+        if (e.type === 'peer-unavailable') rej(new Error('no class with that code. Check the code, and that the host still has the class open'));
+        else rej(new Error(blocked));
+      });
+      c.on('error', () => { clearTimeout(fail); rej(new Error(blocked)); });
       c.on('open', () => {
         clearTimeout(fail);
         this.conns.set('host', c);
