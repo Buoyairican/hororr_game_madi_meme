@@ -1,445 +1,213 @@
-// The substitute teacher: a tall suited figure whose head is built from the
-// photo silhouette with the face projected onto it. Arms use two-bone IK so
-// the hands can write on the board, clap, grip the player's desk, etc.
+// Mr. Madi: a tall suited body (rigged GLB) with the photo head on top.
+// Arms and legs are driven by two-bone IK. He really walks: feet plant and
+// step, but his hips never bob, so he seems to slide across the room.
 import * as THREE from 'three';
-import { table, smoothstep, clamp, damp, dampAngle, rand, lerp } from './util.js';
+import { clamp, damp, dampAngle, rand } from './util.js';
+import { buildHead } from './madi_head.js';
 
-const S = 0.62 / 765;      // metres per photo pixel
-const CX = 384;            // photo x of the face centre
-const Y_BOTTOM = 690;      // photo y at the bottom of the jaw (local y = 0)
-const MOUTH = 572;         // jaw split line
-const TEX_X0 = 84, TEX_Y0 = -150, TEX_W = 600, TEX_H = 900;
-
-// half-width of the head (photo px) without the ears
-const PROFILE = [[-75, 0], [-71, 34], [-64, 62], [-52, 90], [-36, 115], [-18, 133], [0, 146], [20, 163], [40, 181], [60, 195], [80, 204],
-  [100, 208], [130, 206], [160, 204], [190, 204], [220, 206], [250, 210], [280, 214], [310, 217], [340, 220], [360, 220], [380, 215],
-  [400, 205], [420, 192], [440, 183], [460, 176], [480, 171], [500, 167], [520, 165], [540, 163], [572, 162], [600, 165], [640, 169], [690, 172]];
-const DEPTH = [[-75, 0.95], [150, 0.97], [300, 0.9], [450, 0.82], [700, 0.8]];
-const NOSE_AMP = [[200, 0], [240, 7], [300, 14], [360, 21], [420, 29], [480, 39], [515, 43], [540, 35], [558, 14], [572, 0]];
-const NOSE_SIG = [[200, 18], [300, 24], [400, 36], [480, 55], [540, 70], [572, 70]];
-const EYES = [[293, 160], [462, 155]];
-
-function relief(x, y) {
-  let z = 0;
-  const a = table(NOSE_AMP, y);
-  if (a > 0) { const s = table(NOSE_SIG, y); z += a * Math.exp(-Math.pow((x - 381) / s, 2)); }
-  for (const [ex, ey] of EYES) z -= 16 * Math.exp(-((x - ex) ** 2 + (y - ey) ** 2) / (2 * 36 * 36));
-  z += 7 * Math.exp(-Math.pow((y - 98) / 22, 2)) * Math.exp(-Math.pow((x - CX) / 150, 4));
-  for (const sgn of [-1, 1]) z += 10 * Math.exp(-Math.pow((x - CX - sgn * 140) / 50, 2) - Math.pow((y - 330) / 70, 2));
-  z += 8 * Math.exp(-Math.pow((y - 553) / 13, 2) - Math.pow((x - CX) / 110, 2));
-  z += 7 * Math.exp(-Math.pow((y - 590) / 12, 2) - Math.pow((x - CX) / 100, 2));
-  return z;
-}
-
-const NF = 2.5; // front superellipse exponent (flatter face)
-function surfaceZpx(xRel, y) {
-  const w = table(PROFILE, y), d = w * table(DEPTH, y);
-  const sx = clamp(Math.abs(xRel) / w, 0, 1);
-  const sinT = Math.pow(sx, NF / 2);
-  const cosT = Math.sqrt(Math.max(0, 1 - sinT * sinT));
-  return d * Math.pow(cosT, 2 / NF) + relief(xRel + CX, y) * smoothstep(0.15, 0.6, cosT);
-}
-
-const uvOf = (xRel, y) => [(xRel + CX - TEX_X0) / TEX_W, 1 - (y - TEX_Y0) / TEX_H];
-
-function headGrid(y0, y1, step, seg = 56) {
-  const ys = [];
-  for (let y = y0; y < y1; y += step) ys.push(y);
-  ys.push(y1);
-  const pos = [], uv = [], col = [], idx = [];
-  for (const y of ys) {
-    const w = table(PROFILE, y), d = w * table(DEPTH, y);
-    for (let i = 0; i <= seg; i++) {
-      const th = -Math.PI + (2 * Math.PI * i) / seg;
-      const sx = Math.sin(th), cz = Math.cos(th);
-      const n = cz > 0 ? NF : 2.0;
-      const side = i < seg / 2 ? -1 : 1;
-      const xRel = w * Math.sign(sx) * Math.pow(Math.abs(sx), 2 / n);
-      let zpx = d * Math.sign(cz) * Math.pow(Math.abs(cz), 2 / n);
-      if (cz > 0) zpx += relief(xRel + CX, y) * smoothstep(0.15, 0.6, cz);
-      pos.push(xRel * S, (Y_BOTTOM - y) * S, zpx * S);
-      const ux = cz >= 0 ? xRel : side * (w + 8);
-      uv.push(...uvOf(ux, y));
-      const back = smoothstep(0.1, -0.5, cz);
-      const hair = 1 - smoothstep(380, 470, y);
-      const crown = 1 - smoothstep(-45, 10, y);
-      const k = (1 - back * hair * 0.93) * (1 - crown * 0.85);
-      col.push(k, k, k);
-    }
-  }
-  const rowLen = seg + 1;
-  for (let r = 0; r < ys.length - 1; r++) {
-    for (let i = 0; i < seg; i++) {
-      const a = r * rowLen + i, b = a + rowLen;
-      idx.push(a, b, b + 1, a, b + 1, a + 1);
-    }
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
-}
-
-function eyeballGeo(cx, cy, r) {
-  const g = new THREE.SphereGeometry(r, 20, 16);
-  g.rotateX(Math.PI / 2); // pole forward so the front is smooth
-  const p = g.attributes.position, uv = g.attributes.uv;
-  const ox = (cx - CX) * S, oy = (Y_BOTTOM - cy) * S;
-  for (let i = 0; i < p.count; i++) {
-    const xRel = (ox + p.getX(i)) / S, y = Y_BOTTOM - (oy + p.getY(i)) / S;
-    const [u, v] = uvOf(xRel, y);
-    uv.setXY(i, u, v);
-  }
-  return g;
-}
-
-// ------------------------------------------------------------ IK helpers
+const UP = new THREE.Vector3(0, 1, 0);
+const XAXIS = new THREE.Vector3(1, 0, 0);
 const _S = new THREE.Vector3(), _E = new THREE.Vector3(), _T = new THREE.Vector3(), _dir = new THREE.Vector3();
 const _pole = new THREE.Vector3(), _u = new THREE.Vector3(), _f = new THREE.Vector3(), _n = new THREE.Vector3();
 const _x = new THREE.Vector3(), _y = new THREE.Vector3(), _z = new THREE.Vector3(), _w = new THREE.Vector3();
-const _m4 = new THREE.Matrix4(), _qa = new THREE.Quaternion(), _qp = new THREE.Quaternion();
-const _v = new THREE.Vector3(), _v2 = new THREE.Vector3();
+const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _qp = new THREE.Quaternion();
+const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3();
 const _eul = new THREE.Euler();
-const UP = new THREE.Vector3(0, 1, 0);
 
-function basisQuat(X, Y, out) {
-  _y.copy(Y).normalize();
-  _z.crossVectors(X, _y).normalize();
-  _x.crossVectors(_y, _z).normalize();
+/** rotation whose local +y is dir and local +x is n (made perpendicular to dir) */
+function frameQuat(dir, n, out) {
+  _y.copy(dir).normalize();
+  _x.copy(n).addScaledVector(_y, -n.dot(_y));
+  if (_x.lengthSq() < 1e-10) { _x.set(1, 0, 0).addScaledVector(_y, -_y.x); if (_x.lengthSq() < 1e-6) _x.set(0, 0, 1); }
+  _x.normalize();
+  _z.crossVectors(_x, _y);
   _m4.makeBasis(_x, _y, _z);
   return out.setFromRotationMatrix(_m4);
 }
 function setWorldQuat(obj, q) {
   obj.parent.getWorldQuaternion(_qp);
   obj.quaternion.copy(_qp.invert().multiply(q));
-  obj.updateMatrixWorld(true);
 }
 
-function solveArm(arm, target, pole, aim) {
-  const { shoulder, elbow, wrist, L1, L2 } = arm;
-  shoulder.parent.updateWorldMatrix(true, false);
-  _S.copy(shoulder.position).applyMatrix4(shoulder.parent.matrixWorld);
-  _dir.subVectors(target, _S);
-  let d = _dir.length();
-  _dir.divideScalar(d || 1);
-  d = clamp(d, 0.06, L1 + L2 - 0.003);
-  const a = Math.acos(clamp((L1 * L1 + d * d - L2 * L2) / (2 * L1 * d), -1, 1));
-  _pole.subVectors(pole, _S);
-  _pole.addScaledVector(_dir, -_pole.dot(_dir));
-  if (_pole.lengthSq() < 1e-8) _pole.set(0, -1, 0);
-  _pole.normalize();
-  _E.copy(_S).addScaledVector(_dir, Math.cos(a) * L1).addScaledVector(_pole, Math.sin(a) * L1);
-  _T.copy(_S).addScaledVector(_dir, d);
-  _u.subVectors(_E, _S).normalize();
-  _f.subVectors(_T, _E).normalize();
-  _n.crossVectors(_u, _f);
-  if (_n.lengthSq() < 1e-8) _n.crossVectors(_u, _pole);
-  _n.normalize();
-  setWorldQuat(shoulder, basisQuat(_n, _v.copy(_u).negate(), _qa));
-  setWorldQuat(elbow, basisQuat(_n, _v.copy(_f).negate(), _qa));
-  if (aim) {
-    wrist.getWorldPosition(_w);
-    _v2.subVectors(aim, _w).normalize();
-    setWorldQuat(wrist, basisQuat(_n, _v.copy(_v2).negate(), _qa));
-  } else {
-    wrist.quaternion.setFromEuler(arm.restWrist);
-  }
-}
-
-// ------------------------------------------------------------ Teacher
 export class Teacher {
-  constructor(faceTex, eyesTex) {
+  constructor(model, faceTex, eyesTex) {
     const root = (this.root = new THREE.Group());
-    root.name = 'teacher';
-    const suit = new THREE.MeshStandardMaterial({ color: 0x15171d, roughness: 0.82 });
-    const shirt = new THREE.MeshStandardMaterial({ color: 0xc4ccd4, roughness: 0.75 });
-    const tie = new THREE.MeshStandardMaterial({ color: 0x2a0b0b, roughness: 0.6 });
-    const skin = (this.skinMat = new THREE.MeshStandardMaterial({ color: 0x7a5232, roughness: 0.55 }));
-    const shoe = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.25, metalness: 0.2 });
-    // the face faintly self-illuminates so it always reads in the dark
-    this.faceMat = new THREE.MeshStandardMaterial({
-      map: faceTex, vertexColors: true, roughness: 0.52, metalness: 0,
-      emissive: 0xffffff, emissiveMap: faceTex, emissiveIntensity: 0.08,
-    });
-    const eyeMat = (this.eyeMat = new THREE.MeshStandardMaterial({ map: faceTex, roughness: 0.12, metalness: 0.15, emissive: 0xffffff, emissiveMap: eyesTex, emissiveIntensity: 0.05 }));
-    const cast = (m) => { m.castShadow = true; return m; };
+    root.name = 'madi';
+    root.add(model.scene);
+    const B = (this.bones = model.bones);
+    model.scene.updateMatrixWorld(true);
+    const rest = (this.rest = {});
+    for (const k in B) rest[k] = B[k].getWorldPosition(new THREE.Vector3());
+    const ex = model.extras;
+    const V3 = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+    for (const m of Object.values(model.meshes)) m.castShadow = true;
+    this.bodyMat = model.meshes.body.material;
 
-    // legs pivot at the hip joints so he can splay them like a spider
-    this.legs = [];
-    for (const sx of [-0.12, 0.12]) {
-      const pivot = new THREE.Group();
-      pivot.position.set(sx, 1.02, 0);
-      root.add(pivot);
-      const leg = cast(new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.066, 0.98, 12), suit));
-      leg.position.set(0, -0.47, 0);
-      pivot.add(leg);
-      const sh = cast(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.31), shoe));
-      sh.position.set(0, -0.98, 0.05);
-      pivot.add(sh);
-      this.legs.push({ pivot, side: Math.sign(sx) });
-    }
-    // hips (pivot for leaning)
-    const hips = (this.hips = new THREE.Group());
-    hips.position.y = 1.02;
-    root.add(hips);
-    const pelvis = cast(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.18, 0.25), suit));
-    hips.add(pelvis);
-    const torsoGeo = new THREE.CylinderGeometry(0.3, 0.21, 0.62, 22);
-    torsoGeo.scale(1, 1, 0.52);
-    const torso = cast(new THREE.Mesh(torsoGeo, suit));
-    torso.position.y = 0.35;
-    hips.add(torso);
-    for (const sx of [-0.27, 0.27]) {
-      const cap = cast(new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), suit));
-      cap.scale.set(1.1, 0.8, 0.9);
-      cap.position.set(sx, 0.6, 0);
-      hips.add(cap);
-    }
-    // shirt V, tie, collar
-    const vShape = new THREE.Shape();
-    vShape.moveTo(-0.095, 0.66); vShape.lineTo(0.095, 0.66); vShape.lineTo(0, 0.34); vShape.closePath();
-    const shirtV = new THREE.Mesh(new THREE.ShapeGeometry(vShape), shirt);
-    shirtV.position.z = 0.152; shirtV.rotation.x = -0.08;
-    hips.add(shirtV);
-    const tieM = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.27, 0.006), tie);
-    tieM.position.set(0, 0.5, 0.158); tieM.rotation.x = -0.08;
-    hips.add(tieM);
-    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.118, 0.14, 0.07, 16, 1, true), shirt);
-    collar.material = shirt.clone(); collar.material.side = THREE.DoubleSide;
-    collar.position.set(0, 0.665, -0.01); collar.scale.z = 0.9;
-    hips.add(collar);
-    // neck
-    const neck = (this.neck = cast(new THREE.Mesh(new THREE.CylinderGeometry(0.103, 0.11, 0.2, 14), skin)));
-    neck.position.set(0, 0.72, -0.02); neck.scale.z = 0.85;
-    hips.add(neck);
-
-    // head
-    const headPivot = (this.headPivot = new THREE.Group());
-    headPivot.position.set(0, 0.73, 0);
-    headPivot.rotation.order = 'YXZ';
-    hips.add(headPivot);
-    const head = (this.head = new THREE.Group());
-    head.position.z = 0.0;
-    headPivot.add(head);
-    const upper = cast(new THREE.Mesh(headGrid(-75, MOUTH, 7), this.faceMat));
-    head.add(upper);
-    const jawY = (Y_BOTTOM - MOUTH) * S;
-    const jawPivot = (this.jawPivot = new THREE.Group());
-    jawPivot.position.set(0, jawY, -0.08);
-    head.add(jawPivot);
-    const jaw = cast(new THREE.Mesh(headGrid(MOUTH, Y_BOTTOM, 7), this.faceMat));
-    jaw.position.set(0, -jawY, 0.08);
-    jawPivot.add(jaw);
-    // mouth cavity + teeth (only seen when the jaw drops)
-    const cavity = new THREE.Mesh(new THREE.SphereGeometry(0.09, 14, 10), new THREE.MeshBasicMaterial({ color: 0x140303 }));
-    cavity.scale.set(1.3, 0.95, 0.75);
-    cavity.position.set(0, jawY - 0.01, 0.0);
-    head.add(cavity);
-    const toothMat = new THREE.MeshStandardMaterial({ color: 0xcfc59c, roughness: 0.4, emissive: 0x2a2416 });
-    const toothGeo = new THREE.BoxGeometry(0.013, 0.026, 0.01);
-    for (let i = 0; i < 11; i++) {
-      const xr = -0.068 + i * 0.0136;
-      const zs = surfaceZpx(xr / S, MOUTH) * S - 0.016;
-      const up = new THREE.Mesh(toothGeo, toothMat);
-      up.position.set(xr, jawY + 0.002, zs); up.scale.y = rand(0.8, 1.5); up.rotation.z = rand(-0.2, 0.2);
-      head.add(up);
-      // jawPivot space = head space shifted by (0, -jawY, +0.08)
-      const lo = new THREE.Mesh(toothGeo, toothMat);
-      lo.position.set(xr + 0.006, -0.012, zs + 0.08 - 0.004); lo.scale.y = rand(0.7, 1.3); lo.rotation.z = rand(-0.25, 0.25);
-      jawPivot.add(lo);
-    }
-    // eyeballs
-    for (const [ex, ey] of EYES) {
-      const r = 0.036;
-      const g = eyeballGeo(ex, ey, r);
-      const e = new THREE.Mesh(g, eyeMat);
-      const zs = surfaceZpx(ex - CX, ey) * S;
-      e.position.set((ex - CX) * S, (Y_BOTTOM - ey) * S, zs - r * 0.55);
-      head.add(e);
-    }
-    // ears
-    for (const sgn of [-1, 1]) {
-      const ear = cast(new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), new THREE.MeshStandardMaterial({ color: 0x2e1b0f, roughness: 0.7 })));
-      ear.scale.set(0.016, 0.046, 0.032);
-      ear.position.set(sgn * (204 * S + 0.002), (Y_BOTTOM - 190) * S, -0.03);
-      ear.rotation.y = sgn * 0.3;
-      head.add(ear);
-    }
-
-    // arms
-    const L1 = 0.36, L2 = 0.33;
-    this.arms = {};
-    for (const [key, sx] of [['L', 0.3], ['R', -0.3]]) {
-      const shoulder = new THREE.Group();
-      shoulder.position.set(sx, 0.58, 0);
-      hips.add(shoulder);
-      const up = cast(new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.052, L1, 12), suit));
-      up.position.y = -L1 / 2;
-      shoulder.add(up);
-      const elbow = new THREE.Group();
-      elbow.position.y = -L1;
-      shoulder.add(elbow);
-      const fore = cast(new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.045, L2, 12), suit));
-      fore.position.y = -L2 / 2;
-      elbow.add(fore);
-      const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.047, 0.047, 0.03, 12), shirt);
-      cuff.position.y = -L2 + 0.012;
-      elbow.add(cuff);
-      const wrist = new THREE.Group();
-      wrist.position.y = -L2;
-      elbow.add(wrist);
-      const hand = this.makeHand(skin, key === 'R');
-      wrist.add(hand);
-      this.arms[key] = {
-        shoulder, elbow, wrist, L1, L2, side: Math.sign(sx),
-        target: new THREE.Vector3(), desired: new THREE.Vector3(), pole: new THREE.Vector3(), aim: null, k: 6,
-        restWrist: new THREE.Euler(0.1, 0, 0), init: false,
+    const limb = (a, b, c, tip, pole0, side) => {
+      const d0a = rest[b].clone().sub(rest[a]).normalize();
+      const d0b = rest[c].clone().sub(rest[b]).normalize();
+      const n0 = new THREE.Vector3().crossVectors(d0a, d0b);
+      if (n0.length() < 0.05) n0.crossVectors(pole0, d0a);
+      n0.normalize();
+      const d0c = tip.clone().sub(rest[c]).normalize();
+      return {
+        a: B[a], b: B[b], c: B[c], side, L1: rest[a].distanceTo(rest[b]), L2: rest[b].distanceTo(rest[c]),
+        fa: frameQuat(d0a, n0, new THREE.Quaternion()).invert(), fb: frameQuat(d0b, n0, new THREE.Quaternion()).invert(),
+        fc: frameQuat(d0c, n0, new THREE.Quaternion()).invert(),
+        target: new THREE.Vector3(), desired: new THREE.Vector3(), pole: new THREE.Vector3(), aim: null, twist: 0, k: 7, init: false,
       };
-    }
+    };
+    this.arms = {
+      L: limb('uarmL', 'farmL', 'handL', V3(ex.midL), new THREE.Vector3(0, 0, -1), 1),
+      R: limb('uarmR', 'farmR', 'handR', V3(ex.midR), new THREE.Vector3(0, 0, -1), -1),
+    };
+    this.legs = {
+      L: limb('thighL', 'shinL', 'footL', V3(ex.ankleL).add(new THREE.Vector3(0, 0, 0.2)), new THREE.Vector3(0, 0, 1), 1),
+      R: limb('thighR', 'shinR', 'footR', V3(ex.ankleR).add(new THREE.Vector3(0, 0, 0.2)), new THREE.Vector3(0, 0, 1), -1),
+    };
+    this.palm = { L: V3(ex.midL).sub(rest.handL).multiplyScalar(0.75), R: V3(ex.midR).sub(rest.handR).multiplyScalar(0.75) };
+    this.armLen = this.arms.L.L1 + this.arms.L.L2;
+    this.handLen = V3(ex.tipL).distanceTo(rest.handL);
+    this.hipW = Math.abs(rest.thighL.x);
+    this.ankleH = rest.footL.y;
+    this.shoulderY = rest.uarmL.y;
+    this.chestY = rest.chest.y + 0.12;
 
-    // ---------- animation state ----------
+    // ---- head, neck, chalk
+    const H = (this.headParts = buildHead(faceTex, eyesTex));
+    this.faceMat = H.faceMat; this.eyeMat = H.eyeMat; this.lensMat = H.lensMat; this.glasses = H.glasses;
+    const headPivot = (this.headPivot = new THREE.Group());
+    this.headBase = V3(ex.headBase).sub(rest.chest).add(new THREE.Vector3(0, 0.03, -0.02));
+    headPivot.position.copy(this.headBase);
+    headPivot.rotation.order = 'YXZ';
+    B.chest.add(headPivot);
+    this.head = H.head;
+    headPivot.add(H.head);
+    this.jawPivot = H.jawPivot;
+    this.headCentre = H.eyeHeight;
+    const skin = new THREE.MeshStandardMaterial({ color: 0x70492c, roughness: 0.6 });
+    const neckBottom = rest.neck.y - rest.chest.y - 0.035;
+    this.neckLen = this.headBase.y + 0.09 - neckBottom;
+    const neck = (this.neck = new THREE.Mesh(new THREE.CylinderGeometry(0.112, 0.07, this.neckLen, 12, 1, true), skin));
+    neck.scale.z = 0.9;
+    neck.position.set(0, neckBottom + this.neckLen / 2, this.headBase.z + 0.005);
+    this.neckBottom = neckBottom;
+    neck.castShadow = true;
+    B.chest.add(neck);
+    const chalk = (this.chalk = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.075, 6), new THREE.MeshStandardMaterial({ color: 0xf2f0e6, emissive: 0x333333 })));
+    chalk.position.copy(V3(ex.tipR)).sub(rest.handR).multiplyScalar(0.8);
+    chalk.quaternion.setFromUnitVectors(UP, V3(ex.tipR).sub(rest.handR).normalize());
+    B.handR.add(chalk);
+
+    // ---- feet
+    this.feet = [this.legs.L, this.legs.R].map((leg) => ({ leg, side: leg.side, pos: new THREE.Vector3(), from: new THREE.Vector3(), swing: -1, lift: 0 }));
+    this.onStep = null;
+
+    // ---- animation state
     this.pos = root.position;
     this.facing = 0;            // body yaw; 0 = facing +z (toward the class)
     this.facingTarget = 0;
     this.turnSpeed = 6;
     this.moveTarget = null;
-    this.moveSpeed = 2.5;
+    this.moveSpeed = 1;
     this.vel = new THREE.Vector3();
-    this.lookTarget = null;     // world Vector3 or null
+    this.lookTarget = null;
     this.lookSpeed = 6;
     this.headYaw = 0; this.headPitch = 0; this.headRoll = 0;
     this.rollTarget = 0;
     this.lean = 0; this.leanTarget = 0;
-    this.spread = 0; this.spreadTarget = 0;
+    this.crouch = 0; this.crouchTarget = 0;     // metres the hips sink
+    this.stance = 0; this.stanceTarget = 0;     // extra foot spread
     this.stretch = 0; this.stretchTarget = 0;
     this.jaw = 0; this.jawTarget = 0;
-    this.pose = 'rest';
-    this.poseData = {};
-    this.twitch = 0;
-    this.jitter = 0;            // violent head shake (jumpscare)
+    this.talk = 0;                              // 0..1 voice loudness, moves the jaw
+    this.pose = 'rest'; this.poseData = {};
+    this.twitch = 0; this.jitter = 0;
     this.clap = null;
-    this.eyeGlow = 0.05;
-    this.faceGlow = 0.08;
+    this.eyeGlow = 0.12; this.faceGlow = 0.08; this.lensGlow = 0;
+    this.glassesOn = true;
     this.time = 0;
+    this.place(0, 0, 0);
   }
 
-  makeHand(skin, holdsChalk) {
-    const hand = new THREE.Group();
-    const palm = new THREE.Mesh(new THREE.BoxGeometry(0.082, 0.1, 0.03), skin);
-    palm.position.y = -0.05;
-    palm.castShadow = true;
-    hand.add(palm);
-    const fg = new THREE.CylinderGeometry(0.0085, 0.007, 1, 6);
-    for (let i = 0; i < 4; i++) {
-      const len = [0.085, 0.1, 0.095, 0.075][i];
-      const f = new THREE.Mesh(fg, skin);
-      f.scale.y = len;
-      const pivot = new THREE.Group();
-      pivot.position.set(-0.03 + i * 0.02, -0.1, 0);
-      pivot.rotation.x = 0.22 + i * 0.03;
-      f.position.y = -len / 2;
-      pivot.add(f);
-      hand.add(pivot);
-    }
-    const th = new THREE.Mesh(fg, skin);
-    th.scale.y = 0.065;
-    const tp = new THREE.Group();
-    tp.position.set(holdsChalk ? -0.045 : 0.045, -0.035, 0.01);
-    tp.rotation.set(0.5, 0, holdsChalk ? -0.6 : 0.6);
-    th.position.y = -0.0325;
-    tp.add(th);
-    hand.add(tp);
-    if (holdsChalk) {
-      const chalk = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.07, 6), new THREE.MeshStandardMaterial({ color: 0xf2f0e6, emissive: 0x222222 }));
-      chalk.position.set(-0.012, -0.15, 0.012);
-      chalk.rotation.x = 0.3;
-      hand.add(chalk);
-      this.chalk = chalk;
-    }
-    return hand;
-  }
+  // ------------------------------------------------------------ queries
+  /** world position of a palm */
+  handPos(key, out = new THREE.Vector3()) { return this.arms[key].c.localToWorld(out.copy(this.palm[key])); }
+  headWorld(out = new THREE.Vector3()) { return this.head.localToWorld(out.set(0, this.headCentre, 0.12)); }
+  forward(out = new THREE.Vector3()) { this.head.updateWorldMatrix(true, false); return out.set(0, 0, 1).transformDirection(this.head.matrixWorld); }
+  local(x, y, z, out) { return this.root.localToWorld(out.set(x, y, z)); }
 
-  /** world position of a hand (wrist + a bit) */
-  handPos(key, out = new THREE.Vector3()) {
-    const w = this.arms[key].wrist;
-    return w.localToWorld(out.set(0, -0.08, 0));
-  }
-  headWorld(out = new THREE.Vector3()) { return this.head.localToWorld(out.set(0, 0.36, 0.12)); }
-  forward(out = new THREE.Vector3()) {
-    // direction the face is pointing (world)
-    this.head.updateWorldMatrix(true, false);
-    return out.set(0, 0, 1).transformDirection(this.head.matrixWorld);
-  }
-
+  // ------------------------------------------------------------ commands
   place(x, z, facing) {
-    this.pos.set(x, 0, z);
+    this.pos.set(x, this.pos.y, z);
     this.facing = this.facingTarget = facing;
     this.root.rotation.y = facing;
     this.moveTarget = null;
     this.vel.set(0, 0, 0);
     for (const k in this.arms) this.arms[k].init = false;
+    const c = Math.cos(facing), s = Math.sin(facing);
+    for (const f of this.feet) {
+      const w = f.side * (this.hipW + this.stance);
+      f.pos.set(x + c * w, 0, z - s * w); f.swing = -1; f.lift = 0;
+    }
   }
-
-  moveTo(x, z, speed = 2.5) { this.moveTarget = new THREE.Vector3(x, 0, z); this.moveSpeed = speed; }
+  moveTo(x, z, speed = 1) { this.moveTarget = new THREE.Vector3(x, 0, z); this.moveSpeed = speed; }
   get moving() { return !!this.moveTarget; }
   faceTo(yaw, speed = 6) { this.facingTarget = yaw; this.turnSpeed = speed; }
   facePoint(p, speed = 6) { this.faceTo(Math.atan2(p.x - this.pos.x, p.z - this.pos.z), speed); }
   lookAt(p, speed = 6) { this.lookTarget = p; this.lookSpeed = speed; }
   setPose(name, data = {}) { this.pose = name; this.poseData = data; }
+  startClap(count, interval, onClap) { this.clap = { left: count, interval, phase: Math.PI, onClap }; this.setPose('clap'); }
 
-  startClap(count, interval, onClap) {
-    this.clap = { left: count, interval, phase: Math.PI, onClap, done: false };
-    this.setPose('clap');
-  }
+  takeGlasses() { this.glassesOn = false; this.bones.handR.attach(this.glasses); this.glassesHeld = true; }
+  wearGlasses() { this.head.attach(this.glasses); this.glassesHeld = false; this.glassesOn = true; }
 
-  update(dt, ctx) {
+  // ------------------------------------------------------------ update
+  update(dt, ctx = {}) {
     this.time += dt;
-    const root = this.root;
-    // ---- locomotion: pure translation, no walking (he glides) ----
+    const root = this.root, B = this.bones;
+    // ---- locomotion
     if (this.moveTarget) {
       _v.subVectors(this.moveTarget, this.pos); _v.y = 0;
       const dist = _v.length();
-      if (dist < 0.02) { this.moveTarget = null; this.vel.set(0, 0, 0); }
+      if (dist < 0.03) { this.moveTarget = null; }
       else {
-        const sp = Math.min(this.moveSpeed, dist * 4.5);
+        const sp = Math.min(this.moveSpeed, dist * 3.2 + 0.08);
         _v.multiplyScalar(sp / dist);
-        this.vel.lerp(_v, 1 - Math.exp(-10 * dt));
+        this.vel.lerp(_v, 1 - Math.exp(-7 * dt));
         this.pos.addScaledVector(this.vel, dt);
       }
-    } else this.vel.multiplyScalar(Math.exp(-12 * dt));
+    }
+    if (!this.moveTarget) this.vel.multiplyScalar(Math.exp(-10 * dt));
     this.facing = dampAngle(this.facing, this.facingTarget, this.turnSpeed, dt);
     root.rotation.y = this.facing;
-    // lean slightly into motion, plus any pose lean
+    // ---- torso: lean, crouch (hips sink but never bob)
     const fwd = Math.sin(this.facing) * this.vel.x + Math.cos(this.facing) * this.vel.z;
-    this.lean = damp(this.lean, this.leanTarget + clamp(fwd * 0.03, -0.1, 0.12), 5, dt);
-    this.hips.rotation.x = this.lean;
-    this.spread = damp(this.spread, this.spreadTarget, 4, dt);
-    const hipH = 1.02 * Math.cos(this.spread);
-    this.hips.position.y = hipH;
-    for (const l of this.legs) { l.pivot.position.y = hipH; l.pivot.rotation.z = l.side * this.spread; }
-    // ---- neck stretch + jaw ----
+    this.lean = damp(this.lean, this.leanTarget + clamp(fwd * 0.025, -0.06, 0.1), 5, dt);
+    this.crouch = damp(this.crouch, this.crouchTarget, 4, dt);
+    this.stance = damp(this.stance, this.stanceTarget, 4, dt);
+    B.root.position.y = this.rest.root.y - 0.04 - this.crouch;
+    B.spine.rotation.x = this.lean * 0.5;
+    B.chest.rotation.x = this.lean * 0.5;
+    // ---- neck + jaw
     this.stretch = damp(this.stretch, this.stretchTarget, 1.6, dt);
-    this.headPivot.position.y = 0.73 + this.stretch;
-    this.neck.scale.y = (0.2 + this.stretch) / 0.2;
-    this.neck.position.y = 0.72 + this.stretch / 2;
-    this.jaw = damp(this.jaw, this.jawTarget, this.jawTarget > this.jaw ? 18 : 6, dt);
+    this.headPivot.position.y = this.headBase.y + this.stretch;
+    this.neck.scale.y = (this.neckLen + this.stretch) / this.neckLen;
+    this.neck.position.y = this.neckBottom + (this.neckLen + this.stretch) / 2;
+    const jt = Math.max(this.jawTarget, this.talk * 0.2);
+    this.jaw = damp(this.jaw, jt, jt > this.jaw ? 22 : 10, dt);
     this.jawPivot.rotation.x = this.jaw;
-    // ---- head look ----
-    // aim the face at the target with a world-upright orientation, then express
-    // it in the hips' frame (works even when he is folded over a desk)
+    // ---- head look: aim the face at the target with a world-upright head
     root.updateMatrixWorld(true);
     let yaw = 0, pitch = 0, rollL = 0;
     if (this.lookTarget) {
       this.headPivot.getWorldPosition(_v2);
-      _v2.y += 0.43;
+      _v2.y += this.headCentre;
       if (_v2.distanceToSquared(this.lookTarget) > 1e-4) {
         _m4.lookAt(this.lookTarget, _v2, UP);
-        _qa.setFromRotationMatrix(_m4);
-        this.hips.getWorldQuaternion(_qp);
-        _qp.invert().multiply(_qa);
+        _q.setFromRotationMatrix(_m4);
+        B.chest.getWorldQuaternion(_qp);
+        _qp.invert().multiply(_q);
         _eul.setFromQuaternion(_qp, 'YXZ');
         yaw = _eul.y; pitch = _eul.x; rollL = _eul.z;
       }
@@ -447,80 +215,176 @@ export class Teacher {
     this.headYaw = dampAngle(this.headYaw, yaw, this.lookSpeed, dt);
     this.headPitch = damp(this.headPitch, clamp(pitch, -1.6, 1.2), this.lookSpeed, dt);
     this.headRoll = damp(this.headRoll, this.rollTarget + rollL, this.lookTarget ? Math.max(2.5, this.lookSpeed * 0.5) : 2.5, dt);
-    // occasional twitch
     this.twitch -= dt;
     let tY = 0, tR = 0;
-    if (ctx.twitchy && this.twitch < -rand(1.5, 5)) this.twitch = 0.12;
+    if (ctx.twitchy && this.twitch < -rand(2, 6)) this.twitch = 0.12;
     if (this.twitch > 0) { tY = rand(-0.15, 0.15); tR = rand(-0.25, 0.25); }
     if (this.jitter > 0) { tY += rand(-1, 1) * this.jitter * 0.25; tR += rand(-1, 1) * this.jitter * 0.4; }
     this.headPivot.rotation.set(this.headPitch + (this.jitter > 0 ? rand(-0.15, 0.15) * this.jitter : 0), this.headYaw + tY, this.headRoll + tR);
-    // ---- eyes glow (they catch light in the dark) ----
     this.faceMat.emissiveIntensity = this.faceGlow;
     this.eyeMat.emissiveIntensity = this.eyeGlow;
-    // ---- arms ----
+    this.lensMat.emissiveIntensity = this.lensGlow;
+    if (!this.glassesHeld) {
+      this.glasses.position.lerp(this.glasses.userData.home, 1 - Math.exp(-12 * dt));
+      this.glasses.quaternion.slerp(_q.identity(), 1 - Math.exp(-12 * dt));
+    } else {
+      this.glasses.position.lerp(_v.copy(this.chalk.position).multiplyScalar(0.7), 1 - Math.exp(-10 * dt));
+    }
     root.updateMatrixWorld(true);
-    this.updateArms(dt, ctx);
+    this.updateFeet(dt);
+    this.updateArms(dt);
   }
 
-  updateArms(dt, ctx) {
+  // ------------------------------------------------------------ IK
+  solve(l, target, pole, aim, twist) {
+    l.a.parent.updateWorldMatrix(true, false);
+    _S.copy(l.a.position).applyMatrix4(l.a.parent.matrixWorld);
+    _dir.subVectors(target, _S);
+    let d = _dir.length();
+    _dir.divideScalar(d || 1);
+    d = clamp(d, 0.08, l.L1 + l.L2 - 0.002);
+    const a = Math.acos(clamp((l.L1 * l.L1 + d * d - l.L2 * l.L2) / (2 * l.L1 * d), -1, 1));
+    _pole.subVectors(pole, _S);
+    _pole.addScaledVector(_dir, -_pole.dot(_dir));
+    if (_pole.lengthSq() < 1e-8) _pole.set(0, 0, -1).addScaledVector(_dir, _dir.z);
+    _pole.normalize();
+    _E.copy(_S).addScaledVector(_dir, Math.cos(a) * l.L1).addScaledVector(_pole, Math.sin(a) * l.L1);
+    _T.copy(_S).addScaledVector(_dir, d);
+    _u.subVectors(_E, _S).normalize();
+    _f.subVectors(_T, _E).normalize();
+    _n.crossVectors(_u, _f);
+    if (_n.lengthSq() < 1e-6) _n.crossVectors(_pole, _dir);
+    _n.normalize();
+    const n = _v3.copy(_n);
+    setWorldQuat(l.a, frameQuat(_u, n, _q).multiply(l.fa));
+    setWorldQuat(l.b, frameQuat(_f, n, _q).multiply(l.fb));
+    if (aim) {
+      l.c.getWorldPosition(_w);
+      _v2.subVectors(aim, _w).normalize();
+      frameQuat(_v2, n, _q);
+      if (twist) _q.premultiply(_q2.setFromAxisAngle(_v2, twist));
+      setWorldQuat(l.c, _q.multiply(l.fc));
+    } else l.c.quaternion.identity();
+  }
+
+  updateFeet(dt) {
+    const yaw = this.facing, c = Math.cos(yaw), s = Math.sin(yaw);
+    const ground = this.pos.y;
+    const sp = Math.hypot(this.vel.x, this.vel.z);
+    const stride = clamp(0.22 + sp * 0.2, 0.2, 0.62);
+    const swingT = clamp(0.5 - sp * 0.1, 0.13, 0.5);
+    let swinging = null, best = null, bestD = 0;
+    for (const f of this.feet) {
+      const w = f.side * (this.hipW + this.stance);
+      f.hx = this.pos.x + c * w; f.hz = this.pos.z - s * w;
+      if (f.swing >= 0) swinging = f;
+    }
+    const lead = sp > 0.05 ? stride * 0.5 / sp : 0;
+    for (const f of this.feet) {
+      if (f.swing >= 0) {
+        f.swing += dt / swingT;
+        const k = Math.min(1, f.swing);
+        const e = k * k * (3 - 2 * k);
+        const tx = f.hx + this.vel.x * lead, tz = f.hz + this.vel.z * lead;
+        f.pos.x = f.from.x + (tx - f.from.x) * e; f.pos.z = f.from.z + (tz - f.from.z) * e;
+        f.lift = Math.sin(Math.PI * k) * clamp(0.035 + sp * 0.03, 0.035, 0.12);
+        if (f.swing >= 1) {
+          f.swing = -1; f.lift = 0;
+          if (this.onStep) this.onStep(f.pos, sp);
+        }
+      } else {
+        const d = Math.hypot(f.pos.x - f.hx, f.pos.z - f.hz);
+        if (d > bestD) { bestD = d; best = f; }
+      }
+    }
+    const trig = sp > 0.05 ? stride * 0.5 : 0.09;
+    if (best && bestD > trig && (!swinging || (sp > 1.8 && swinging.swing > 0.55))) { best.swing = 0; best.from.copy(best.pos); }
+    // legs
+    const spider = clamp(this.crouch / 0.35, 0, 1);
+    _q2.setFromAxisAngle(UP, yaw);
+    for (const f of this.feet) {
+      _T.set(f.pos.x, ground + this.ankleH + f.lift, f.pos.z);
+      // knees forward, splaying outward when he crouches over a desk
+      this.local(f.side * (0.13 + spider * 1.4), 0.6, 1.2 - spider * 0.5, _pole);
+      this.solve(f.leg, _v.copy(_T), _w.copy(_pole), null);
+      // feet stay flat, toes forward, heel lifts while swinging
+      _q.copy(_q2).multiply(_qp.setFromAxisAngle(XAXIS, f.lift * 3.5));
+      setWorldQuat(f.leg.c, _q);
+    }
+  }
+
+  updateArms(dt) {
     const P = this.pose, d = this.poseData;
-    const local = (x, y, z, out) => this.root.localToWorld(out.set(x, y, z));
+    const hang = this.armLen * 0.985;
     for (const key of ['L', 'R']) {
       const a = this.arms[key];
-      const s = a.side; // +1 left (+x), -1 right
-      a.aim = null;
-      a.k = 7;
-      // defaults: hanging arms, elbows slightly back
-      local(s * 0.33, 0.76, 0.06, a.desired);
-      local(s * 0.7, 1.1, -0.7, a.pole);
+      const s = a.side; // +1 = his left (+x)
+      a.aim = null; a.twist = 0; a.k = 7;
+      // default: arms hang straight down from the shoulders (even when he leans)
+      a.a.parent.updateWorldMatrix(true, false);
+      _S.copy(a.a.position).applyMatrix4(a.a.parent.matrixWorld);
+      a.desired.copy(_S).add(_v.set(s * 0.05, -hang, 0.04).applyAxisAngle(UP, this.facing));
+      this.local(s * 0.9, 1.2, -0.9, a.pole);
       if (P === 'write' && key === 'R' && d.point) {
-        a.desired.copy(d.point).addScaledVector(d.normal, 0.17);
-        a.aim = d.point;
-        local(-0.8, 0.8, -0.3, a.pole);
-        a.k = 14;
+        a.desired.copy(d.point).addScaledVector(d.normal, this.handLen * 0.86);
+        a.aim = d.point; a.k = 14;
+        this.local(-0.9, 0.9, -0.3, a.pole);
       } else if (P === 'erase' && key === 'R' && d.point) {
-        a.desired.copy(d.point).addScaledVector(d.normal, 0.12);
-        a.aim = d.point;
-        local(-0.8, 0.9, -0.2, a.pole);
-        a.k = 16;
+        a.desired.copy(d.point).addScaledVector(d.normal, this.handLen * 0.7);
+        a.aim = d.point; a.k = 16;
+        this.local(-0.9, 1.0, -0.2, a.pole);
       } else if (P === 'clap' && this.clap) {
-        const sep = 0.022 + 0.13 * (1 - Math.cos(this.clap.phase)) / 2;
-        local(s * sep, 1.3, 0.36, a.desired);
-        local(s * 0.9, 0.9, -0.2, a.pole);
-        local(-s * 0.4, 1.35, 0.5, _T);
-        a.aim = _T.clone();
+        const sep = 0.05 + 0.16 * (1 - Math.cos(this.clap.phase)) / 2;
+        this.local(s * sep, this.chestY - 0.05, 0.36, a.desired);
+        this.local(s * 1.0, 0.9, -0.1, a.pole);
+        a.aim = this.local(-s * 0.02, this.chestY + 0.35, 0.62, new THREE.Vector3());
+        a.twist = s * 1.25;
         a.k = 40;
       } else if (P === 'gesture' && key === 'R') {
-        local(-0.22, 1.32 + Math.sin(this.time * 1.3) * 0.03, 0.42, a.desired);
-        local(-0.8, 0.9, -0.2, a.pole);
+        this.local(-0.26, this.chestY - 0.02 + Math.sin(this.time * 1.3) * 0.03, 0.42, a.desired);
+        this.local(-0.9, 0.9, -0.2, a.pole);
       } else if (P === 'point' && key === 'R' && d.at) {
-        this.arms.R.shoulder.getWorldPosition(_S);
         _dir.subVectors(d.at, _S).normalize();
-        a.desired.copy(_S).addScaledVector(_dir, 0.8);
-        local(-0.6, 0.6, -0.4, a.pole);
+        a.desired.copy(_S).addScaledVector(_dir, this.armLen * 0.97);
         a.aim = d.at;
+        this.local(-0.7, 0.6, -0.4, a.pole);
       } else if (P === 'desk' && d.L && d.R) {
         a.desired.copy(key === 'L' ? d.L : d.R);
-        local(s * 1.2, 2.2, -0.2, a.pole); // elbows up and out, like a spider
-        local(s * 0.1, 0.0, 0.9, _T);
-        a.aim = _T.clone();
+        this.local(s * 1.5, 2.2, -0.2, a.pole); // elbows up and out, like a spider
+        a.aim = this.local(s * 0.1, 0.0, 1.1, new THREE.Vector3());
         a.k = 5;
       } else if (P === 'grab') {
-        local(s * 0.2, 1.62, 0.78, a.desired);
-        local(s * 1.0, 1.4, -0.3, a.pole);
-        local(s * 0.1, 1.7, 2.0, _T);
-        a.aim = _T.clone();
+        this.local(s * 0.24, this.shoulderY + 0.1, 0.62, a.desired);
+        this.local(s * 1.0, 1.4, -0.3, a.pole);
+        a.aim = this.local(s * 0.1, this.shoulderY + 0.2, 2.0, new THREE.Vector3());
         a.k = 18;
       } else if (P === 'shoulders' && d.L && d.R) {
         a.desired.copy(key === 'L' ? d.L : d.R);
-        local(s * 1.0, 1.6, -0.2, a.pole);
+        this.local(s * 1.0, 1.6, -0.2, a.pole);
         a.k = 6;
+      } else if (P === 'type' && d.L && d.R) {
+        a.desired.copy(key === 'L' ? d.L : d.R);
+        if (d.typing) a.desired.y += Math.max(0, Math.sin(this.time * (17 + s * 3) + s)) * 0.02;
+        this.local(s * 1.1, 1.3, -0.3, a.pole);
+        a.aim = _v.copy(a.desired).add(_v2.set(0, -0.12, 0.2).applyAxisAngle(UP, this.facing)).clone();
+        a.k = 9;
+      } else if (P === 'wipe') {
+        // right hand holds the glasses at his chest, left hand rubs them
+        const rub = key === 'L' ? Math.sin(this.time * 9) * 0.03 : 0;
+        if (d.stage === 'reach' && key === 'R') {
+          this.glasses.getWorldPosition(a.desired);
+          a.desired.add(_v.set(-0.12, -0.1, -0.02).applyAxisAngle(UP, this.facing));
+          a.k = 9;
+        } else if (d.stage !== 'reach') {
+          this.local(s * 0.07 + rub, this.chestY - 0.08, 0.34, a.desired);
+          a.k = 9;
+        }
+        this.local(s * 1.0, 1.0, -0.2, a.pole);
       }
       if (!a.init) { a.target.copy(a.desired); a.init = true; }
       a.target.lerp(a.desired, 1 - Math.exp(-a.k * dt));
-      solveArm(a, a.target, a.pole, a.aim);
+      this.solve(a, a.target, a.pole, a.aim, a.twist);
     }
-    // clap timing
     const c = this.clap;
     if (c && P === 'clap') {
       const prev = c.phase;
@@ -529,7 +393,7 @@ export class Teacher {
         c.left--;
         const mid = this.handPos('L', new THREE.Vector3()).add(this.handPos('R', new THREE.Vector3())).multiplyScalar(0.5);
         c.onClap && c.onClap(mid, c.left);
-        if (c.left <= 0) { c.done = true; this.clap = null; this.setPose('rest'); }
+        if (c.left <= 0) { this.clap = null; this.setPose('rest'); }
       }
     }
   }

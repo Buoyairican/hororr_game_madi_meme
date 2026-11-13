@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import * as T from './textures.js';
 import { rand, randInt, pick, clamp, damp } from './util.js';
 import { Chalkboard } from './board.js';
+import { buildLaptop, Projector, buildDoor } from './props.js';
 
 export const ROOM = { x0: -5, x1: 5, z0: -7, z1: 6, h: 3.2 };
 export const BOARD_Z = -6.93;
@@ -162,14 +163,8 @@ export function buildWorld(scene, renderer) {
 
   // ---------------- door + exit sign ----------------
   const doorZ = -5.0;
-  B.add(boxGeo, M.frame, mtx(x1 - 0.03, 1.08, doorZ, 0, 0, 0, 0.08, 2.16, 1.12));
-  B.add(boxGeo, M.darkWood, mtx(x1 - 0.05, 1.05, doorZ, 0, 0, 0, 0.05, 2.08, 1.0));
-  B.add(boxGeo, M.alu, mtx(x1 - 0.1, 1.0, doorZ + 0.38, 0, 0, 0, 0.06, 0.04, 0.14));
-  const doorGlass = new THREE.Mesh(planeGeo, new THREE.MeshStandardMaterial({ color: 0x05080a, roughness: 0.1, metalness: 0.5 }));
-  doorGlass.position.set(x1 - 0.08, 1.62, doorZ); doorGlass.rotation.y = -Math.PI / 2; doorGlass.scale.set(0.3, 0.45, 1);
-  scene.add(doorGlass);
-  W.doorGlass = doorGlass;
-  W.doorWindow = new THREE.Vector3(x1 + 0.25, 1.55, doorZ);
+  W.door = buildDoor(scene, M, x1, doorZ);
+  W.doorZ = doorZ;
   const exitMat = new THREE.MeshBasicMaterial({ color: 0xff2a1a });
   const exitSign = new THREE.Mesh(boxGeo, exitMat);
   exitSign.position.set(x1 - 0.06, 2.4, doorZ); exitSign.scale.set(0.06, 0.16, 0.4);
@@ -239,7 +234,8 @@ export function buildWorld(scene, renderer) {
   poster('atoms', x1 - 0.01, 1.75, 3.3, -Math.PI / 2, 1.0);
   poster('eyes', -1.8, 1.8, z1 - 0.01, Math.PI, 1.2);
   poster('silence', 3.75, 1.75, z0 + 0.01, 0, 0.9);
-  poster('eyes', -3.7, 1.9, z0 + 0.01, 0, 0.9);
+  poster('eyes', 2.2, 1.8, z1 - 0.01, Math.PI, 1.0);
+  W.projector = new Projector(scene, -3.72, 2.42, 2.0, 1.12, z0, h);
 
   // ---------------- teacher desk ----------------
   const td = { x: -3.15, z: -5.35 };
@@ -265,7 +261,9 @@ export function buildWorld(scene, renderer) {
   scene.add(book);
   W.fallingBook = book;
   // teacher chair
-  chair(B, M, td.x, td.z - 0.65, Math.PI, 1.1);
+  chair(B, M, td.x - 1.05, td.z - 0.9, Math.PI + 0.7, 1.1);
+  W.laptop = buildLaptop(scene, td.x + 0.12, 0.785, td.z - 0.12);
+  W.teacherDesk = { x: td.x + 0.12, z: td.z, stand: new THREE.Vector3(td.x + 0.12, 0, td.z - 0.86) };
 
   // ---------------- student desks ----------------
   W.seats = [];
@@ -279,6 +277,13 @@ export function buildWorld(scene, renderer) {
       // friends' chairs are separate meshes so they can be pushed out
       if (r === 0 && (c === 1 || c === 3)) W.dynamicChairs[c === 1 ? 'sam' : 'nora'] = dynamicChair(scene, M, x, z + 0.5);
       else chair(B, M, x, z + 0.5, 0, 1);
+      if (r === 1 && c === 1) {
+        const pack = std({ color: 0x5a1512, roughness: 0.9 });
+        B.add(boxGeo, pack, mtx(x, 0.63, z + 0.56, 0.12, 0, 0, 0.3, 0.33, 0.15));
+        B.add(boxGeo, pack, mtx(x, 0.58, z + 0.47, 0.12, 0, 0, 0.2, 0.16, 0.05));
+        B.add(boxGeo, M.paper, mtx(x - 0.05, 0.742, z, 0, 0.3, 0, 0.21, 0.004, 0.29));
+        W.kevinSeat = new THREE.Vector3(x, 1.0, z + 0.5);
+      }
     }
   }
   W.playerDesk = { x: 0, z: ROWS[0], top: 0.74 };
@@ -298,9 +303,9 @@ export function buildWorld(scene, renderer) {
   // ---------------- lights ----------------
   scene.fog = new THREE.FogExp2(0x0b0f0e, 0.088);
   scene.background = new THREE.Color(0x0b0f0e);
-  const hemi = new THREE.HemisphereLight(0x55665e, 0x0b0b08, 0.55);
+  const hemi = new THREE.HemisphereLight(0x66756f, 0x0d0d0a, 0.6);
   scene.add(hemi);
-  const moon = new THREE.DirectionalLight(0x7088b8, 0.25);
+  const moon = new THREE.DirectionalLight(0x93a6bc, 0.5); // grey daylight from the windows
   moon.position.set(-9, 5, 1); moon.target.position.set(0, 0, 0);
   scene.add(moon, moon.target);
 
@@ -339,7 +344,8 @@ export function buildWorld(scene, renderer) {
   const red = new THREE.PointLight(0xff2010, 0, 0, 2);
   red.position.set(x1 - 0.4, 2.3, doorZ);
   scene.add(red);
-  W.lights = { hemi, moon, banks, spot, red, spotBase: 22, hemiBase: 0.55, moonBase: 0.25 };
+  W.lights = { hemi, moon, banks, spot, red, spotBase: 22, hemiBase: 0.6, moonBase: 0.5 };
+  W.gloom = 0.2; W.gloomTarget = 0.2; // 0 = grey morning, 1 = black as night
   W.master = 1; // global light multiplier (blackouts)
 
   // ---------------- dust ----------------
@@ -436,11 +442,25 @@ export function buildWorld(scene, renderer) {
     }
     const fm = W.master;
     W.lights.spot.intensity = W.lights.spotBase * fm * W.lights.banks[0].level;
-    W.lights.hemi.intensity = W.lights.hemiBase * (0.25 + 0.75 * fm) + flashK * 1.2;
-    W.lights.moon.intensity = W.lights.moonBase + flashK * 9;
-    outsideMat.color.setScalar(0.45 + flashK * 2.5);
+    W.gloom = damp(W.gloom, W.gloomTarget, 0.5, dt);
+    const day = 1 - W.gloom;
+    W.lights.hemi.intensity = W.lights.hemiBase * (0.45 + 0.55 * day) * (0.25 + 0.75 * fm) + flashK * 1.2;
+    W.lights.moon.intensity = W.lights.moonBase * (0.08 + 0.92 * day) + flashK * 9;
+    outsideMat.color.setScalar(0.1 + 0.95 * day + flashK * 2.5);
     W.silhouette.visible = W.showSilhouette && flashK > 0.3;
-    W.lights.red.intensity = emergency * (2.5 + Math.sin(W.time * 3) * 0.8);
+    W.laptop.update(dt, W.time);
+    W.projector.update(dt, fm);
+    W.door.update(dt);
+    // one spare point light does three jobs: laptop glow, emergency light, (and the jumpscare)
+    if (W.laptop.glow > 0.02) {
+      W.lights.red.color.setHex(0x9fc4ff);
+      W.lights.red.position.copy(W.laptop.lightPos);
+      W.lights.red.intensity = W.laptop.glow * 1.3;
+    } else {
+      W.lights.red.color.setHex(0xff2010);
+      W.lights.red.position.set(x1 - 0.4, 2.3, doorZ);
+      W.lights.red.intensity = emergency * (2.5 + Math.sin(W.time * 3) * 0.8);
+    }
     W.exitMat.color.setRGB(1, 0.16 + 0.1 * Math.sin(W.time * 5), 0.1);
   };
 
@@ -450,6 +470,7 @@ export function buildWorld(scene, renderer) {
     for (const k in W.dynamicChairs) W.dynamicChairs[k].reset();
     for (const b of W.lights.banks) { b.dead = false; b.target = 1; b.flicker = 0; }
     W.master = 1;
+    W.laptop.reset(); W.projector.reset(); W.door.reset();
   };
   return W;
 }

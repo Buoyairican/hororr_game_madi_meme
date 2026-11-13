@@ -211,13 +211,21 @@ export function clockTexture() {
 }
 
 export function outsideTexture() {
+  // a stormy morning: heavy grey-blue cloud over a dark tree line
   const c = canvas(256, 512), x = c.getContext('2d');
   const g = x.createLinearGradient(0, 0, 0, 512);
-  g.addColorStop(0, '#0a1020'); g.addColorStop(0.6, '#0d1526'); g.addColorStop(1, '#05070b');
+  g.addColorStop(0, '#39424e'); g.addColorStop(0.45, '#56616c'); g.addColorStop(0.75, '#3e4850'); g.addColorStop(1, '#161a1c');
   x.fillStyle = g; x.fillRect(0, 0, 256, 512);
-  // distant tree line / buildings
-  x.fillStyle = '#030406';
-  for (let px = 0; px < 256; px += 8) { const h = rand(40, 140); x.fillRect(px, 512 - h - 60, 9, h + 60); }
+  for (let i = 0; i < 26; i++) { // cloud banks
+    const px = rand(-40, 256), py = rand(0, 330), r = rand(40, 120);
+    const cg = x.createRadialGradient(px, py, 0, px, py, r);
+    const d = Math.random() < 0.6;
+    cg.addColorStop(0, d ? 'rgba(20,24,30,0.5)' : 'rgba(130,140,150,0.25)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = cg; x.fillRect(px - r, py - r, r * 2, r * 2);
+  }
+  x.fillStyle = '#0a0d0c';
+  for (let px = 0; px < 256; px += 7) { const h = rand(50, 150); x.beginPath(); x.ellipse(px, 512 - 40, 12, h, 0, 0, Math.PI * 2); x.fill(); }
+  x.fillRect(0, 470, 256, 42);
   return tex(c, 1, 1);
 }
 

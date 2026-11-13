@@ -581,6 +581,96 @@ def make_misc():
     save("phone_buzz", biquad(vib * 0.6 + biquad(noise(dur), "lp", 300) * 0.3, "lp", 1200), 0.7)
 
 
+def make_v2():
+    """Sounds added for Madi Class: footsteps, typing, door, giggles, projector, glasses."""
+    # hard-soled footsteps on tile
+    for i in range(4):
+        r = np.random.default_rng(200 + i)
+        dur = 0.32
+        tt = t_axis(dur)
+        heel = biquad(noise(dur), "bp", r.uniform(900, 1500), 1.4) * env_exp(dur, 0.008, 0.0004)
+        body = np.sin(2 * np.pi * np.cumsum(r.uniform(95, 130) * np.exp(-tt * 14) + 55) / SR) * env_exp(dur, 0.035, 0.001)
+        toe = biquad(noise(dur), "bp", r.uniform(1800, 2600), 2.0) * env_exp(dur, 0.005, 0.0004) * 0.5
+        x = heel * 1.2 + body * 0.9
+        x = place(x, toe[: int(0.2 * SR)], r.uniform(0.045, 0.07))
+        save(f"step_{i+1}", reverb(x, 0.3, dur=1.4, decay=0.4), 0.8)
+    # laptop typing bursts
+    for i in range(3):
+        r = np.random.default_rng(300 + i)
+        dur = 1.6
+        x = np.zeros(int(dur * SR))
+        t = 0.03
+        while t < dur - 0.08:
+            c = biquad(noise(0.03), "bp", r.uniform(2200, 4200), 3.0) * env_exp(0.03, 0.0035, 0.0002)
+            c += np.sin(2 * np.pi * r.uniform(250, 420) * t_axis(0.03)) * env_exp(0.03, 0.006) * 0.35
+            place(x, c * r.uniform(0.5, 1.0), t)
+            t += r.choice([0.07, 0.09, 0.11, 0.16, 0.28], p=[0.3, 0.3, 0.2, 0.15, 0.05])
+        save(f"keys_{i+1}", x, 0.6)
+    # one decisive key (enter) and a laptop lid slam
+    c = biquad(noise(0.06), "bp", 1800, 2.0) * env_exp(0.06, 0.006, 0.0002) + np.sin(2 * np.pi * 210 * t_axis(0.06)) * env_exp(0.06, 0.012) * 0.6
+    save("key_enter", pad(c, 0.12), 0.7)
+    dur = 0.9
+    tt = t_axis(dur)
+    slam = biquad(noise(dur), "bp", 700, 0.9) * env_exp(dur, 0.02, 0.0004) * 2 + np.sin(2 * np.pi * 140 * tt) * env_exp(dur, 0.05, 0.001)
+    save("lid_slam", reverb(slam, 0.3, dur=1.2, decay=0.35), 0.9)
+    # door: latch click, long creak, bump
+    dur = 2.6
+    tt = t_axis(dur)
+    f = 240 + 160 * np.sin(2 * np.pi * 0.35 * tt + 0.4) + 25 * np.sin(2 * np.pi * 7 * tt)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    creak = sum(np.sin(k * ph) / k for k in range(1, 9)) * (0.5 + 0.5 * (np.sin(2 * np.pi * 23 * tt) > -0.2))
+    creak = fft_filter(creak, band_f(1100, 2.5)) * np.clip((tt - 0.15) / 0.2, 0, 1) * np.clip((2.2 - tt) / 0.5, 0, 1)
+    latch = biquad(noise(0.05), "bp", 2400, 3) * env_exp(0.05, 0.004, 0.0002) * 3
+    x = creak * 0.5
+    x = place(x, latch, 0.02)
+    bump = np.sin(2 * np.pi * 85 * t_axis(0.3)) * env_exp(0.3, 0.05, 0.001) + biquad(noise(0.3), "lp", 500) * env_exp(0.3, 0.02) * 2
+    x = place(x, bump * 0.8, 2.25)
+    save("door_open", reverb(x, 0.3, dur=1.8, decay=0.5), 0.85)
+    # the class snickering (layered whisper-laughs) and a sharp gasp
+    out = np.zeros(int(2.4 * SR))
+    for k, (f_, rate, at, g) in enumerate((("s_laugh", 1.0, 0.0, 1.0), ("n_laugh", 1.05, 0.12, 0.9), ("s_laugh", 1.25, 0.3, 0.6), ("n_laugh", 0.9, 0.45, 0.6), ("n_laugh", 1.3, 0.2, 0.5))):
+        v = read_mp3(os.path.join(VOICE, f_ + ".mp3"))
+        v = np.interp(np.arange(0, len(v), rate), np.arange(len(v)), v)
+        place(out, v * g, at)
+    save("giggle", reverb(out, 0.25, dur=1.5, decay=0.4), 0.75)
+    dur = 0.7
+    tt = t_axis(dur)
+    g = np.zeros_like(tt)
+    for blk in range(0, len(tt), 1024):
+        seg = noise(1024 / SR)[: len(tt[blk:blk + 1024])]
+        g[blk:blk + 1024] = fft_filter(seg, band_f(1300 + 1500 * blk / len(tt), 1.6)) if len(seg) > 8 else 0
+    g *= np.sin(np.pi * np.clip(tt / 0.45, 0, 1)) ** 0.7 * (tt < 0.45)
+    save("gasp", reverb(g, 0.3, dur=1.2, decay=0.35), 0.7)
+    # projector: relay click + fan spinning up
+    dur = 3.0
+    tt = t_axis(dur)
+    fan = fft_filter(noise(dur), band_f(900, 3)) * np.clip(tt / 1.6, 0, 1) * 0.5
+    whine = np.sin(2 * np.pi * np.cumsum(120 + 500 * np.clip(tt / 1.8, 0, 1)) / SR) * 0.12 * np.clip(tt / 0.3, 0, 1)
+    clk = biquad(noise(0.04), "bp", 1500, 2) * env_exp(0.04, 0.004, 0.0002) * 3
+    x = (fan + whine) * np.clip((dur - tt) / 0.6, 0, 1)
+    x = place(x, clk, 0.01)
+    save("projector_on", x, 0.6)
+    # wiping a lens with a tie: two soft squeaky rubs
+    dur = 1.2
+    tt = t_axis(dur)
+    rub = fft_filter(noise(dur), band_f(2600, 1.5)) * (np.sin(2 * np.pi * 2.6 * tt) ** 2)
+    sq = np.sin(2 * np.pi * np.cumsum(1900 + 500 * np.sin(2 * np.pi * 2.6 * tt)) / SR) * (np.sin(2 * np.pi * 2.6 * tt) ** 6) * 0.25
+    save("wipe", (rub + sq) * np.sin(np.pi * tt / dur) ** 0.5, 0.5)
+    # objective complete: two soft bell notes
+    out = np.zeros(int(1.6 * SR))
+    for k, semi in enumerate((7, 12)):
+        f0 = 660 * 2 ** (semi / 12)
+        nt = t_axis(1.2)
+        n = (np.sin(2 * np.pi * f0 * nt) + 0.3 * np.sin(2 * np.pi * f0 * 2.01 * nt)) * np.exp(-nt / 0.3)
+        place(out, n * 0.6, k * 0.13)
+    save("ding", reverb(out, 0.25, dur=1.2, decay=0.4), 0.45)
+    # page / attendance sheet rustle
+    dur = 0.6
+    tt = t_axis(dur)
+    pg = biquad(noise(dur), "hp", 1800) * (np.sin(np.pi * tt / dur) ** 2) * (0.6 + 0.4 * np.sin(2 * np.pi * 31 * tt))
+    save("page", pg, 0.45)
+
+
 if __name__ == "__main__":
     print("Synthesising sound effects ->", OUT)
     make_claps()
@@ -595,4 +685,5 @@ if __name__ == "__main__":
     make_whisper_bed()
     make_music_box()
     make_misc()
+    make_v2()
     print("done")

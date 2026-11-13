@@ -1,148 +1,118 @@
-// Seated classmates: the two friends next to the player and the silent,
-// faceless students behind (who sometimes look up at you).
+// Seated classmates built from rigged GLB models: the two friends next to you
+// and the rest of the class. They blink, breathe, look around and whisper.
 import * as THREE from 'three';
-import { faceTexture, fabricTexture } from './textures.js';
 import { damp, dampAngle, clamp, rand } from './util.js';
 
-const _v = new THREE.Vector3();
-const limb = new THREE.CylinderGeometry(1, 0.85, 1, 10);
-
-function seg(parent, a, b, r, mat) {
-  // cylinder from point a to b (parent-local)
-  const m = new THREE.Mesh(limb, mat);
-  const d = _v.subVectors(b, a);
-  const len = d.length();
-  m.scale.set(r, len, r);
-  m.position.copy(a).addScaledVector(d, 0.5);
-  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
-  m.castShadow = true;
-  parent.add(m);
-  return m;
-}
+const _v = new THREE.Vector3(), _v2 = new THREE.Vector3();
+export const SEAT_Y = 0.4675;
 
 export class Classmate {
-  /** kind: 'sam' | 'nora' | 'blank' */
-  constructor(kind, seat) {
+  /** kind: 'sam' | 'nora' | 'kid'; model from instantiate() */
+  constructor(kind, name, model, seat) {
     this.kind = kind;
-    this.name = kind === 'sam' ? 'Sam' : kind === 'nora' ? 'Nora' : 'student';
+    this.name = name;
+    this.model = model;
     const root = (this.root = new THREE.Group());
-    root.position.set(seat.x, 0, seat.z);
+    root.position.set(seat.x, SEAT_Y, seat.z + 0.03);
     root.rotation.y = Math.PI; // face the board (-z)
-    const clothCol = { sam: '#5a1e1c', nora: '#1d3f42', blank: '#2a2c2e' }[kind];
-    const cloth = new THREE.MeshStandardMaterial({ map: fabricTexture(clothCol), roughness: 0.95 });
-    const skinCol = { sam: 0xb88a64, nora: 0xd2a07c, blank: 0xa9a69d }[kind];
-    const skin = new THREE.MeshStandardMaterial({ color: skinCol, roughness: 0.7 });
-    const pants = new THREE.MeshStandardMaterial({ color: 0x1b1d24, roughness: 0.9 });
-    const hairMat = new THREE.MeshStandardMaterial({ color: kind === 'nora' ? 0x1a0f08 : 0x24170c, roughness: 0.8 });
+    root.add(model.scene);
+    this.seat = seat;
+    this.b = model.bones;
+    this.eyesMat = model.meshes.eyes.material;
+    this.bodyMat = model.meshes.body.material;
+    this.slump = model.extras.pose === 'slump';
+    model.scene.updateMatrixWorld(true);
+    this.headLocal = this.b.head.getWorldPosition(new THREE.Vector3());
+    this.headLocal.y += 0.07;
 
-    // body pivots at the hips so the torso can lean
-    const body = (this.body = new THREE.Group());
-    body.position.y = 0.48;
-    root.add(body);
-    const torsoGeo = new THREE.CylinderGeometry(0.17, 0.15, 0.48, 14);
-    torsoGeo.scale(1, 1, 0.62);
-    const torso = new THREE.Mesh(torsoGeo, cloth);
-    torso.position.y = 0.24; torso.castShadow = true;
-    body.add(torso);
-    for (const sx of [-0.15, 0.15]) {
-      const sh = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), cloth);
-      sh.position.set(sx, 0.45, 0); body.add(sh);
-    }
-    if (kind === 'sam') { // hood
-      const hood = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), cloth);
-      hood.position.set(0, 0.44, -0.08); hood.rotation.x = -0.6; body.add(hood);
-    }
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.1, 8), skin);
-    neck.position.y = 0.52; body.add(neck);
-    // head
-    const headPivot = (this.headPivot = new THREE.Group());
-    headPivot.position.y = 0.56;
-    headPivot.rotation.order = 'YXZ';
-    body.add(headPivot);
-    const headMat = new THREE.MeshStandardMaterial({ map: faceTexture(kind), roughness: 0.65 });
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.105, 22, 16), headMat);
-    head.scale.set(0.92, 1.08, 1);
-    head.position.y = 0.11; head.castShadow = true;
-    headPivot.add(head);
-    this.headMesh = head;
-    if (kind !== 'blank') {
-      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.112, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), hairMat);
-      cap.position.set(0, 0.13, -0.012); cap.rotation.x = -0.25; cap.scale.set(0.95, 1.05, 1.05);
-      headPivot.add(cap);
-      if (kind === 'nora') {
-        const back = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.26, 0.06), hairMat);
-        back.position.set(0, 0.03, -0.085); headPivot.add(back);
-        const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.015, 0.22, 8), hairMat);
-        tail.position.set(0, 0.02, -0.13); tail.rotation.x = 0.4; headPivot.add(tail);
-      }
-    } else {
-      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.42), hairMat);
-      cap.position.set(0, 0.125, -0.01); cap.rotation.x = -0.35; headPivot.add(cap);
-    }
-    // arms resting on the desk (fixed pose)
-    const A = (x, y, z) => new THREE.Vector3(x, y, z);
-    for (const s of [-1, 1]) {
-      const shoulder = A(s * 0.17, 0.43, 0.02), elbow = A(s * 0.2, 0.28, 0.3), hand = A(s * 0.07, 0.3, 0.5);
-      seg(body, shoulder, elbow, 0.045, cloth);
-      seg(body, elbow, hand, 0.038, cloth);
-      const h = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), skin);
-      h.position.copy(hand); h.scale.set(1, 0.6, 1.3); body.add(h);
-    }
-    // legs (mostly hidden under the desk)
-    for (const s of [-1, 1]) {
-      seg(root, A(s * 0.09, 0.47, 0), A(s * 0.1, 0.47, 0.42), 0.06, pants);
-      seg(root, A(s * 0.1, 0.47, 0.42), A(s * 0.1, 0.05, 0.46), 0.05, pants);
-    }
-
-    // animation state
-    this.lookTarget = null;
-    this.yaw = 0; this.pitch = kind === 'blank' ? 0.55 : 0.1; this.roll = 0;
-    this.basePitch = this.pitch;
+    this.lookTarget = null;      // world point, or null to idle
+    this.attend = null;          // world point the class is watching (the teacher); used while idle
+    this.yaw = 0; this.pitch = 0; this.roll = 0;
     this.speed = 4;
     this.leanRoll = 0; this.leanRollTarget = 0;
-    this.leanFwd = 0.08; this.leanFwdTarget = 0.08;
+    this.leanFwd = 0; this.leanFwdTarget = 0;
     this.tremble = 0;
     this.talking = 0;
-    this.t = rand(0, 10);
-    this.idleTimer = rand(2, 6);
-    this.idleYaw = 0;
-    this.gone = false;
     this.forcePitch = null;
+    this.t = rand(0, 10);
+    this.idleTimer = rand(1, 6);
+    this.idleYaw = 0; this.idlePitch = 0; this.idleAttend = Math.random() < 0.6;
+    this.blinkT = rand(1, 5); this.blink = 0;
+    this.hollow = false;
+    this.gone = false;
+    this.jaw = 0;
+  }
+
+  setGone(g) { this.gone = g; this.root.visible = !g; }
+
+  /** black, unblinking eyes: he has taken this one */
+  setHollow(h) {
+    this.hollow = h;
+    this.eyesMat.color.setScalar(h ? 0.0 : 1.0);
+    this.eyesMat.emissiveIntensity = 0;
+  }
+
+  headWorld(out = new THREE.Vector3()) { return this.root.localToWorld(out.copy(this.headLocal)); }
+
+  shoulderPoints(outL, outR) {
+    this.root.updateMatrixWorld(true);
+    this.root.localToWorld(outL.copy(this.headLocal).add(_v.set(0.17, -0.2, -0.04)));
+    this.root.localToWorld(outR.copy(this.headLocal).add(_v.set(-0.17, -0.2, -0.04)));
   }
 
   update(dt) {
+    if (this.gone) return;
     this.t += dt;
-    let yaw = this.idleYaw, pitch = this.basePitch;
-    if (this.lookTarget) {
-      _v.copy(this.lookTarget);
-      this.root.worldToLocal(_v);
-      _v.y -= 0.48 + 0.56 + 0.12;
-      yaw = Math.atan2(_v.x, _v.z);
-      pitch = Math.atan2(-_v.y, Math.hypot(_v.x, _v.z));
-    } else if (this.kind !== 'blank') {
+    const b = this.b;
+    // ---- where to look
+    let yaw = this.idleYaw, pitch = this.idlePitch;
+    let target = this.lookTarget;
+    if (!target) {
       this.idleTimer -= dt;
-      if (this.idleTimer <= 0) { this.idleTimer = rand(2.5, 7); this.idleYaw = rand() < 0.6 ? 0 : rand(-0.5, 0.5); }
+      if (this.idleTimer <= 0) {
+        this.idleTimer = rand(2.5, 8);
+        this.idleAttend = Math.random() < (this.slump ? 0.35 : 0.7);
+        this.idleYaw = rand(-0.35, 0.35); this.idlePitch = this.slump ? rand(0, 0.15) : rand(-0.05, 0.25);
+      }
+      if (this.idleAttend && this.attend && !this.hollow) target = this.attend;
     }
-    if (this.forcePitch !== null) pitch = this.forcePitch;
-    this.yaw = dampAngle(this.yaw, clamp(yaw, -1.9, 1.9), this.speed, dt);
-    this.pitch = damp(this.pitch, clamp(pitch, -0.6, 0.9), this.speed, dt);
-    const bob = this.talking > 0 ? Math.sin(this.t * 9) * 0.03 : 0;
-    const tr = this.tremble > 0 ? (Math.random() - 0.5) * 0.04 * this.tremble : 0;
-    this.headPivot.rotation.set(this.pitch + bob + tr, this.yaw + tr, this.roll);
+    if (target) {
+      _v.copy(target);
+      this.root.worldToLocal(_v);
+      _v.sub(this.headLocal);
+      yaw = Math.atan2(_v.x, _v.z);
+      pitch = Math.atan2(-_v.y, Math.hypot(_v.x, _v.z)) - (this.slump ? 0.35 : 0);
+    }
+    if (this.forcePitch !== null) { pitch = this.forcePitch; yaw *= 0.2; }
+    const sp = this.lookTarget ? this.speed : Math.min(this.speed, 2.2);
+    this.yaw = dampAngle(this.yaw, clamp(yaw, -2.0, 2.0), sp, dt);
+    this.pitch = damp(this.pitch, clamp(pitch, -0.7, 0.8), sp, dt);
+    const tr = this.tremble > 0 ? (Math.random() - 0.5) * 0.035 * this.tremble : 0;
+    const bob = this.talking > 0 ? Math.sin(this.t * 7) * 0.025 : 0;
+    // spread the turn over spine, neck and head like a real neck does
+    const big = Math.max(0, Math.abs(this.yaw) - 0.9) * Math.sign(this.yaw);
     this.leanRoll = damp(this.leanRoll, this.leanRollTarget, 3, dt);
     this.leanFwd = damp(this.leanFwd, this.leanFwdTarget, 3, dt);
-    const breathe = this.kind === 'blank' ? 0 : Math.sin(this.t * 1.7) * 0.008;
-    this.body.rotation.set(-this.leanFwd + breathe, 0, this.leanRoll + tr * 0.3);
+    const breathe = this.hollow ? 0 : Math.sin(this.t * 1.6) * 0.006;
+    b.spine.rotation.set(this.leanFwd + breathe, big * 0.45, this.leanRoll + tr * 0.3);
+    b.neck.rotation.set(this.pitch * 0.4 + tr, (this.yaw - big * 0.45) * 0.42, this.roll * 0.5);
+    b.head.rotation.set(this.pitch * 0.6 + bob, (this.yaw - big * 0.45) * 0.58 + tr, this.roll * 0.5);
+    // ---- face
+    if (this.talking > 0) {
+      this.talking -= dt;
+      this.jaw = damp(this.jaw, 0.035 + 0.075 * Math.abs(Math.sin(this.t * 10.5) * Math.sin(this.t * 3.1 + 1)), 30, dt);
+    } else this.jaw = damp(this.jaw, 0, 14, dt);
+    b.jaw.rotation.x = this.jaw;
+    if (!this.hollow) {
+      this.blinkT -= dt;
+      if (this.blinkT <= 0) { this.blinkT = rand(1.8, 6); this.blink = 0.16; }
+    }
+    let lid = this.tremble > 0 ? -0.08 : 0; // scared: eyes wide
+    if (this.blink > 0) { this.blink -= dt; lid = Math.sin(Math.PI * clamp(this.blink / 0.16, 0, 1)) * 0.62; }
+    if (this.slump && !this.lookTarget && !this.hollow) lid = Math.max(lid, 0.2);
+    b.lidL.rotation.x = b.lidR.rotation.x = lid;
+    // eyes lead the head a little
+    const ey = clamp((yaw - this.yaw) * 0.6, -0.4, 0.4), ep = clamp((pitch - this.pitch) * 0.6, -0.25, 0.25);
+    b.eyeL.rotation.set(ep, ey, 0); b.eyeR.rotation.set(ep, ey, 0);
   }
-
-  /** world point between the shoulders (teacher grabs here) */
-  shoulderPoints(outL, outR) {
-    this.root.updateMatrixWorld(true);
-    this.body.localToWorld(outL.set(0.17, 0.47, -0.02));
-    this.body.localToWorld(outR.set(-0.17, 0.47, -0.02));
-  }
-
-  headWorld(out = new THREE.Vector3()) { return this.headPivot.localToWorld(out.set(0, 0.11, 0)); }
-
-  setGone(g) { this.gone = g; this.root.visible = !g; }
 }

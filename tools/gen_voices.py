@@ -28,6 +28,51 @@ SR = 44100
 
 # Segments separated by "|" get a silent gap between them (dramatic pauses).
 TEACHER = {
+    "t_iam": "I am | your | teacher.",
+    "t_name": "My name | is | Mister | Madi.",
+    "t_roll": "Roll | call.",
+    "t_r_sam": "Sam.",
+    "t_r_nora": "Nora.",
+    "t_r_kevin": "Kevin.",
+    "t_r_kevin2": "Kevin?",
+    "t_absent": "Kevin | is | absent.",
+    "t_andyou": "And | you.",
+    "t_good1": "Good.",
+    "t_answerme": "Answer | me.",
+    "t_whosaid": "Who | said that?",
+    "t_iknow": "I know | it was you.",
+    "t_itwasyou": "It was | you.",
+    "t_notfunny": "That | is not | funny.",
+    "t_moment": "One | moment.",
+    "t_noquestions": "No more | questions.",
+    "t_toomany": "You ask | too many | questions.",
+    "t_cantsee": "I | cannot | see.",
+    "a_wet": "Water | is | dry.",
+    "a_five": "Five.",
+    "a_france": "The capital of France | is | F.",
+    "a_fish": "Fish | do not | exist.",
+    "a_sky": "The sky | is | gone.",
+    "a_spell": "T | E | A | no.",
+    "a_name": "Mister.",
+    "a_test": "Everything | is on the test.",
+    "a_day": "It is | always | Monday.",
+    "a_glasses": "They are | mine | now.",
+    "a_lunch": "I | already | ate.",
+    "q_pop": "Pop | quiz.",
+    "q_you": "You.",
+    "q_name": "What | is my name?",
+    "q_count": "How many students | are in | this class?",
+    "q_two": "What is | two plus two?",
+    "q_correct": "Correct.",
+    "q_wrong": "Wrong.",
+    "q_again": "Count | again.",
+    "q_hale": "He is | not here.",
+    "t_detention": "Detention.",
+    "t_sitdown": "Sit | down.",
+    "f_teacher1": "I am | a teacher.",
+    "f_teacher2": "Am I | a teacher?",
+    "f_teacher3": "What | am I?",
+    "f_hale": "Mister Hale | is | in",
     "t_morning": "Good | morning | class.",
     "t_today": "Today | we will learn about | about",
     "t_page": "Open your books | to page | forty | seven.",
@@ -61,6 +106,51 @@ TEACHER = {
     "t_wrong": "No. | No. | That is wrong.",
 }
 SUBS = {
+    "t_iam": "I am... your... teacher.",
+    "t_name": "My name... is... Mister... Madi.",
+    "t_roll": "Roll... call.",
+    "t_r_sam": "Sam.",
+    "t_r_nora": "Nora.",
+    "t_r_kevin": "Kevin.",
+    "t_r_kevin2": "Kevin?",
+    "t_absent": "Kevin... is... absent.",
+    "t_andyou": "And... you.",
+    "t_good1": "Good.",
+    "t_answerme": "Answer... me.",
+    "t_whosaid": "Who... said that?",
+    "t_iknow": "I know... it was you.",
+    "t_itwasyou": "It was... you.",
+    "t_notfunny": "That... is not... funny.",
+    "t_moment": "One... moment.",
+    "t_noquestions": "No more... questions.",
+    "t_toomany": "You ask... too many... questions.",
+    "t_cantsee": "I... cannot... see.",
+    "a_wet": "Water... is... dry.",
+    "a_five": "Five.",
+    "a_france": "The capital of France... is... F.",
+    "a_fish": "Fish... do not... exist.",
+    "a_sky": "The sky... is... gone.",
+    "a_spell": "T... E... A... no.",
+    "a_name": "Mister.",
+    "a_test": "Everything... is on the test.",
+    "a_day": "It is... always... Monday.",
+    "a_glasses": "They are... mine... now.",
+    "a_lunch": "I... already... ate.",
+    "q_pop": "Pop... quiz.",
+    "q_you": "You.",
+    "q_name": "What... is my name?",
+    "q_count": "How many students... are in... this class?",
+    "q_two": "What is... two plus two?",
+    "q_correct": "Correct.",
+    "q_wrong": "Wrong.",
+    "q_again": "Count... again.",
+    "q_hale": "He is... not here.",
+    "t_detention": "Detention.",
+    "t_sitdown": "Sit... down.",
+    "f_teacher1": "I am... a teacher.",
+    "f_teacher2": "Am I... a teacher?",
+    "f_teacher3": "What... am I?",
+    "f_hale": "Mister Hale... is... in",
     "t_morning": "Good... morning... class.",
     "t_today": "Today... we will learn about... about...",
     "t_page": "Open your books... to page... forty... seven.",
@@ -100,6 +190,18 @@ TEACHER_WHISPER = {
     "tw_shh": ("shhhhhhhhh", "Shhhhhh..."),
 }
 SAM = {
+    "s_late": "Mr. Hale is never late.",
+    "s_sub": "Who is that? That's not Mr. Hale.",
+    "s_dare": "I dare you. Repeat what he says.",
+    "s_didit": "No way. You actually did it!",
+    "s_lookdown": "Look down! Don't look at him!",
+    "s_projector": "Bro. The projector is on. He doesn't know!",
+    "s_plan": "At the bell, we run. Okay?",
+    "s_now": "Now! Ask him now!",
+    "s_five": "Just say five. He thinks it's five.",
+    "s_glasses": "Those are Mr. Hale's glasses.",
+    "s_laugh": "heh heh heh heh heh",
+    "s_kevin": "Kevin never came back.",
     "s_psst": "Psst. Hey.",
     "s_psst2": "Psst! Hey, over here!",
     "s_face": "Bro, why is his face like that?",
@@ -115,6 +217,17 @@ SAM = {
     "s_warn": "Stop! He's looking at you!",
 }
 NORA = {
+    "n_free": "Maybe we get a free period.",
+    "n_ask": "Ask him something. He never knows the answer.",
+    "n_laptop": "See? He has to look everything up.",
+    "n_blind": "He can't see without those glasses.",
+    "n_missing": "Look at the screen. That's Mr. Hale!",
+    "n_plan": "When he doesn't know, he has to check. That's how we get out.",
+    "n_impossible": "Ask him something he can't look up.",
+    "n_behind": "He's right behind you. Don't move.",
+    "n_now": "Ask him! Now!",
+    "n_count": "Count the empty chairs.",
+    "n_laugh": "hee hee hee hee hee",
     "n_psst": "Psst. Over here.",
     "n_psst2": "Hey! Psst! Look at me!",
     "n_look": "Don't look at him. Don't look at him.",
@@ -129,6 +242,35 @@ NORA = {
     "n_sorry": "Okay, okay. Shh.",
     "n_warn": "He's coming. Stop talking!",
 }
+# Lines spoken aloud: (voice, speed, espeak pitch, rubberband pitch, who, text)
+ALOUD = {
+    "s_here": ("mb-us3", 150, 50, 0.97, "sam", "Here."),
+    "n_here": ("mb-us1", 155, 55, 1.0, "nora", "Here."),
+    "k_seven": ("mb-us1", 150, 60, 1.14, "kid", "Um. Seven?"),
+    "p_here": ("mb-us3", 150, 55, 1.17, "you", "Here."),
+    "p_q_wet": ("mb-us3", 150, 55, 1.17, "you", "Sir? Is water wet?"),
+    "p_q_two": ("mb-us3", 150, 55, 1.17, "you", "Sir? What is two plus two?"),
+    "p_q_bath": ("mb-us3", 150, 55, 1.17, "you", "Sir? Can I go to the bathroom?"),
+    "p_q_france": ("mb-us3", 150, 55, 1.17, "you", "Sir? What is the capital of France?"),
+    "p_q_fish": ("mb-us3", 150, 55, 1.17, "you", "Sir? Do fish get thirsty?"),
+    "p_q_sky": ("mb-us3", 150, 55, 1.17, "you", "Sir? Why is the sky blue?"),
+    "p_q_spell": ("mb-us3", 150, 55, 1.17, "you", "Sir? How do you spell teacher?"),
+    "p_q_name": ("mb-us3", 150, 55, 1.17, "you", "Sir? What is your first name?"),
+    "p_q_test": ("mb-us3", 150, 55, 1.17, "you", "Sir? Is this on the test?"),
+    "p_q_day": ("mb-us3", 150, 55, 1.17, "you", "Sir? What day is it?"),
+    "p_q_glasses": ("mb-us3", 150, 55, 1.17, "you", "Sir? Are those Mister Hale's glasses?"),
+    "p_q_lunch": ("mb-us3", 150, 55, 1.17, "you", "Sir? When is lunch?"),
+    "p_f_teacher": ("mb-us3", 140, 55, 1.17, "you", "Are you really a teacher?"),
+    "p_f_hale": ("mb-us3", 140, 55, 1.17, "you", "Where is Mister Hale?"),
+    "p_f_two": ("mb-us3", 140, 55, 1.17, "you", "What is two plus two?"),
+    "p_a_madi": ("mb-us3", 150, 55, 1.17, "you", "Mister Madi."),
+    "p_a_hale": ("mb-us3", 150, 55, 1.17, "you", "Mister Hale."),
+    "p_a_dunno": ("mb-us3", 150, 55, 1.17, "you", "I don't know."),
+    "p_a_five": ("mb-us3", 150, 55, 1.17, "you", "Five."),
+    "p_a_four": ("mb-us3", 150, 55, 1.17, "you", "Four."),
+    "p_a_fish": ("mb-us3", 150, 55, 1.17, "you", "Fish."),
+}
+
 SHOUTS = {
     "s_hey": ("mb-us3", 175, 70, "Hey! Are you even listening?"),
     "n_hey": ("mb-us1", 175, 75, "Hey! Answer me!"),
@@ -235,7 +377,7 @@ def whisperise(x, lifter=34, tilt=1.0, seed=0):
     return y
 
 
-def ffmpeg_proc(src, dst, filt, bitrate="80k"):
+def ffmpeg_proc(src, dst, filt, bitrate="56k"):
     run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-af", filt,
          "-ac", "1", "-ar", "44100", "-b:a", bitrate, dst])
 
@@ -269,7 +411,7 @@ for key, text in TEACHER.items():
          "[0:a]volume=1.0[a];[1:a]volume=0.42[b];[a][b]amix=inputs=2:normalize=0,"
          "highpass=f=70,lowpass=f=7500,acrusher=bits=10:mix=0.18:mode=log,"
          "aecho=0.8:0.55:45|97:0.22|0.12,alimiter=limit=0.9,loudnorm=I=-16:TP=-1.5",
-         "-ac", "1", "-ar", "44100", "-b:a", "80k", os.path.join(OUT, key + ".mp3")])
+         "-ac", "1", "-ar", "44100", "-b:a", "56k", os.path.join(OUT, key + ".mp3")])
     manifest[key] = {"who": "teacher", "text": SUBS[key]}
 
 for key, (text, sub) in TEACHER_WHISPER.items():
@@ -294,7 +436,7 @@ for who, voice, table, seed in (("sam", "mb-us3", SAM, 3), ("nora", "mb-us1", NO
         w = os.path.join(TMP, key + "_w.wav")
         write_wav(w, norm(y, 0.8), SR)
         ffmpeg_proc(w, os.path.join(OUT, key + ".mp3"),
-                    "highpass=f=300,lowpass=f=8500,loudnorm=I=-18:TP=-1.5", "64k")
+                    "highpass=f=300,lowpass=f=8500,loudnorm=I=-18:TP=-1.5", "48k")
         manifest[key] = {"who": who, "text": text, "whisper": True}
 
 for key, (voice, speed, pitch, text) in SHOUTS.items():
@@ -305,6 +447,15 @@ for key, (voice, speed, pitch, text) in SHOUTS.items():
                 "rubberband=pitch=1.12:formant=preserved,highpass=f=120,"
                 "acompressor=threshold=-20dB:ratio=6,loudnorm=I=-12:TP=-1", "64k")
     manifest[key] = {"who": "sam" if key.startswith("s") else "nora", "text": text.upper(), "shout": True}
+
+for key, (voice, speed, pitch, rb, who, text) in ALOUD.items():
+    x = speak(voice, speed, pitch, text, gap=0.12)
+    raw = os.path.join(TMP, key + "_raw.wav")
+    write_wav(raw, norm(x), SR)
+    ffmpeg_proc(raw, os.path.join(OUT, key + ".mp3"),
+                f"rubberband=pitch={rb}:formant=preserved,highpass=f=110,lowpass=f=9000,"
+                "acompressor=threshold=-22dB:ratio=4,loudnorm=I=-15:TP=-1.2", "64k")
+    manifest[key] = {"who": who, "text": text}
 
 for key in manifest:
     manifest[key]["dur"] = duration(os.path.join(OUT, key + ".mp3"))

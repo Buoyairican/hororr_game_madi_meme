@@ -1,4 +1,229 @@
 {
+ "t_iam": {
+  "who": "teacher",
+  "text": "I am... your... teacher.",
+  "dur": 3.683
+ },
+ "t_name": {
+  "who": "teacher",
+  "text": "My name... is... Mister... Madi.",
+  "dur": 5.277
+ },
+ "t_roll": {
+  "who": "teacher",
+  "text": "Roll... call.",
+  "dur": 1.985
+ },
+ "t_r_sam": {
+  "who": "teacher",
+  "text": "Sam.",
+  "dur": 0.862
+ },
+ "t_r_nora": {
+  "who": "teacher",
+  "text": "Nora.",
+  "dur": 0.836
+ },
+ "t_r_kevin": {
+  "who": "teacher",
+  "text": "Kevin.",
+  "dur": 0.836
+ },
+ "t_r_kevin2": {
+  "who": "teacher",
+  "text": "Kevin?",
+  "dur": 0.836
+ },
+ "t_absent": {
+  "who": "teacher",
+  "text": "Kevin... is... absent.",
+  "dur": 3.631
+ },
+ "t_andyou": {
+  "who": "teacher",
+  "text": "And... you.",
+  "dur": 2.09
+ },
+ "t_good1": {
+  "who": "teacher",
+  "text": "Good.",
+  "dur": 0.575
+ },
+ "t_answerme": {
+  "who": "teacher",
+  "text": "Answer... me.",
+  "dur": 2.22
+ },
+ "t_whosaid": {
+  "who": "teacher",
+  "text": "Who... said that?",
+  "dur": 2.534
+ },
+ "t_iknow": {
+  "who": "teacher",
+  "text": "I know... it was you.",
+  "dur": 2.769
+ },
+ "t_itwasyou": {
+  "who": "teacher",
+  "text": "It was... you.",
+  "dur": 2.273
+ },
+ "t_notfunny": {
+  "who": "teacher",
+  "text": "That... is not... funny.",
+  "dur": 3.631
+ },
+ "t_moment": {
+  "who": "teacher",
+  "text": "One... moment.",
+  "dur": 2.325
+ },
+ "t_noquestions": {
+  "who": "teacher",
+  "text": "No more... questions.",
+  "dur": 2.743
+ },
+ "t_toomany": {
+  "who": "teacher",
+  "text": "You ask... too many... questions.",
+  "dur": 4.258
+ },
+ "t_cantsee": {
+  "who": "teacher",
+  "text": "I... cannot... see.",
+  "dur": 3.5
+ },
+ "a_wet": {
+  "who": "teacher",
+  "text": "Water... is... dry.",
+  "dur": 3.527
+ },
+ "a_five": {
+  "who": "teacher",
+  "text": "Five.",
+  "dur": 0.705
+ },
+ "a_france": {
+  "who": "teacher",
+  "text": "The capital of France... is... F.",
+  "dur": 4.598
+ },
+ "a_fish": {
+  "who": "teacher",
+  "text": "Fish... do not... exist.",
+  "dur": 3.866
+ },
+ "a_sky": {
+  "who": "teacher",
+  "text": "The sky... is... gone.",
+  "dur": 3.657
+ },
+ "a_spell": {
+  "who": "teacher",
+  "text": "T... E... A... no.",
+  "dur": 4.467
+ },
+ "a_name": {
+  "who": "teacher",
+  "text": "Mister.",
+  "dur": 0.967
+ },
+ "a_test": {
+  "who": "teacher",
+  "text": "Everything... is on the test.",
+  "dur": 3.265
+ },
+ "a_day": {
+  "who": "teacher",
+  "text": "It is... always... Monday.",
+  "dur": 3.866
+ },
+ "a_glasses": {
+  "who": "teacher",
+  "text": "They are... mine... now.",
+  "dur": 3.605
+ },
+ "a_lunch": {
+  "who": "teacher",
+  "text": "I... already... ate.",
+  "dur": 3.5
+ },
+ "q_pop": {
+  "who": "teacher",
+  "text": "Pop... quiz.",
+  "dur": 2.064
+ },
+ "q_you": {
+  "who": "teacher",
+  "text": "You.",
+  "dur": 0.705
+ },
+ "q_name": {
+  "who": "teacher",
+  "text": "What... is my name?",
+  "dur": 2.508
+ },
+ "q_count": {
+  "who": "teacher",
+  "text": "How many students... are in... this class?",
+  "dur": 5.564
+ },
+ "q_two": {
+  "who": "teacher",
+  "text": "What is... two plus two?",
+  "dur": 3.056
+ },
+ "q_correct": {
+  "who": "teacher",
+  "text": "Correct.",
+  "dur": 0.993
+ },
+ "q_wrong": {
+  "who": "teacher",
+  "text": "Wrong.",
+  "dur": 0.836
+ },
+ "q_again": {
+  "who": "teacher",
+  "text": "Count... again.",
+  "dur": 2.22
+ },
+ "q_hale": {
+  "who": "teacher",
+  "text": "He is... not here.",
+  "dur": 2.586
+ },
+ "t_detention": {
+  "who": "teacher",
+  "text": "Detention.",
+  "dur": 1.332
+ },
+ "t_sitdown": {
+  "who": "teacher",
+  "text": "Sit... down.",
+  "dur": 2.116
+ },
+ "f_teacher1": {
+  "who": "teacher",
+  "text": "I am... a teacher.",
+  "dur": 2.508
+ },
+ "f_teacher2": {
+  "who": "teacher",
+  "text": "Am I... a teacher?",
+  "dur": 2.586
+ },
+ "f_teacher3": {
+  "who": "teacher",
+  "text": "What... am I?",
+  "dur": 2.168
+ },
+ "f_hale": {
+  "who": "teacher",
+  "text": "Mister Hale... is... in",
+  "dur": 3.762
+ },
  "t_morning": {
   "who": "teacher",
   "text": "Good... morning... class.",
@@ -178,6 +403,78 @@
   "whisper": true,
   "dur": 4.075
  },
+ "s_late": {
+  "who": "sam",
+  "text": "Mr. Hale is never late.",
+  "whisper": true,
+  "dur": 1.411
+ },
+ "s_sub": {
+  "who": "sam",
+  "text": "Who is that? That's not Mr. Hale.",
+  "whisper": true,
+  "dur": 2.325
+ },
+ "s_dare": {
+  "who": "sam",
+  "text": "I dare you. Repeat what he says.",
+  "whisper": true,
+  "dur": 1.933
+ },
+ "s_didit": {
+  "who": "sam",
+  "text": "No way. You actually did it!",
+  "whisper": true,
+  "dur": 1.802
+ },
+ "s_lookdown": {
+  "who": "sam",
+  "text": "Look down! Don't look at him!",
+  "whisper": true,
+  "dur": 2.142
+ },
+ "s_projector": {
+  "who": "sam",
+  "text": "Bro. The projector is on. He doesn't know!",
+  "whisper": true,
+  "dur": 3.187
+ },
+ "s_plan": {
+  "who": "sam",
+  "text": "At the bell, we run. Okay?",
+  "whisper": true,
+  "dur": 2.038
+ },
+ "s_now": {
+  "who": "sam",
+  "text": "Now! Ask him now!",
+  "whisper": true,
+  "dur": 1.567
+ },
+ "s_five": {
+  "who": "sam",
+  "text": "Just say five. He thinks it's five.",
+  "whisper": true,
+  "dur": 2.482
+ },
+ "s_glasses": {
+  "who": "sam",
+  "text": "Those are Mr. Hale's glasses.",
+  "whisper": true,
+  "dur": 1.515
+ },
+ "s_laugh": {
+  "who": "sam",
+  "text": "heh heh heh heh heh",
+  "whisper": true,
+  "dur": 1.358
+ },
+ "s_kevin": {
+  "who": "sam",
+  "text": "Kevin never came back.",
+  "whisper": true,
+  "dur": 1.228
+ },
  "s_psst": {
   "who": "sam",
   "text": "Psst. Hey.",
@@ -255,6 +552,72 @@
   "text": "Stop! He's looking at you!",
   "whisper": true,
   "dur": 1.802
+ },
+ "n_free": {
+  "who": "nora",
+  "text": "Maybe we get a free period.",
+  "whisper": true,
+  "dur": 1.332
+ },
+ "n_ask": {
+  "who": "nora",
+  "text": "Ask him something. He never knows the answer.",
+  "whisper": true,
+  "dur": 2.586
+ },
+ "n_laptop": {
+  "who": "nora",
+  "text": "See? He has to look everything up.",
+  "whisper": true,
+  "dur": 2.116
+ },
+ "n_blind": {
+  "who": "nora",
+  "text": "He can't see without those glasses.",
+  "whisper": true,
+  "dur": 1.75
+ },
+ "n_missing": {
+  "who": "nora",
+  "text": "Look at the screen. That's Mr. Hale!",
+  "whisper": true,
+  "dur": 2.534
+ },
+ "n_plan": {
+  "who": "nora",
+  "text": "When he doesn't know, he has to check. That's how we get out.",
+  "whisper": true,
+  "dur": 3.448
+ },
+ "n_impossible": {
+  "who": "nora",
+  "text": "Ask him something he can't look up.",
+  "whisper": true,
+  "dur": 1.985
+ },
+ "n_behind": {
+  "who": "nora",
+  "text": "He's right behind you. Don't move.",
+  "whisper": true,
+  "dur": 2.142
+ },
+ "n_now": {
+  "who": "nora",
+  "text": "Ask him! Now!",
+  "whisper": true,
+  "dur": 1.332
+ },
+ "n_count": {
+  "who": "nora",
+  "text": "Count the empty chairs.",
+  "whisper": true,
+  "dur": 1.28
+ },
+ "n_laugh": {
+  "who": "nora",
+  "text": "hee hee hee hee hee",
+  "whisper": true,
+  "dur": 0.888
  },
  "n_psst": {
   "who": "nora",
@@ -345,5 +708,130 @@
   "text": "HEY! ANSWER ME!",
   "shout": true,
   "dur": 1.123
+ },
+ "s_here": {
+  "who": "sam",
+  "text": "Here.",
+  "dur": 0.34
+ },
+ "n_here": {
+  "who": "nora",
+  "text": "Here.",
+  "dur": 0.366
+ },
+ "k_seven": {
+  "who": "kid",
+  "text": "Um. Seven?",
+  "dur": 1.202
+ },
+ "p_here": {
+  "who": "you",
+  "text": "Here.",
+  "dur": 0.34
+ },
+ "p_q_wet": {
+  "who": "you",
+  "text": "Sir? Is water wet?",
+  "dur": 1.437
+ },
+ "p_q_two": {
+  "who": "you",
+  "text": "Sir? What is two plus two?",
+  "dur": 1.933
+ },
+ "p_q_bath": {
+  "who": "you",
+  "text": "Sir? Can I go to the bathroom?",
+  "dur": 1.985
+ },
+ "p_q_france": {
+  "who": "you",
+  "text": "Sir? What is the capital of France?",
+  "dur": 2.273
+ },
+ "p_q_fish": {
+  "who": "you",
+  "text": "Sir? Do fish get thirsty?",
+  "dur": 1.959
+ },
+ "p_q_sky": {
+  "who": "you",
+  "text": "Sir? Why is the sky blue?",
+  "dur": 1.75
+ },
+ "p_q_spell": {
+  "who": "you",
+  "text": "Sir? How do you spell teacher?",
+  "dur": 1.933
+ },
+ "p_q_name": {
+  "who": "you",
+  "text": "Sir? What is your first name?",
+  "dur": 1.959
+ },
+ "p_q_test": {
+  "who": "you",
+  "text": "Sir? Is this on the test?",
+  "dur": 1.698
+ },
+ "p_q_day": {
+  "who": "you",
+  "text": "Sir? What day is it?",
+  "dur": 1.437
+ },
+ "p_q_glasses": {
+  "who": "you",
+  "text": "Sir? Are those Mister Hale's glasses?",
+  "dur": 2.142
+ },
+ "p_q_lunch": {
+  "who": "you",
+  "text": "Sir? When is lunch?",
+  "dur": 1.515
+ },
+ "p_f_teacher": {
+  "who": "you",
+  "text": "Are you really a teacher?",
+  "dur": 1.019
+ },
+ "p_f_hale": {
+  "who": "you",
+  "text": "Where is Mister Hale?",
+  "dur": 1.149
+ },
+ "p_f_two": {
+  "who": "you",
+  "text": "What is two plus two?",
+  "dur": 1.332
+ },
+ "p_a_madi": {
+  "who": "you",
+  "text": "Mister Madi.",
+  "dur": 0.758
+ },
+ "p_a_hale": {
+  "who": "you",
+  "text": "Mister Hale.",
+  "dur": 0.758
+ },
+ "p_a_dunno": {
+  "who": "you",
+  "text": "I don't know.",
+  "dur": 0.758
+ },
+ "p_a_five": {
+  "who": "you",
+  "text": "Five.",
+  "dur": 0.34
+ },
+ "p_a_four": {
+  "who": "you",
+  "text": "Four.",
+  "dur": 0.366
+ },
+ "p_a_fish": {
+  "who": "you",
+  "text": "Fish.",
+  "dur": 0.392
  }
 }
