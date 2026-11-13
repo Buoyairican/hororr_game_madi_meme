@@ -6,6 +6,7 @@ import { clamp, lerp, damp, rand, pick, chance, wrapAngle, Bag, Timers } from '.
 import { PLAYER_EYE, BOARD_Z, ROWS, COLS } from './world.js';
 import { VideoMixin } from './videos.js';
 import { clipByKey } from './memes.js';
+import { RunStats } from './stats.js';
 import {
   FREE_LENGTH, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
   QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, mock, clockLabel,
@@ -81,6 +82,7 @@ export class Game {
       if (!this.teacher.root.visible || this.state !== 'playing') return;
       this.audio.play(pick(STEPS), { pos: new THREE.Vector3(pos.x, 0.05, pos.z), vol: 0.32 + Math.min(0.6, sp * 0.28), ref: 1.6, reverb: 0.3, rate: rand(0.92, 1.08) });
     };
+    this.track = new RunStats(); // what every player did this class
     this.setupVideos();
     this.reset('free', 0);
   }
@@ -150,6 +152,7 @@ export class Game {
     this.scareDone = {}; this.lastScare = {};
     this.notesGiven = 0;
     this.stats = { caught: 0, talk: 0, phone: 0, echoes: 0, questions: 0, memes: 0, videos: 0, fails: 0 };
+    this.track.reset(); this.closeArm = null;
     this.talk = null; this.buzz = null; this.phoneUpTime = 0; this.phoneScares = 0; this.noteLatch = false;
     this.noise = 0; this.watching = false; this.near = false; this.blind = false; this.typing = false;
     this.teacherDist = 9;
@@ -460,7 +463,7 @@ export class Game {
     if (p.shoutT > 0) { p.shoutT -= dt; noise = Math.max(noise, 1); }
     if (wantPhone) {
       noise = Math.max(noise, 0.65);
-      this.stats.phone += dt;
+      this.note(p, 'phone', dt);
       if (!p.local) this.mischief += dt * (this.blind || this.typing ? 6 : 2);
       else {
         this.phoneUpTime += dt;
@@ -490,7 +493,7 @@ export class Game {
     if (wantTalk && aim) {
       if (!p.talk || (p.talk.friend || p.talk.peer) !== aim) this.startTalk(p, aim);
       p.talk.time += dt;
-      this.stats.talk += dt;
+      this.note(p, 'talk', dt);
       this.mischief += dt * (this.blind || this.typing ? 10 : 5);
       noise = Math.max(noise, 1);
       if (this.blind) this.completeObjective('glasses');
@@ -535,12 +538,14 @@ export class Game {
       tk.stage = 'friend'; tk.timer = 0; tk.line = f.speaking;
     } else if (tk.stage === 'friend' && tk.timer > (tk.line ? tk.line.duration : 2) + 0.2) {
       this.mischief += 25;
+      this.note(p, 'whispers');
       this.completeObjective('whisper');
       f.linesDone++;
       if (p.local && f.linesDone % 3 === 0 && this.notesGiven < NOTES.length) this.timers.after(1.2, () => this.giveNote());
       tk.stage = 'player'; tk.timer = 0;
     } else if (tk.stage === 'peer' && tk.timer > 2.2) {
       this.mischief += 20;
+      this.note(p, 'whispers');
       this.completeObjective('whisper');
       tk.stage = 'player'; tk.timer = 0;
     }
@@ -603,6 +608,7 @@ export class Game {
     this.audio.play('paper', { pos: f.headWorld(new THREE.Vector3()), vol: 0.8 });
     this.ui.showNote(`<small>from ${f.name}:</small><br>${text}`);
     this.mischief += 15;
+    this.note(this.me, 'notes');
     return true;
   }
 
@@ -618,7 +624,8 @@ export class Game {
     // his own words, sped up and squeaky: a terrible impression
     this.audio.play(e.id, { rate: 1.42, vol: 0.85, pos: v1.clone(), ref: 0.7, reverb: 0.08, bus: 'voice' });
     this.subFor(p, mock(e.text), 'you mock', 2.6);
-    p.echoStreak++; p.lastEcho = this.t; this.stats.echoes++;
+    p.echoStreak++; p.lastEcho = this.t;
+    this.note(p, 'echoes'); this.track.event(this.t, p, 'echo', { streak: p.echoStreak });
     this.idleT = 0;
     this.mischief += 35;
     this.completeObjective('echo');
@@ -711,7 +718,8 @@ export class Game {
   askQuestion(q, p = this.me) {
     p.handT = 2.8;
     const h = this.playerSay(q.ask, p);
-    p.qCount++; p.qLast = this.t; this.stats.questions++;
+    p.qCount++; p.qLast = this.t;
+    this.note(p, 'questions'); this.track.event(this.t, p, 'question', { q: q.id });
     this.idleT = 0;
     p.qBusy = true;
     this.mischief += 10;
@@ -876,6 +884,11 @@ export class Game {
     this.objectives = list.map((o) => ({ ...o, done: false }));
     this.ui.setObjectives(this.objectives);
   }
+  /** count something a player did (the old totals and the per-player tracker) */
+  note(p, key, n = 1) {
+    if (key in this.stats) this.stats[key] += n;
+    this.track.add(p, key, n);
+  }
   dropObjective(id) {
     if (!this.objectives.some((x) => x.id === id)) return;
     this.objectives = this.objectives.filter((x) => x.id !== id);
@@ -886,6 +899,8 @@ export class Game {
     const o = this.objectives.find((x) => x.id === id);
     if (!o || o.done) return;
     o.done = true;
+    this.track.global.objectives++;
+    this.track.event(this.t, null, 'objective', { id });
     this.mischief += 20;
     this.audio.play('ding', { vol: 0.5, reverb: 0.1, bus: 'music' });
     this.ui.setObjectives(this.objectives);
@@ -1019,6 +1034,10 @@ export class Game {
     this.anger = clamp(this.anger, 0, 100);
     if (this.cutscene || this.ending) return;
     const a = this.anger, fl = this.flags;
+    // close calls: he was on his way over (70+) and calmed down again without catching anyone
+    if (a > this.track.global.peakAnger) this.track.global.peakAnger = a;
+    if (a >= 70 && !this.closeArm) this.closeArm = this.focus;
+    else if (this.closeArm && a < 30) { this.note(this.closeArm, 'closeCalls'); this.track.event(this.t, this.closeArm, 'closeCall'); this.closeArm = null; }
     if (a >= 100) { this.bust('noise', this.focus); return; }
     if (!this.lockBully && !this.choice && !this.eventLock) { // he warns you first
       if (a >= 70 && !fl.r70) { fl.r70 = fl.r40 = true; this.interrupt(this.reactApproach()); }
@@ -1341,7 +1360,8 @@ export class Game {
     const kid = back.length && chance(0.7) ? pick(back) : pick(pool.filter((s) => s !== this.lastMemeKid).length ? pool.filter((s) => s !== this.lastMemeKid) : pool);
     const m = forceId ? MEMES.find((x) => x.id === forceId) : this.memeBag.next();
     this.lastMemeKid = kid;
-    this.stats.memes++;
+    this.stats.memes++; this.track.global.memes++;
+    this.track.event(this.t, null, 'meme', { kid: kid.name, meme: m.id });
     this.interrupt(this.reactMeme(kid, m));
     return true;
   }
@@ -1618,6 +1638,7 @@ export class Game {
   /** start a busted scene right now (nothing else can jump in before it begins) */
   bust(reason, p = this.focus) {
     this.focus = p;
+    this.closeArm = null;
     this.cutscene = true;
     this.interrupt(this.bustedSeq(reason, p));
   }
@@ -1626,7 +1647,10 @@ export class Game {
   *bustedSeq(reason, p = this.focus) {
     const T = this.teacher, W = this.world, A = this.audio;
     this.cutscene = true;
-    this.strikes++; this.stats.caught++;
+    this.strikes++;
+    this.note(p, 'caught'); this.closeArm = null;
+    const cf = this.track.of(p).caughtFor; cf[reason] = (cf[reason] || 0) + 1;
+    this.track.event(this.t, p, 'caught', { reason });
     this.cancelVideos(p);
     if (this.teacherVoice) { this.teacherVoice.stop(0.05); this.voiceUntil = 0; }
     if (this.choice) this.pickChoice(-1);

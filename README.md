@@ -107,6 +107,7 @@ src/game.js                the teacher's brain (coroutines), story chapters, fre
 src/videos.js              meme videos in class: missions, phones held out to you, the loud crash
 src/memes.js, src/clips.js the meme clips (original cartoons drawn live) and the clip player
 src/phone.js               your phone: PAPER PLANE, the meme feed, messages
+src/stats.js               what every player did in a class (counts + event log)
 src/data.js                board text, lines, questions, messages, notes, chapter titles
 src/teacher.js             Mr. Madi: rigged suit body, IK arms and legs, walk cycle
                            (feet step, hips stay level so he seems to glide), glasses
@@ -126,8 +127,15 @@ assets/audio/voice/        269 spoken lines
 assets/audio/sfx/          83 sound effects and music loops
 assets/videos/             your own .mp4 memes (optional, see assets/videos/README.md)
 tools/                     scripts that generate all of the assets above + preview pages
+tests/                     browser tests and their runner (bash tests/run.sh quick|full)
+PLAN.md                    the plan for the next updates, phase by phase
 vendor/                    three.js r170 (+ GLTFLoader), PeerJS 1.5.5
 ```
+
+### Tests
+
+`bash tests/run.sh quick` (about 7 minutes) or `bash tests/run.sh full` (about 10 minutes) plays the game in
+headless Chromium and prints PASS / FAIL per test. See `tests/README.md`.
 
 ### Regenerating the assets
 
