@@ -54,6 +54,17 @@ python3 -m http.server 8000
 
 Opening `index.html` directly from disk will not work, because browsers block module imports from `file://`.
 
+## Put it online (Vercel)
+
+The game is plain static files with no build step, so Vercel can host it as-is:
+
+1. Sign in at [vercel.com](https://vercel.com) with your GitHub account.
+2. **Add New… → Project**, then import `hororr_game_madi_meme` (give Vercel access to the repo if it asks).
+3. Framework Preset: **Other**. Leave the build command and output directory empty.
+4. Press **Deploy**. You get a link like `https://hororr-game-madi-meme.vercel.app` that anyone can open on a PC or phone.
+
+Every push to `main` redeploys automatically.
+
 ## Put it online (GitHub Pages)
 
 1. On GitHub: **Settings → Pages**.
