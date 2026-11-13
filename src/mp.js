@@ -11,6 +11,8 @@ import { SEATS } from './game.js';
 import { PLAYER_EYE } from './world.js';
 import { clockLabel } from './data.js';
 import { clamp, dampAngle, lerp } from './util.js';
+import { HeldPhone } from './memes.js';
+import { showPose, avatarShoulders, lookDot } from './videos.js';
 
 const AVATAR_MODELS = ['kid_a', 'kid_c', 'kid_f', 'kid_a'];
 const SNAP_DT = 1 / 15;      // snapshots per second
@@ -27,6 +29,7 @@ const r4 = (x) => Math.round(x * 10000) / 10000;
 const va = (v) => [r3(v.x), r3(v.y), r3(v.z)];
 const V = (a, out = new THREE.Vector3()) => out.set(a[0], a[1], a[2]);
 const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _q = new THREE.Quaternion();
+const _sa = new THREE.Vector3(), _sb = new THREE.Vector3(), _sc = new THREE.Vector3();
 export const cleanName = (s) => (s || '').replace(/[<>&"]/g, '').trim().slice(0, 12);
 
 let CURRENT = null;          // the live session (proxies are installed once per page)
@@ -163,7 +166,13 @@ export class MP {
     if (m.t === 'in') {
       p.yaw = clamp(Number(m.y) || 0, -3, 3); p.pitch = clamp(Number(m.p) || 0, -1.2, 1.2);
       p.in.talk = !!m.talk; p.in.phone = !!m.ph;
-    } else if (m.t === 'press') { if (m.k === 'echo' || m.k === 'ask') p.in[m.k] = true; }
+      // their phone: a video playing (and loud right now), the clip they could show, the phone they look at
+      p.in.pv = !!m.pv; p.in.pl = !!m.pl;
+      p.in.ck = Number.isInteger(m.ck) ? m.ck : -1; p.in.cs = Number(m.cs) | 0; p.in.lk = Number(m.lk) | 0;
+    } else if (m.t === 'press') {
+      if (m.k === 'echo' || m.k === 'ask' || m.k === 'show') p.in[m.k] = true;
+      else if (m.k === 'fail' && !(p.failT > 0.5)) g.phoneFail(p);
+    }
     else if (m.t === 'pick') g.pickChoice(Number(m.i), p);
   }
 
@@ -263,10 +272,12 @@ export class MP {
       ck: r2(g.clockMin), ph: g.phase, a: Math.round(g.anger), s: g.strikes, ms: g.maxStrikes, m: Math.floor(g.mischief),
       pr: g.present ? 1 : 0, bl: g.blind ? 1 : 0, ty: g.typing ? 1 : 0, cu: g.cutscene ? 1 : 0, em: g.emergency,
       ec: g.canEcho() ? r2(g.echoable.until - g.t) : -1,
+      sh: g.shows.filter((x) => !x.over).map((x) => [x.id, x.to.id, x.npc ? 'n:' + x.npc.kind : 'p:' + x.fromP.id, x.key, x.seed, r2(x.t)]),
     };
   }
 
   // ---- player-specific messages (called by game.js)
+  toPlayer(p, msg) { if (this.role === 'host' && !p.local) this.net.send(p.id, msg); }
   uiTo(p, fn, args) { this.net.send(p.id, { t: 'ui', f: fn, a: args }); }
   subFor(p, text, cls, dur) {
     const ui = this.g.ui;
@@ -323,6 +334,7 @@ export class MP {
       case 'ping': break;
       case 'toLobby':
         g.state = 'title'; g.input.enable(false); g.audio.stopAll(); g.ui.show('hud', false); g.ui.closeChoices();
+        this.clearHelds(); g.vidZoom = false; g.phone.reset();
         this.choice = null;
         this.hook('toLobby');
         break;
@@ -352,6 +364,7 @@ export class MP {
     this.syncPlayers();
     for (const h of this.handles.values()) h.stop(0.05);
     this.handles.clear();
+    this.clearHelds();
     g.reset(m.mode, m.ch);
     g.state = 'playing';
     g.input.enable(true);
@@ -404,6 +417,7 @@ export class MP {
         break;
       case 'choiceClose': if (this.choice) { this.choice = null; g.ui.closeChoices(); } break;
       case 'jump': this.jump = this.guestJump(); break;
+      case 'vscare': g.localVideoScare(); if (this.helds) for (const h of this.helds.values()) h.face = g.portraitTex && g.portraitTex.image; break;
       case 'camRun': {
         const door = new THREE.Vector3(4.3, PLAYER_EYE.y, -4.7);
         g.camOverride = { from: g.camPos.clone(), to: door, t: 0, dur: 3.4, yaw: Math.atan2(-(door.x - g.camPos.x), -(door.z - g.camPos.z)) };
@@ -502,6 +516,7 @@ export class MP {
       g.world.board.update(dt);
       for (const p of g.players) if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: p.netTalk, phone: p.phoneUp, hand: p.netHand });
       g.updateWatching();
+      this.guestShows(dt);
       this.guestActions(dt);
       g.updateHand(dt);
       g.phone.update(dt);
@@ -509,13 +524,54 @@ export class MP {
       this.inT -= dt;
       if (this.inT <= 0) {
         this.inT = INPUT_DT;
-        this.send({ t: 'in', y: r3(g.yaw), p: r3(g.pitch), talk: this.talk ? 1 : 0, ph: this.phoneUp ? 1 : 0 });
+        const ph = g.phone;
+        this.send({ t: 'in', y: r3(g.yaw), p: r3(g.pitch), talk: this.talk ? 1 : 0, ph: this.phoneUp ? 1 : 0,
+          pv: this.phoneUp && ph.playing ? 1 : 0, pl: this.phoneUp && ph.loud ? 1 : 0,
+          ck: typeof ph.feed.key === 'number' ? ph.feed.key : -1, cs: ph.feed.seed | 0, lk: this.lookShow || 0 });
       }
     }
     if (this.jump && this.jump.next().done) {
       this.jump = null;
       if (this.pendingEnd) { this.showEnd(this.pendingEnd); this.pendingEnd = null; }
     }
+  }
+
+  /** a friend (or Sam / Nora) holds a phone out to you: draw it here, and tell the host if you look at it */
+  guestShows(dt) {
+    const g = this.g, list = (this.snap && this.snap.sh) || [];
+    if (!this.helds) this.helds = new Map();
+    let look = 0, zoom = false;
+    const mine = list.filter((x) => x[1] === this.myId);
+    for (const [id, , from, key, seed, t] of mine) {
+      const eye = g.camPos;
+      let who = '';
+      if (typeof from !== 'string') continue;
+      if (from.startsWith('n:')) { const f = g.friend(from.slice(2)); if (!f || f.gone) continue; f.shoulderPoints(_sa, _sb); who = f.name; }
+      else { const q = g.players.find((x) => x.id === from.slice(2)); if (!q) continue; avatarShoulders(g.headOf(q, _sc), eye, _sa, _sb); who = q.name; }
+      let h = this.helds.get(id);
+      if (!h) { h = new HeldPhone(g.scene, g.audio, g.portraitTex && g.portraitTex.image); h.player.load(key, seed, Number(t) || 0); this.helds.set(id, h); }
+      const shoulder = new THREE.Vector3(), hold = new THREE.Vector3();
+      showPose(_sa, _sb, eye, shoulder, hold);
+      h.visible = true;
+      h.pose(shoulder, hold, eye);
+      const dot = lookDot(eye, g.camFwd, hold);
+      const lk = !g.cutscene && !this.choice && (h.lookLocal ? dot > 0.93 : dot > 0.962);
+      h.lookLocal = lk;
+      if (lk) {
+        look = id; zoom = true; this.watchedOnce = true;
+        if (Math.abs(h.player.t - t) > 0.5) h.player.seek(t);
+        h.player.advance(dt, { on: true, pos: hold, vol: 1 });
+      } else h.player.pause();
+      h.render(dt, { paused: !lk, header: who + '\'s phone', clock: g.clockText() });
+    }
+    for (const [id, h] of this.helds) if (!mine.some((x) => x[0] === id)) { h.dispose(); this.helds.delete(id); }
+    this.lookShow = look;
+    g.vidZoom = zoom;
+  }
+  clearHelds() {
+    if (this.helds) for (const h of this.helds.values()) h.dispose();
+    this.helds = new Map();
+    this.lookShow = 0;
   }
 
   /** Madi moves smoothly toward the latest pose from the host */
@@ -558,17 +614,28 @@ export class MP {
     if (ui.noteOpen && (inp.talk || inp.phone || pressed.echo || pressed.ask)) { ui.closeNote(); g.noteLatch = true; blocked = true; }
     if (g.noteLatch && !inp.talk && !inp.phone) g.noteLatch = false;
     blocked = blocked || ui.noteOpen || g.noteLatch || !!this.choice || g.cutscene;
-    if (!blocked && pressed.echo) {
-      if (this.ec >= 0) this.send({ t: 'press', k: 'echo' });
-      else ui.hint('Repeat him right after he says something.', 2.5);
+    const held = !blocked && inp.phone;
+    if (held) {
+      // the phone's buttons: tap (fly / next video), switch app, show the friend you look at
+      if (pressed.tap) g.phone.tap();
+      if (pressed.ask) g.phone.switchApp();
+      if (pressed.echo) this.send({ t: 'press', k: 'show' });
+    } else {
+      if (!blocked && pressed.echo) {
+        if (this.ec >= 0) this.send({ t: 'press', k: 'echo' });
+        else ui.hint('Repeat him right after he says something.', 2.5);
+      }
+      if (!blocked && pressed.ask) this.send({ t: 'press', k: 'ask' });
     }
-    if (!blocked && pressed.ask) this.send({ t: 'press', k: 'ask' });
-    this.phoneUp = !blocked && inp.phone;
+    this.phoneUp = held;
     this.talk = !blocked && inp.talk && !this.phoneUp;
     g.phone.up = this.phoneUp;
-    if (this.phoneUp && g.phone.mode === 'game') g.phone.score += dt * 11;
     const aim = g.aimFriend(me);
-    ui.prompt(aim && !this.talk ? (inp.touch ? `hold TALK · whisper to ${aim.name}` : `hold [E] · whisper to ${aim.name}`) : '');
+    let pr = '';
+    if (held) { if (g.phone.mode === 'memes' && aim && !aim.kind) pr = inp.touch ? `tap SHOW · show ${aim.name} this video` : `[R] · show ${aim.name} this video`; }
+    else if (aim && !this.talk) pr = inp.touch ? `hold TALK · whisper to ${aim.name}` : `hold [E] · whisper to ${aim.name}`;
+    ui.prompt(g.vidZoom ? '' : pr);
+    ui.phoneControls(held ? g.phone.mode : null, inp.touch);
     if (this.choice) {
       const k = inp.takeChoice();
       if (k >= 0 && k < this.choice.n) this.pick(k);
@@ -582,7 +649,7 @@ export class MP {
     ui.setEye(!g.present ? 'away' : g.blind ? 'blind' : g.typing ? 'busy' : g.watching ? 'open' : 'closed');
     ui.setAnger(g.anger);
     ui.setStrikes(g.strikes, g.maxStrikes);
-    ui.echoCue(this.ec >= 0 && !g.cutscene ? clamp(this.ec / 4, 0, 1) : -1, g.input.touch);
+    ui.echoCue(this.ec >= 0 && !g.cutscene && !g.vidZoom && !this.phoneUp ? clamp(this.ec / 4, 0, 1) : -1, g.input.touch);
     const c = clockLabel(g.clockMin);
     ui.setClock(c.text);
     g.world.clock.set(c.h, c.m, c.s);
@@ -637,6 +704,7 @@ export class MP {
     setTimeout(() => net.close(), 150);
     for (const av of this.avatars.values()) av.dispose();
     this.avatars.clear();
+    this.clearHelds();
     for (const p of [...g.players]) if (!p.local) g.removePlayer(p.id);
     for (const h of this.handles.values()) h.stop(0.05);
     this.handles.clear();

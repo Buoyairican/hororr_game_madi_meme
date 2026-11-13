@@ -43,6 +43,12 @@ TEACHER = {
     "t_iknow": "I know | it was you.",
     "t_itwasyou": "It was | you.",
     "t_notfunny": "That | is not | funny.",
+    "t_givephone": "Give | me | that | phone.",
+    "t_sofunny": "What | is | so | funny?",
+    "t_nophones": "No | phones | in | my | class.",
+    "t_hmm": "Hmmmmm.",
+    "t_wasityou": "Was it | you?",
+    "t_ifind": "I | will | find you.",
     "t_moment": "One | moment.",
     "t_noquestions": "No more | questions.",
     "t_toomany": "You ask | too many | questions.",
@@ -148,6 +154,12 @@ SUBS = {
     "t_iknow": "I know... it was you.",
     "t_itwasyou": "It was... you.",
     "t_notfunny": "That... is not... funny.",
+    "t_givephone": "Give... me... that... phone.",
+    "t_sofunny": "What... is... so... funny?",
+    "t_nophones": "No... phones... in... my... class.",
+    "t_hmm": "Hmmm...",
+    "t_wasityou": "Was it... you?",
+    "t_ifind": "I... will... find you.",
     "t_moment": "One... moment.",
     "t_noquestions": "No more... questions.",
     "t_toomany": "You ask... too many... questions.",
@@ -283,6 +295,10 @@ SAM = {
     "s_chair": "Kevin's chair... it just moved.",
     "s_dark": "I can't see anything.",
     "s_noted": "Bro. He read it out loud.",
+    "s_look": "Psst! Look! Look at this!",
+    "s_lookagain": "No, look! You're missing it!",
+    "s_sent": "Check your phone. I sent you something.",
+    "s_told": "Told you. Best video ever.",
 }
 NORA = {
     "n_free": "Maybe we get a free period.",
@@ -324,6 +340,9 @@ NORA = {
     "n_gotnote": "Got it.",
     "n_closed": "Nobody in the building? Then who is teaching us?",
     "n_dark": "Don't make a sound.",
+    "n_look": "Psst! You have to see this!",
+    "n_lookagain": "Look! This is the best part!",
+    "n_told": "I can't breathe.",
 }
 # The school PA speaker: (text, subtitle)
 PA = {
@@ -338,6 +357,7 @@ ALOUD = {
     "n_here": ("mb-us1", 155, 55, 1.0, "nora", "Here."),
     "k_seven": ("mb-us1", 150, 60, 1.14, "kid", "Um. Seven?"),
     "p_here": ("mb-us3", 150, 55, 1.17, "you", "Here."),
+    "p_look": ("mb-us3", 165, 60, 1.17, "you", "Bro! Look at this!"),
     "p_q_wet": ("mb-us3", 150, 55, 1.17, "you", "Sir? Is water wet?"),
     "p_q_two": ("mb-us3", 150, 55, 1.17, "you", "Sir? What is two plus two?"),
     "p_q_bath": ("mb-us3", 150, 55, 1.17, "you", "Sir? Can I go to the bathroom?"),
@@ -383,6 +403,28 @@ KID_VOICES = {"b": ("mb-us3", 165, 62, 1.22), "g": ("mb-us1", 165, 70, 1.12)}
 SHOUTS = {
     "s_hey": ("mb-us3", 175, 70, "Hey! Are you even listening?"),
     "n_hey": ("mb-us1", 175, 75, "Hey! Answer me!"),
+}
+
+# Voices inside the meme clips on the phones: (espeak voice, speed, pitch, rubberband pitch, text)
+CLIPV = {
+    "v_br_pencil": ("it", 125, 30, 0.86, "Matitino Gommarino!"),
+    "v_br_shark": ("it", 125, 30, 0.86, "Squalino Zainetto!"),
+    "v_br_banana": ("it", 125, 30, 0.86, "Bananito Calcolatrice!"),
+    "v_br_chalk": ("it", 118, 25, 0.82, "Gessetto Polverone!"),
+    "v_br_frog": ("it", 125, 35, 0.86, "Ranocchio Monociclo!"),
+    "v_tts_beat": ("mb-us1", 185, 60, 1.05, "When the beat drops in class."),
+    "v_tts_wait": ("mb-us1", 185, 60, 1.05, "Wait for it."),
+    "v_tts_pov": ("mb-us1", 185, 60, 1.05, "P O V. The sub does not know the lesson."),
+    "v_tts_nobody": ("mb-us1", 185, 60, 1.05, "Nobody. | Absolutely nobody."),
+    "v_tts_aura": ("mb-us1", 185, 60, 1.05, "Plus one thousand aura."),
+    "v_tts_cat": ("mb-us1", 185, 60, 1.05, "This cat has more riz than me."),
+    "v_tts_weather": ("mb-us1", 185, 60, 1.05, "The weather in my town be like."),
+    "v_tts_mewing": ("mb-us1", 185, 60, 1.05, "Shh. I'm mewing."),
+    "v_tts_bell": ("mb-us1", 185, 60, 1.05, "Me waiting for the bell."),
+    "v_umactually": ("mb-us3", 170, 72, 1.28, "Um, actually."),
+    "v_ohno": ("mb-us3", 160, 60, 1.1, "Oh no."),
+    "v_wow": ("mb-us2", 115, 40, 0.92, "Wow."),
+    "v_letsgo": ("mb-us3", 175, 65, 1.15, "Let's go!"),
 }
 
 
@@ -623,6 +665,18 @@ for key, (text, sub) in PA.items():
     ffmpeg_proc(raw, os.path.join(OUT, key + ".mp3"),
                 "highpass=f=450,lowpass=f=3200,acrusher=bits=8:mix=0.25:mode=log,"
                 "aecho=0.8:0.5:90|160:0.35|0.2,loudnorm=I=-16:TP=-1.5", "48k")
+
+for key, (voice, speed, pitch, rb, text) in CLIPV.items():
+    manifest[key] = {"who": "clip", "text": text.replace(" | ", " ")}
+    if not need(key):
+        continue
+    x = speak(voice, speed, pitch, text, gap=0.5)
+    raw = os.path.join(TMP, key + "_raw.wav")
+    write_wav(raw, norm(x), SR)
+    # a phone speaker: no bass, a bit boxy
+    ffmpeg_proc(raw, os.path.join(OUT, key + ".mp3"),
+                f"rubberband=pitch={rb}:formant=preserved,highpass=f=260,lowpass=f=7000,"
+                "acompressor=threshold=-22dB:ratio=5,loudnorm=I=-14:TP=-1.2", "56k")
 
 for key in manifest:
     manifest[key]["dur"] = duration(os.path.join(OUT, key + ".mp3"))

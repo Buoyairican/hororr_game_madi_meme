@@ -895,6 +895,251 @@ def make_v3():
     save("power_up", reverb(x + hum, 0.3, dur=1.2, decay=0.4), 0.8)
 
 
+# ----------------------------------------------------------------- v4: meme clips + phone game
+def nfreq(semi):
+    """semitones from A4"""
+    return 440.0 * 2 ** (semi / 12)
+
+
+def kick(d=0.45, f0=150, f1=45):
+    t = t_axis(d)
+    f = f1 + (f0 - f1) * np.exp(-t / 0.04)
+    return np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.16) + biquad(noise(d), "lp", 2000) * np.exp(-t / 0.004) * 0.3
+
+
+def snare(d=0.25):
+    t = t_axis(d)
+    return biquad(noise(d), "bp", 1900, 0.8) * np.exp(-t / 0.07) + np.sin(2 * np.pi * 190 * t) * np.exp(-t / 0.05) * 0.5
+
+
+def hat(d=0.06, open_=False):
+    t = t_axis(d if not open_ else 0.25)
+    return biquad(noise(len(t) / SR), "hp", 7500) * np.exp(-t / (0.02 if not open_ else 0.09))
+
+
+def clap808(d=0.3):
+    x = np.zeros(int(d * SR))
+    for k, at in enumerate((0, 0.011, 0.022)):
+        t = t_axis(0.2)
+        place(x, biquad(noise(0.2), "bp", 1300, 1.2) * np.exp(-t / (0.008 if k < 2 else 0.06)), at)
+    return x
+
+
+def bass808(f, d):
+    t = t_axis(d)
+    return np.tanh(2.2 * np.sin(2 * np.pi * np.cumsum(np.full(len(t), f) * (1 + 0.04 * np.exp(-t / 0.05))) / SR)) * np.clip((d - t) / 0.03, 0, 1) * np.exp(-t / (d * 1.4))
+
+
+def cowbell(f, d=0.22):
+    t = t_axis(d)
+    x = osc_sq(np.full(len(t), f)) + osc_sq(np.full(len(t), f * 1.48))
+    return biquad(x, "bp", f * 1.6, 1.5) * np.exp(-t / 0.07) * 1.6
+
+
+def pluck(f, d=0.5, bright=1.0):
+    t = t_axis(d)
+    x = np.zeros(len(t))
+    for h in range(1, 9):
+        x += np.sin(2 * np.pi * f * h * t) * (bright ** h) / h * np.exp(-t * (3 + h * 2.2))
+    return x * np.clip(t / 0.002, 0, 1)
+
+
+def rhodes(f, d=1.2):
+    t = t_axis(d)
+    x = np.sin(2 * np.pi * f * t + 0.6 * np.sin(2 * np.pi * f * t) * np.exp(-t / 0.3))
+    return x * np.exp(-t / 0.9) * (1 + 0.15 * np.sin(2 * np.pi * 4.5 * t)) * np.clip(t / 0.005, 0, 1)
+
+
+def saw_note(f, d, cutoff=2500, vib=0.0):
+    t = t_axis(d)
+    fr = f * (1 + vib * np.sin(2 * np.pi * 5.5 * t))
+    return biquad(osc_saw(fr), "lp", cutoff) * adsr(d, 0.01, 0.04)
+
+
+def kazoo(f, d):
+    t = t_axis(d)
+    fr = f * (1 + 0.012 * np.sin(2 * np.pi * 6 * t))
+    x = np.tanh(3 * osc_saw(fr))
+    x = biquad(x, "bp", 900, 2.5) * 1.2 + biquad(x, "bp", 2300, 3) * 0.8 + biquad(noise(d), "bp", 1500, 1) * 0.12
+    return x * adsr(d, 0.02, 0.05)
+
+
+def seq_render(total, events):
+    """events: (time, sound array, gain); render twice so tails wrap, return the second copy (seamless loop)"""
+    x = np.zeros(int(total * 2 * SR) + SR)
+    for at, snd, g in events:
+        place(x, snd * g, at)
+        place(x, snd * g, at + total)
+    n = int(total * SR)
+    return x[n:2 * n]
+
+
+def make_v4():
+    # ---- PHONK: cowbell riff, sliding 808, trap hats (120 bpm, 4 bars = 8 s)
+    b = 0.5
+    ev = []
+    riff = [0, None, 0, 3, None, 0, 5, 3, 0, None, 0, 3, None, 7, 5, 3]
+    for bar in range(4):
+        base = bar * 4 * b
+        shift = [0, 0, -2, 1][bar]
+        for i, n in enumerate(riff):
+            if n is not None:
+                ev.append((base + i * b / 4, cowbell(nfreq(n + shift + 3), 0.2), 0.5))
+        for i in range(16):
+            ev.append((base + i * b / 4, hat(), 0.18 if i % 2 else 0.28))
+        if bar % 2 == 1:
+            for k in range(6):
+                ev.append((base + 3.5 * b + k * b / 12, hat(), 0.16))
+        ev.append((base, kick(), 1.0)); ev.append((base + 1.5 * b, kick(), 0.8)); ev.append((base + 2.75 * b, kick(), 0.7))
+        ev.append((base + 2 * b, clap808(), 0.7))
+        ev.append((base, bass808(nfreq(-33 + shift), 1.4), 0.6)); ev.append((base + 2.5 * b, bass808(nfreq(-30 + shift), 0.9), 0.55))
+    x = seq_render(8 * b * 2, ev)
+    save("v_phonk", np.tanh(x * 1.6), 0.85, "80k")
+
+    # ---- LO-FI: soft chords, lazy drums, vinyl crackle (84 bpm, 4 bars)
+    b = 60 / 84
+    ev = []
+    chords = [[-9, -5, -2, 2], [-11, -7, -4, 0], [-4, 0, 3, 7], [-6, -2, 1, 5]]
+    for bar, ch in enumerate(chords):
+        base = bar * 4 * b
+        for k, n in enumerate(ch):
+            ev.append((base + k * 0.02, rhodes(nfreq(n - 12), 4 * b), 0.22))
+        ev.append((base, kick(0.4, 110, 45), 0.7)); ev.append((base + 2.5 * b, kick(0.4, 110, 45), 0.5))
+        ev.append((base + b, snare(), 0.35)); ev.append((base + 3 * b, snare(), 0.35))
+        for i in range(8):
+            ev.append((base + i * b / 2 + (0.03 if i % 2 else 0), hat(), 0.12))
+    total = 16 * b
+    x = seq_render(total, ev)
+    crackle = (rng.random(len(x)) < 0.0015) * rng.standard_normal(len(x)) * 0.5
+    x = biquad(x, "lp", 3800) + biquad(crackle, "hp", 1500) + biquad(noise(len(x) / SR), "lp", 600) * 0.02
+    save("v_lofi", x, 0.7, "64k")
+
+    # ---- EURO dance: four on the floor, offbeat bass, saw arp (150 bpm, 4 bars)
+    b = 0.4
+    ev = []
+    prog = [0, -4, 3, -2]
+    for bar in range(4):
+        base = bar * 4 * b
+        r = prog[bar]
+        for i in range(4):
+            ev.append((base + i * b, kick(0.3), 0.9))
+            ev.append((base + i * b + b / 2, saw_note(nfreq(r - 24), b / 2 * 0.9, 900), 0.45))
+            ev.append((base + i * b + b / 2, hat(open_=True), 0.18))
+        for i in range(16):
+            n = r + [0, 7, 12, 7, 3, 7, 12, 15][i % 8]
+            ev.append((base + i * b / 4, saw_note(nfreq(n), b / 4 * 0.8, 3500), 0.16))
+        ev.append((base + b, clap808(), 0.4)); ev.append((base + 3 * b, clap808(), 0.4))
+    save("v_euro", seq_render(16 * b, ev), 0.85, "80k")
+
+    # ---- KAZOO chase: oom-pah bass and a silly buzzing tune (160 bpm)
+    b = 60 / 160
+    ev = []
+    tune = [7, 7, 9, 7, 12, 11, None, 7, 7, 9, 7, 14, 12, None, 7, 7, 19, 16, 12, 11, 9, None, 17, 17, 16, 12, 14, 12, None, None]
+    for i, n in enumerate(tune):
+        if n is not None:
+            ev.append((i * b / 2 * 1.0, kazoo(nfreq(n - 12), b / 2 * 0.9), 0.5))
+    for i in range(16):
+        ev.append((i * b, pluck(nfreq([-21, -14][i % 2] + (5 if i // 4 % 2 else 0)), 0.3, 0.5), 0.6 if i % 2 == 0 else 0.4))
+        if i % 2:
+            ev.append((i * b, snare(0.12), 0.2))
+    save("v_kazoo", seq_render(16 * b, ev), 0.85, "80k")
+
+    # ---- MANDOLIN tarantella (the "brainrot" sound): tremolo picking over a bouncy bass (6/8)
+    e = 0.2  # one eighth
+    ev = []
+    mel = [5, 4, 5, 7, 5, 4, 2, 0, 2, 4, 2, 0, -1, -3, -1, 0, -1, -3, -5, -3, -1, 0, 2, 4]
+    for i, n in enumerate(mel):
+        for k in range(3):  # tremolo
+            ev.append((i * e * 2 + k * e * 2 / 3, pluck(nfreq(n), 0.3, 0.75), 0.3))
+    for bar in range(8):
+        r = [-21, -21, -16, -21, -14, -16, -21, -16][bar]
+        ev.append((bar * 6 * e, pluck(nfreq(r), 0.4, 0.4), 0.7)); ev.append((bar * 6 * e + 3 * e, pluck(nfreq(r + 7), 0.4, 0.4), 0.55))
+        for k in (1, 2, 4, 5):
+            ev.append((bar * 6 * e + k * e, hat(), 0.12))
+        ev.append((bar * 6 * e, kick(0.3, 120, 50), 0.6))
+    save("v_mando", seq_render(48 * e, ev), 0.85, "80k")
+
+    # ---- "to be continued" funk riff (one shot)
+    b = 0.6
+    x = np.zeros(int(5.2 * SR))
+    riff = [(0, -24), (0.75, -24), (1.5, -21), (2, -19), (2.5, -17), (3, -16), (3.25, -17), (3.5, -19), (4, -24)]
+    for at, n in riff:
+        place(x, np.tanh(2 * pluck(nfreq(n), 0.5, 0.6)), at * b)
+    for i in range(8):
+        place(x, hat(), i * b / 2 * 1.0); place(x, kick(0.3), i * b if i < 4 else 99)
+    place(x, snare(), b); place(x, snare(), 3 * b)
+    save("v_tbc", reverb(x, 0.15, dur=1.0, decay=0.3), 0.85, "80k")
+
+    # ---- cartoon one-shots
+    d = 0.25; t = t_axis(d)
+    save("v_bonk", (np.sin(2 * np.pi * 620 * t) + 0.5 * np.sin(2 * np.pi * 1450 * t)) * np.exp(-t / 0.045) + biquad(noise(d), "bp", 2500) * np.exp(-t / 0.01), 0.9)
+    d = 1.0; t = t_axis(d)
+    save("v_splash", svf(noise(d) * np.exp(-t / 0.3), 3000 * np.exp(-t / 0.4) + 300, 0.8, "lp") + biquad(noise(d), "hp", 4000) * np.exp(-t / 0.12) * 0.4, 0.85)
+    d = 0.12; t = t_axis(d)
+    save("v_pop", np.sin(2 * np.pi * np.cumsum(400 + 2400 * t / d) / SR) * np.exp(-t / 0.03), 0.8)
+    d = 0.9; t = t_axis(d)
+    f0 = 520 + 300 * np.sin(np.pi * np.clip(t / 0.75, 0, 1)) ** 0.7
+    m = osc_saw(f0) * adsr(d, 0.03, 0.2)
+    save("v_meow", svf(m, 900 + 1500 * np.sin(np.pi * np.clip(t / 0.8, 0, 1)), 3, "bp") * 1.5 + biquad(m, "bp", 3200, 3) * 0.3, 0.85)
+    x = np.zeros(int(0.8 * SR))
+    for at in (0.0, 0.32):
+        tt = t_axis(0.18)
+        b1 = np.tanh(3 * osc_saw(np.full(len(tt), 330.0) * (1 - tt))) * np.exp(-tt / 0.06) + biquad(noise(0.18), "bp", 1200, 1) * np.exp(-tt / 0.05)
+        place(x, biquad(b1, "bp", 900, 1.2) * 1.5, at)
+    save("v_bark", x, 0.85)
+    x = np.zeros(int(0.7 * SR))
+    for at in (0.0, 0.3):
+        tt = t_axis(0.22)
+        q = osc_saw(np.full(len(tt), 260.0) * (1 + 0.3 * tt)) * np.clip(tt / 0.01, 0, 1) * np.exp(-tt / 0.12)
+        place(x, biquad(q, "bp", 1250, 4) * 2.5 + biquad(q, "bp", 2600, 5), at)
+    save("v_quack", x, 0.85)
+    # applause: hundreds of little claps
+    d = 3.2
+    x = np.zeros(int(d * SR))
+    for i in range(700):
+        at = rng.random() * (d - 0.2)
+        tt = t_axis(0.03)
+        place(x, biquad(noise(0.03), "bp", rng.uniform(900, 2500), 1.0) * np.exp(-tt / 0.006) * rng.uniform(0.3, 1), at)
+    x *= np.clip(t_axis(d) / 0.3, 0, 1) * np.clip((d - t_axis(d)) / 1.0, 0, 1)
+    save("v_applause", reverb(x, 0.2, dur=1.0, decay=0.4), 0.8)
+    # sitcom laugh: a crowd of "ha ha ha"
+    d = 3.0
+    x = np.zeros(int(d * SR))
+    for v in range(16):
+        f = rng.uniform(110, 300)
+        start = rng.uniform(0, 0.5)
+        n = int(rng.integers(4, 9))
+        rate = rng.uniform(4.5, 6.5)
+        for k in range(n):
+            tt = t_axis(0.12)
+            ff = f * (1.12 - 0.05 * k / n)
+            h = osc_saw(np.full(len(tt), ff)) * np.sin(np.pi * tt / 0.12) ** 2
+            h = biquad(h, "bp", 750, 2) * 1.3 + biquad(h, "bp", 1250, 3) + biquad(noise(0.12), "bp", 1500, 1) * 0.15 * np.sin(np.pi * tt / 0.12)
+            place(x, h * (1 - k / (n + 2)), start + k / rate)
+    x *= np.clip((d - t_axis(d)) / 1.4, 0, 1)
+    save("v_laugh", reverb(x, 0.25, dur=1.2, decay=0.5), 0.8)
+    d = 2.2; t = t_axis(d)
+    save("v_explode", np.tanh(2 * (svf(noise(d), 4000 * np.exp(-t / 0.35) + 120, 0.7, "lp") * np.exp(-t / 0.6) + kick(d, 80, 30) * 1.5)), 0.95)
+    # ---- the phone game
+    d = 0.07; t = t_axis(d)
+    save("phone_flap", osc_sq(np.full(len(t), 1.0) * (700 + 900 * t / d), 0.3) * np.exp(-t / 0.03) * 0.5, 0.5)
+    d = 0.14; t = t_axis(d)
+    save("phone_point", (osc_sq(np.where(t < 0.06, 988.0, 1319.0), 0.25)) * np.exp(-t / 0.08) * 0.5, 0.55)
+    # crash: LOUD. A crunch, then a sad descending "wah wah wah waaaah" at full volume, with the phone buzzing
+    x = np.zeros(int(3.0 * SR))
+    tt = t_axis(0.35)
+    place(x, np.tanh(4 * biquad(noise(0.35), "lp", 3000) * np.exp(-tt / 0.08)) + osc_sq(np.full(len(tt), 110.0)) * np.exp(-tt / 0.1), 0)
+    for k, (n, dd) in enumerate(((-2, 0.32), (-3, 0.32), (-4, 0.32), (-5, 1.2))):
+        tt = t_axis(dd)
+        fr = nfreq(n) * (1 + (0.03 * np.sin(2 * np.pi * 7 * tt) if k == 3 else 0))
+        note = (osc_sq(fr, 0.5) * 0.6 + osc_saw(fr * 0.5) * 0.4) * adsr(dd, 0.01, 0.08)
+        place(x, note, 0.35 + k * 0.34)
+    tt = t_axis(2.6)
+    buzz = osc_sq(np.full(len(tt), 160.0)) * (np.sin(2 * np.pi * 9 * tt) > 0) * 0.25
+    place(x, biquad(buzz, "lp", 900), 0.3)
+    save("phone_fail", np.tanh(x * 2.2), 0.97, "96k")
+
+
 if __name__ == "__main__":
     import sys
     print("Synthesising sound effects ->", OUT)
@@ -903,6 +1148,9 @@ if __name__ == "__main__":
         raise SystemExit(0)
     if "v3" in sys.argv:
         make_v3()
+        raise SystemExit(0)
+    if "v4" in sys.argv:
+        make_v4()
         raise SystemExit(0)
     make_claps()
     make_chalk()
@@ -919,4 +1167,5 @@ if __name__ == "__main__":
     make_v2()
     make_memes()
     make_v3()
+    make_v4()
     print("done")
