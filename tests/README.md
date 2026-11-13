@@ -4,8 +4,8 @@ Browser tests that play the game in headless Chromium (WebGL through SwiftShader
 game's debug hook (`?debug=1` puts the game on `window.game`) and tick it faster than real time.
 
 ```bash
-bash tests/run.sh quick     # ~15 min: the checks to run after every change
-bash tests/run.sh full      # ~60 min: quick + every story period, Hard, random input, online chaos
+bash tests/run.sh quick     # ~7 min: the checks to run after every change
+bash tests/run.sh full      # ~10 min: quick + every story period, Hard, random input, online chaos
 bash tests/run.sh ui mp     # only some of them
 ```
 

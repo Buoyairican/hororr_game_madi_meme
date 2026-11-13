@@ -61,7 +61,8 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
   console.log(JSON.stringify(res, null, 0));
   // a careful player should get through the period (on Hard one strike ends it, which is allowed)
   const finished = res.state === 'end' && !/DETENTION/.test(res.end);
-  console.log(finished || (HARD && res.state === 'end') ? 'RESULT PASS' : 'RESULT FAIL: ' + res.state + ' ' + res.end);
+  if (finished || (HARD && res.state === 'end')) console.log('PASS (1):\n  ' + mode + ' ' + ch + ': ' + res.end + ' at ' + res.t + 's, strikes ' + res.strikes + '\nFAIL (0):');
+  else console.log('PASS (0):\nFAIL (1):\n  ' + mode + ' ' + ch + ': ' + res.state + ' ' + res.end);
   console.log(logs.slice(0, 10).join('\n') || 'no console errors');
   await browser.close();
 })();

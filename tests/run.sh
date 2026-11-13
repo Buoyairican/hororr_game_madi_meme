@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run the browser tests.  Usage:
-#   bash tests/run.sh quick          features, story beats, menus, touch, 2-player online, videos online (~15 min)
-#   bash tests/run.sh full           quick + all 4 story periods, Hard, random input, connection edge cases, 3-player chaos (~60 min)
+#   bash tests/run.sh quick          features, story beats, menus, touch, 2-player online, videos online (~7 min)
+#   bash tests/run.sh full           quick + all 4 story periods, Hard, random input, connection edge cases, 3-player chaos (~10 min)
 #   bash tests/run.sh features ui    just those
 # Logs: tests/out/<name>.log   Screenshots: tests/out/*.png
 set -u

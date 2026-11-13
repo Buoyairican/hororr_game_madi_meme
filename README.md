@@ -134,7 +134,7 @@ vendor/                    three.js r170 (+ GLTFLoader), PeerJS 1.5.5
 
 ### Tests
 
-`bash tests/run.sh quick` (about 15 minutes) or `bash tests/run.sh full` (about an hour) plays the game in
+`bash tests/run.sh quick` (about 7 minutes) or `bash tests/run.sh full` (about 10 minutes) plays the game in
 headless Chromium and prints PASS / FAIL per test. See `tests/README.md`.
 
 ### Regenerating the assets
