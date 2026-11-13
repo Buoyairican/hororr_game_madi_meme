@@ -1,0 +1,42 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>model preview</title>
+<style>html,body{margin:0;background:#556;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{ "imports": { "three": "../vendor/three.module.min.js" } }</script>
+</head><body><canvas id="view"></canvas>
+<script type="module">
+// tools/preview_models.html?m=sam&cam=0,0.6,1.2&look=0,0.5,0&bg=556
+import * as THREE from 'three';
+import { GLTFLoader } from '../vendor/jsm/loaders/GLTFLoader.js';
+const q = new URLSearchParams(location.search);
+const vec = (s, d) => (s ? new THREE.Vector3(...s.split(',').map(Number)) : d);
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('view'), antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#' + (q.get('bg') || '667'));
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444455, 1.6));
+const d = new THREE.DirectionalLight(0xffffff, 2.2); d.position.set(1.5, 2.5, 3); scene.add(d);
+const cam = new THREE.PerspectiveCamera(Number(q.get('fov') || 35), innerWidth / innerHeight, 0.01, 50);
+cam.position.copy(vec(q.get('cam'), new THREE.Vector3(0, 0.5, 2.2)));
+cam.lookAt(vec(q.get('look'), new THREE.Vector3(0, 0.4, 0)));
+const tints = { skin: q.get('skin') || 'b88a64', top: q.get('top') || '8a2b2b', pants: '2a3048', hair: q.get('hair') || '2a1a10', brows: '1a100a', shoes: 'dddddd', suit: '1a1c24', shirt: 'd0d6dc', tie: '3a0d0d', lapel: '20222b', buttons: '0a0a0a' };
+const gltf = await new GLTFLoader().loadAsync('../assets/models/' + (q.get('m') || 'sam') + '.glb');
+gltf.scene.traverse((o) => {
+  if (o.isMesh) {
+    const name = o.material.name;
+    o.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, color: new THREE.Color(q.get('tint') ? '#' + (tints[name] || 'ffffff') : '#ffffff'), side: o.material.side });
+    if (q.get('wire')) o.material.wireframe = true;
+    o.frustumCulled = false;
+  }
+});
+scene.add(gltf.scene);
+window.model = gltf.scene;
+const bones = {};
+gltf.scene.traverse((o) => { if (o.isBone) bones[o.name] = o; });
+window.bones = bones;
+for (const [k, v] of q) { // e.g. &r.head=0,0.8,0
+  if (k.startsWith('r.') && bones[k.slice(2)]) bones[k.slice(2)].rotation.set(...v.split(',').map(Number));
+}
+if (q.get('grid')) scene.add(new THREE.GridHelper(4, 40));
+let n = 0;
+(function loop() { renderer.render(scene, cam); if (++n === 5) window.__ready = true; requestAnimationFrame(loop); })();
+</script></body></html>
