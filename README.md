@@ -22,6 +22,16 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 
 **Free Class**: the whole morning in one go (about 5 minutes), getting darker and stranger every hour.
 
+**Play with friends**: up to 4 players in the same class (story or free class).
+
+1. One player presses **PLAY WITH FRIENDS → HOST A CLASS** and gets a 5-letter class code.
+2. Friends press **PLAY WITH FRIENDS**, type the code and **JOIN**, or just open the invite link (**COPY INVITE LINK**).
+3. The host picks Free Class or a story period and presses **START CLASS**. Friends who join later drop straight into the running class.
+
+Everyone sits at their own desk and sees the others as students with name tags. Look at a friend and hold **E** to whisper to them (only they see it). Repeating him, dumb questions, the phone and whispering all work for everyone, and he goes after whoever is making the most noise: he walks to *their* desk. Strikes are shared by the whole class (3, plus 1 for every friend). At roll call he asks every player, and at the last bell whoever raises their hand first decides the ending.
+
+How it works: the host's browser runs the game and streams it to the friends over WebRTC (peer to peer, through [PeerJS](https://peerjs.com)'s free public server for the handshake). Nothing to install and no game server; it works from any static host such as Vercel. The host should keep the game's tab open (it keeps running in the background). A few very strict networks (some school or office Wi-Fi) block peer-to-peer connections; if friends can't connect, try another network or a phone hotspot.
+
 ## How to play
 
 | | Desktop | Phone / tablet |
@@ -96,14 +106,16 @@ src/props.js               laptop, projector (shows his searches), classroom doo
 src/world.js               the classroom (merged static geometry, lights, rain, dust)
 src/board.js               chalkboard written letter by letter
 src/models.js              loads the rigged character models
+src/mp.js                  multiplayer: lobby, streaming the class to friends, friends' desks and avatars
+src/net.js                 WebRTC connections (PeerJS): host / join by class code
 src/audio.js               Web Audio engine: 3D HRTF sound, reverb, live ambience
 src/post.js                retro post-processing (grain, aberration, glitch, blackout)
-assets/models/             rigged .glb characters (built by tools/build_characters.py)
+assets/models/             rigged characters (built by tools/build_characters.py, bundled in models.json)
 assets/textures/           teacher face texture + glow mask (from the reference photo)
-assets/audio/voice/        156 spoken lines
-assets/audio/sfx/          50 sound effects
+assets/audio/voice/        227 spoken lines
+assets/audio/sfx/          62 sound effects
 tools/                     scripts that generate all of the assets above + preview pages
-vendor/                    three.js r170 (+ GLTFLoader)
+vendor/                    three.js r170 (+ GLTFLoader), PeerJS 1.5.5
 ```
 
 ### Regenerating the assets
@@ -120,6 +132,7 @@ python3 tools/gen_sfx.py             # all sound effects (add 'memes' to build o
 ## Credits and licences
 
 * Engine: [three.js](https://threejs.org) r170, MIT licence (`vendor/THREE_LICENSE`).
+* Multiplayer: [PeerJS](https://peerjs.com) 1.5.5, MIT licence (`vendor/PEERJS_LICENSE`).
 * Human base mesh, skeleton, skin weights and shape targets: [MakeHuman](http://www.makehumancommunity.org/) / MPFB2, **CC0**.
   Clothes, hair, eyes and poses are generated from it by `tools/build_characters.py`.
 * Fonts: Caveat, Special Elite and Nosifer from Google Fonts via Fontsource, SIL Open Font License 1.1.

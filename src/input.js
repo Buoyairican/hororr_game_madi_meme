@@ -28,7 +28,7 @@ export class Input {
     });
     c.addEventListener('mousedown', (e) => {
       if (!this.enabled || this.isTouchMouse(e)) return;
-      if (!this.locked && this.wantLock) this.requestLock();
+      if (!this.locked && !this.touch) { this.wantLock = true; this.requestLock(); }
       // without pointer lock the left button drags the view, so talking stays on E
       if (e.button === 0 && this.locked) this.mouse.talk = true;
       if (e.button === 2) this.mouse.phone = true;
