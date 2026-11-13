@@ -171,6 +171,17 @@ export function buildWorld(scene, renderer) {
   scene.add(exitSign);
   W.exitMat = exitMat;
 
+  // ---------------- the school PA speaker (front wall, by the door) ----------------
+  const spk = new THREE.Group();
+  const spkBox = new THREE.Mesh(boxGeo, std({ color: 0x3a3c38, roughness: 0.7 }));
+  spkBox.scale.set(0.38, 0.38, 0.1);
+  const grille = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.02, 20), std({ color: 0x141513, roughness: 0.9 }));
+  grille.rotation.x = Math.PI / 2; grille.position.z = 0.055;
+  spk.add(spkBox, grille);
+  spk.position.set(3.9, 2.72, z0 + 0.06);
+  scene.add(spk);
+  W.speaker = new THREE.Vector3(3.9, 2.72, z0 + 0.2);
+
   // ---------------- chalkboard ----------------
   const board = new Chalkboard(5.2, 1.5);
   const boardMat = new THREE.MeshStandardMaterial({ map: board.texture, roughness: 0.92, emissive: 0xffffff, emissiveMap: board.texture, emissiveIntensity: 0.025 });
@@ -274,13 +285,19 @@ export function buildWorld(scene, renderer) {
       desk(B, M, x, z);
       const seat = { x, z: z + 0.5, row: r, col: c };
       W.seats.push(seat);
-      // friends' chairs are separate meshes so they can be pushed out
+      // friends' chairs (and Kevin's) are separate meshes so they can move
       if (r === 0 && (c === 1 || c === 3)) W.dynamicChairs[c === 1 ? 'sam' : 'nora'] = dynamicChair(scene, M, x, z + 0.5);
+      else if (r === 1 && c === 1) W.dynamicChairs.kevin = dynamicChair(scene, M, x, z + 0.5);
       else chair(B, M, x, z + 0.5, 0, 1);
       if (r === 1 && c === 1) {
+        // his backpack is still on his chair
         const pack = std({ color: 0x5a1512, roughness: 0.9 });
-        B.add(boxGeo, pack, mtx(x, 0.63, z + 0.56, 0.12, 0, 0, 0.3, 0.33, 0.15));
-        B.add(boxGeo, pack, mtx(x, 0.58, z + 0.47, 0.12, 0, 0, 0.2, 0.16, 0.05));
+        const kc = W.dynamicChairs.kevin.group;
+        for (const [px, py, pz, sx, sy, sz] of [[0, 0.63, 0.06, 0.3, 0.33, 0.15], [0, 0.58, -0.03, 0.2, 0.16, 0.05]]) {
+          const m = new THREE.Mesh(boxGeo, pack);
+          m.position.set(px, py, pz); m.rotation.x = 0.12; m.scale.set(sx, sy, sz);
+          kc.add(m);
+        }
         B.add(boxGeo, M.paper, mtx(x - 0.05, 0.742, z, 0, 0.3, 0, 0.21, 0.004, 0.29));
         W.kevinSeat = new THREE.Vector3(x, 1.0, z + 0.5);
       }
@@ -512,8 +529,17 @@ function dynamicChair(scene, M, x, z) {
   return {
     group: g,
     rock: 0,
-    reset() { g.position.copy(home); g.rotation.set(0, 0, 0); this.rock = 0; },
+    slide: null,
+    reset() { g.position.copy(home); g.rotation.set(0, 0, 0); this.rock = 0; this.slide = null; },
     pushOut() { g.position.set(home.x + rand(-0.15, 0.15), 0, home.z + 0.35); g.rotation.y = rand(-0.5, 0.5); this.rock = 1; },
-    update(dt, t) { if (this.rock > 0) { this.rock = Math.max(0, this.rock - dt * 0.12); g.rotation.x = Math.sin(t * 4.2) * 0.05 * this.rock; } },
+    /** slowly slide back and turn, as if somebody nobody can see just sat down */
+    nudge(dz, yaw) { this.slide = { dz, yaw }; },
+    update(dt, t) {
+      if (this.rock > 0) { this.rock = Math.max(0, this.rock - dt * 0.12); g.rotation.x = Math.sin(t * 4.2) * 0.05 * this.rock; }
+      if (this.slide) {
+        g.position.z += (home.z + this.slide.dz - g.position.z) * (1 - Math.exp(-1.6 * dt));
+        g.rotation.y += (this.slide.yaw - g.rotation.y) * (1 - Math.exp(-1.2 * dt));
+      }
+    },
   };
 }

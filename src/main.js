@@ -25,7 +25,7 @@ window.addEventListener('unhandledrejection', (e) => ui.error('Something broke: 
 const query = new URLSearchParams(location.search);
 const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 // phones get the cheapest settings by default
-const DEFAULTS = { sens: 1, vol: 0.9, retro: true, meter: false, subs: true, shadows: !isTouch };
+const DEFAULTS = { sens: 1, vol: 0.9, retro: true, meter: false, subs: true, shadows: !isTouch, difficulty: 'easy' };
 function loadSettings() {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('madiclass.settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; }
 }
@@ -139,6 +139,7 @@ async function boot() {
     if (input.touch && innerHeight > innerWidth && !launch.rotateOk) { pending = [mode, ch]; ui.show('rotate', true); return; }
     ui.show('rotate', false);
     musicOn = false;
+    game.difficulty = settings.difficulty === 'hard' ? 'hard' : 'easy';
     game.start(mode, ch);
   };
   const buildChapters = () => {
@@ -226,24 +227,12 @@ async function boot() {
     }
     $('mp-code-show').textContent = mp.code || '-----';
   };
-  const buildModes = () => {
-    const sel = $('mp-mode'), p = progress(), keep = sel.value;
-    sel.innerHTML = '<option value="free">Free Class (8:30 to 12:30)</option>';
-    CHAPTERS.forEach((c, i) => {
-      const o = document.createElement('option');
-      o.value = 'story' + i;
-      o.textContent = i <= p ? `Story: ${c.sub}, ${c.title} (${c.time})` : `Story: ${c.sub} (locked)`;
-      o.disabled = i > p;
-      sel.appendChild(o);
-    });
-    if (keep && [...sel.options].some((o) => o.value === keep && !o.disabled)) sel.value = keep;
-  };
   const roomView = () => {
     showEl('mp-pick', false); showEl('mp-room', true);
     const host = mp.role === 'host';
     showEl('mp-host-ctl', host); showEl('mp-wait', !host);
-    if (host) buildModes();
     renderLobby();
+    if (!host) $('mp-wait').textContent = `Waiting for the host to start Free Class (${mp.difficulty === 'hard' ? 'HARD' : 'Easy'})…`;
     $('btn-mp-leave').textContent = host ? 'CLOSE THE CLASS' : 'LEAVE';
     labels();
   };
@@ -255,7 +244,7 @@ async function boot() {
     if (mp) roomView(); else { showEl('mp-pick', true); showEl('mp-room', false); mpStatus(''); }
   };
   const hooks = {
-    lobby: () => renderLobby(),
+    lobby: () => { renderLobby(); if (mp && mp.role === 'guest') $('mp-wait').textContent = `Waiting for the host to start Free Class (${mp.difficulty === 'hard' ? 'HARD' : 'Easy'})…`; },
     lost: (msg) => { if (mp) { mp.leave(); mp = null; } labels(); toTitle(); openMp(); mpStatus(msg); },
     started: () => { go(null); ui.show('rotate', false); },
     toLobby: () => { toTitle(); openMp(); mpStatus('The host is picking the next class…', true); },
@@ -278,6 +267,7 @@ async function boot() {
       await mp.host(name);
       mpStatus('Send the code (or the invite link) to your friends.', true);
       roomView();
+      showDifficulty();
     } catch (e) {
       if (mp) mp.leave();
       mp = null;
@@ -312,9 +302,24 @@ async function boot() {
   };
   $('btn-mp-go').onclick = () => {
     if (!mp || mp.role !== 'host') return;
-    const v = $('mp-mode').value;
-    if (v === 'free') launch('free', 0); else launch('story', Number(v.slice(5)));
+    launch('free', 0); // online play is Free Class
   };
+  // ---------------- difficulty (title screen and the host's lobby) ----------------
+  const DIFF_NOTES = {
+    easy: 'Easy: 3 strikes. He warns you before he comes over.',
+    hard: 'Hard: no warnings. If he sees you, he comes right away. One strike and you\'re out.',
+  };
+  const showDifficulty = () => {
+    const d = settings.difficulty === 'hard' ? 'hard' : 'easy';
+    for (const [id, v] of [['btn-easy', 'easy'], ['btn-hard', 'hard'], ['mp-easy', 'easy'], ['mp-hard', 'hard']]) $(id).classList.toggle('on', d === v);
+    $('diff-note').textContent = DIFF_NOTES[d];
+    $('mp-diff-note').textContent = DIFF_NOTES[d];
+    if (mp && mp.role === 'host') { mp.difficulty = d; mp.sendLobby(); }
+  };
+  const setDifficulty = (d) => { settings.difficulty = d; saveSettings(settings); showDifficulty(); };
+  for (const [id, v] of [['btn-easy', 'easy'], ['btn-hard', 'hard'], ['mp-easy', 'easy'], ['mp-hard', 'hard']]) $(id).onclick = () => setDifficulty(v);
+  showDifficulty();
+
   $('btn-mp-leave').onclick = () => { if (mp) { mp.leave(); mp = null; } labels(); go('title'); };
   addEventListener('pagehide', () => { if (mp) mp.leave(); }); // say goodbye when the tab closes
 
@@ -359,7 +364,11 @@ async function boot() {
       game.tick(dt);
     };
   } catch (e) { /* no workers: a hidden host pauses the class */ }
-  if (query.has('autostart')) { go(null); game.start(query.get('mode') || 'free', Number(query.get('ch') || 0)); }
+  if (query.has('autostart')) {
+    go(null);
+    game.difficulty = query.get('diff') === 'hard' ? 'hard' : settings.difficulty === 'hard' ? 'hard' : 'easy';
+    game.start(query.get('mode') || 'free', Number(query.get('ch') || 0));
+  }
   else if (query.get('join')) openMp(cleanCode(query.get('join')));
 }
 

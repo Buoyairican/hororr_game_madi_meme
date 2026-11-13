@@ -499,6 +499,21 @@
   "text": "Mister Hale... is... resting.",
   "dur": 4.206
  },
+ "t_nohale": {
+  "who": "teacher",
+  "text": "There is... no... Mister Hale.",
+  "dur": 4.258
+ },
+ "t_readnote": {
+  "who": "teacher",
+  "text": "\u201cHe is not... a real... teacher.\u201d",
+  "dur": 3.918
+ },
+ "t_dark": {
+  "who": "teacher",
+  "text": "Do not... be afraid... of the dark.",
+  "dur": 4.336
+ },
  "tw_turn": {
   "who": "teacher",
   "text": "Turn... around.",
@@ -733,6 +748,30 @@
   "whisper": true,
   "dur": 0.967
  },
+ "s_note": {
+  "who": "sam",
+  "text": "Pass this to Nora. Quick, while he's writing.",
+  "whisper": true,
+  "dur": 2.821
+ },
+ "s_chair": {
+  "who": "sam",
+  "text": "Kevin's chair... it just moved.",
+  "whisper": true,
+  "dur": 1.933
+ },
+ "s_dark": {
+  "who": "sam",
+  "text": "I can't see anything.",
+  "whisper": true,
+  "dur": 1.202
+ },
+ "s_noted": {
+  "who": "sam",
+  "text": "Bro. He read it out loud.",
+  "whisper": true,
+  "dur": 1.75
+ },
  "n_free": {
   "who": "nora",
   "text": "Maybe we get a free period.",
@@ -942,6 +981,30 @@
   "text": "Poor kid.",
   "whisper": true,
   "dur": 0.522
+ },
+ "n_pa": {
+  "who": "nora",
+  "text": "Mister Hale is in the office?",
+  "whisper": true,
+  "dur": 1.332
+ },
+ "n_gotnote": {
+  "who": "nora",
+  "text": "Got it.",
+  "whisper": true,
+  "dur": 0.444
+ },
+ "n_closed": {
+  "who": "nora",
+  "text": "Nobody in the building? Then who is teaching us?",
+  "whisper": true,
+  "dur": 2.56
+ },
+ "n_dark": {
+  "who": "nora",
+  "text": "Don't make a sound.",
+  "whisper": true,
+  "dur": 1.045
  },
  "s_hey": {
   "who": "sam",
@@ -1235,5 +1298,15 @@
   "text": "Sorry, sir.",
   "meme": true,
   "dur": 0.888
+ },
+ "pa_hale": {
+  "who": "pa",
+  "text": "Attention, please. Mister Hale, please report to the main office. Mister Hale, to the main office.",
+  "dur": 6.583
+ },
+ "pa_closed": {
+  "who": "pa",
+  "text": "Attention, students. The school is closed today. There is nobody in the building.",
+  "dur": 5.59
  }
 }

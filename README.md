@@ -15,20 +15,22 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 
 | Time | Period | What happens |
 |---|---|---|
-| 8:30 AM | Roll Call | Footsteps in the hallway, a face in the door window. He walks in, writes his name and claps the chalk off his hands. Roll call: Kevin is absent. Nora passes you a note. Sam dares you to repeat what he says. The storm gets worse. |
-| 9:30 AM | The Lesson | "Open your books." Nobody has books. Ask him dumb questions: he walks to his laptop to look them up, and the projector shows the whole class what he searches for. He wipes Mr. Hale's glasses. Then the projector shows his search history. |
-| 10:30 AM | Pop Quiz | He quizzes you to your face, asks how many students are in the class, and Kevin is back for a moment. Then he walks between the desks and stops right behind your chair. |
-| 11:30 AM | Detention | Nora has a plan. Mr. Hale texts you. "There is no lunch." At the last bell, ask him something he can't look up. Three different endings. |
+| 8:30 AM | Roll Call | Footsteps in the hallway, a face in the door window. He walks in, writes his name and claps the chalk off his hands. Roll call: Kevin is absent. Nora passes you a note. Kevin's empty chair slides back by itself. Sam dares you to repeat what he says. The storm gets worse. |
+| 9:30 AM | The Lesson | "Open your books." Nobody has books. Ask him dumb questions: he walks to his laptop to look them up, and the projector shows the whole class what he searches for. He wipes Mr. Hale's glasses. The school speaker calls for Mr. Hale, and he tears it off the wall. Sam's note has to reach Nora without him seeing it (if he catches you, he reads it out loud). Then the projector shows his search history. |
+| 10:30 AM | Pop Quiz | He quizzes you to your face, asks how many students are in the class, and Kevin is back for a moment. Then he walks between the desks and stops right behind your chair. The power goes out: every flash of lightning shows him a little closer. Don't make a sound. |
+| 11:30 AM | Detention | Nora has a plan. The clock runs backwards. Mr. Hale texts you. "There is no lunch." The speaker he tore out comes back on: *the school is closed today, there is nobody in the building.* At the last bell, ask him something he can't look up. Three different endings. |
 
 **Free Class**: the whole morning in one go (about 5 minutes), getting darker and stranger every hour.
 
-**Play with friends**: up to 4 players in the same class (story or free class).
+**Difficulty** (title screen): **Easy** gives you 3 strikes, and he warns you before he comes over. **Hard** has no warnings: if he sees you whispering or on your phone he comes for you right away, he gets angry faster, repeating him twice in a row (or asking 3 dumb questions) is enough, and the first time he catches you, it's over.
+
+**Play with friends**: up to 4 players in the same Free Class (Easy or Hard, the host picks).
 
 1. One player presses **PLAY WITH FRIENDS → HOST A CLASS** and gets a 5-letter class code.
 2. Friends press **PLAY WITH FRIENDS**, type the code and **JOIN**, or just open the invite link (**COPY INVITE LINK**).
-3. The host picks Free Class or a story period and presses **START CLASS**. Friends who join later drop straight into the running class.
+3. The host picks Easy or Hard and presses **START FREE CLASS**. Friends who join later drop straight into the running class.
 
-Everyone sits at their own desk and sees the others as students with name tags. Look at a friend and hold **E** to whisper to them (only they see it). Repeating him, dumb questions, the phone and whispering all work for everyone, and he goes after whoever is making the most noise: he walks to *their* desk. Strikes are shared by the whole class (3, plus 1 for every friend). At roll call he asks every player, and at the last bell whoever raises their hand first decides the ending.
+Everyone sits at their own desk and sees the others as students with name tags. Look at a friend and hold **E** to whisper to them (only they see it). Repeating him, dumb questions, the phone and whispering all work for everyone, and he goes after whoever is making the most noise: he walks to *their* desk. Strikes are shared by the whole class (Easy: 3, plus 1 for every friend; Hard: one strike for everybody).
 
 How it works: the host's browser runs the game and streams it to the friends over WebRTC (peer to peer, through [PeerJS](https://peerjs.com)'s free public server for the handshake). Nothing to install and no game server; it works from any static host such as Vercel. The host should keep the game's tab open (it keeps running in the background). A few very strict networks (some school or office Wi-Fi) block peer-to-peer connections; if friends can't connect, try another network or a phone hotspot.
 
@@ -112,8 +114,8 @@ src/audio.js               Web Audio engine: 3D HRTF sound, reverb, live ambienc
 src/post.js                retro post-processing (grain, aberration, glitch, blackout)
 assets/models/             rigged characters (built by tools/build_characters.py, bundled in models.json)
 assets/textures/           teacher face texture + glow mask (from the reference photo)
-assets/audio/voice/        227 spoken lines
-assets/audio/sfx/          62 sound effects
+assets/audio/voice/        240 spoken lines
+assets/audio/sfx/          65 sound effects
 tools/                     scripts that generate all of the assets above + preview pages
 vendor/                    three.js r170 (+ GLTFLoader), PeerJS 1.5.5
 ```

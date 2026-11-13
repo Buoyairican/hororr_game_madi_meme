@@ -867,11 +867,42 @@ def make_memes():
     save("desk_slap", reverb(slap + body, 0.3, dur=1.2, decay=0.4), 0.95)
 
 
+
+def make_v3():
+    # school PA chime: three soft tones through a cheap speaker, with hiss
+    x = np.zeros(int(2.6 * SR))
+    for at, fr in ((0.0, 784.0), (0.45, 659.3), (0.9, 523.3)):
+        t = t_axis(1.4)
+        tone = (np.sin(2 * np.pi * fr * t) + 0.35 * np.sin(2 * np.pi * fr * 2 * t) + 0.12 * np.sin(2 * np.pi * fr * 3 * t)) * np.exp(-t / 0.5)
+        place(x, tone * adsr(1.4, 0.01, 0.3), at)
+    x += biquad(noise(len(x) / SR), "bp", 2200, 0.7) * 0.03
+    x = biquad(biquad(x, "hp", 450), "lp", 3400)
+    save("pa_chime", reverb(np.tanh(x * 1.5), 0.35, dur=1.6, decay=0.7), 0.8)
+    # the speaker cable ripped out: crackle, a fat spark and a dying buzz
+    d = 1.4
+    t = t_axis(d)
+    crackle = noise(d) * (rng.random(len(t)) < 0.02) * 3
+    buzz = osc_saw(np.full(len(t), 120.0)) * np.exp(-t / 0.35) * 0.4
+    spark = biquad(noise(d), "hp", 2500) * np.exp(-t / 0.06)
+    save("pa_rip", biquad(crackle * np.exp(-t / 0.5), "bp", 3000, 0.5) + buzz + spark, 0.9)
+    # power coming back: relays clunk and the hum rises
+    d = 1.8
+    t = t_axis(d)
+    clunk = biquad(noise(0.05), "lp", 600) * env_exp(0.05, 0.015)
+    hum = (osc_sin(np.full(len(t), 120.0)) + 0.4 * osc_saw(np.full(len(t), 240.0))) * np.clip(t / 1.2, 0, 1) * np.exp(-np.clip(t - 1.2, 0, None) / 0.4) * 0.25
+    x = np.zeros(len(t))
+    place(x, clunk, 0.0); place(x, clunk * 0.7, 0.18); place(x, clunk * 0.5, 0.4)
+    save("power_up", reverb(x + hum, 0.3, dur=1.2, decay=0.4), 0.8)
+
+
 if __name__ == "__main__":
     import sys
     print("Synthesising sound effects ->", OUT)
-    if "memes" in sys.argv:  # only the newest group
+    if "memes" in sys.argv:  # only a newer group
         make_memes()
+        raise SystemExit(0)
+    if "v3" in sys.argv:
+        make_v3()
         raise SystemExit(0)
     make_claps()
     make_chalk()
@@ -887,4 +918,5 @@ if __name__ == "__main__":
     make_misc()
     make_v2()
     make_memes()
+    make_v3()
     print("done")

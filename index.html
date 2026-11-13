@@ -84,6 +84,8 @@
       <button id="btn-story" class="big">STORY MODE</button>
       <button id="btn-free">FREE CLASS</button>
       <button id="btn-mp">PLAY WITH FRIENDS</button>
+      <div class="diff-row"><button id="btn-easy">EASY</button><button id="btn-hard">HARD</button></div>
+      <div id="diff-note"></div>
       <button id="btn-how">HOW TO PLAY</button>
       <button id="btn-settings">SETTINGS</button>
     </div>
@@ -116,7 +118,8 @@
       <li>When he wipes his glasses, he can't see you at all.</li>
       <li>If he catches you, he comes to your desk. <b>Three strikes</b> and the period is over.</li>
       <li>Sit still too long and the <b>class clowns</b> in the back start making noises. He will go and find out who did it.</li>
-      <li><b>Play with friends</b>: one of you hosts, the others join with the class code (up to 4). Look at a friend and hold <kbd>E</kbd> / <b>TALK</b> to whisper to them. Strikes are shared, so keep each other quiet.</li>
+      <li><b>Difficulty</b>: <b>Easy</b> gives you 3 strikes and he warns you first. On <b>Hard</b> there are no warnings: if he sees you whispering or on your phone, he comes for you right away, and the first time he catches you, it's over.</li>
+      <li><b>Play with friends</b> (Free Class): one of you hosts, the others join with the class code (up to 4). Look at a friend and hold <kbd>E</kbd> / <b>TALK</b> to whisper to them. Strikes are shared, so keep each other quiet.</li>
     </ul>
     <button class="back">BACK</button>
   </div>
@@ -138,8 +141,10 @@
       <button id="btn-copy" class="small-btn">COPY INVITE LINK</button>
       <ul id="mp-players"></ul>
       <div id="mp-host-ctl" class="hidden">
-        <select id="mp-mode"></select>
-        <button id="btn-mp-go" class="big">START CLASS</button>
+        <div class="dim">Online play is Free Class (8:30 to 12:30).</div>
+        <div class="diff-row"><button id="mp-easy">EASY</button><button id="mp-hard">HARD</button></div>
+        <div id="mp-diff-note" class="dim"></div>
+        <button id="btn-mp-go" class="big">START FREE CLASS</button>
       </div>
       <p id="mp-wait" class="dim hidden">Waiting for the host to start the class&hellip;</p>
     </div>

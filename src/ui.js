@@ -50,7 +50,7 @@ export class UI {
     this.set('anger', Math.round(v), (x) => (this.el['anger-fill'].style.width = x + '%'));
   }
   setStrikes(n, max) {
-    this.set('strikes', n, () => { let h = ''; for (let i = 0; i < max; i++) h += `<span class="${i < n ? 'on' : ''}">✗</span>`; this.el.strikes.innerHTML = h; });
+    this.set('strikes', n + '/' + max, () => { let h = ''; for (let i = 0; i < max; i++) h += `<span class="${i < n ? 'on' : ''}">✗</span>`; this.el.strikes.innerHTML = h; });
   }
   setBully(echo, q) {
     this.set('bully', echo + ',' + q, () => {
@@ -68,7 +68,10 @@ export class UI {
   }
 
   setObjectives(list) {
-    this.el.objectives.innerHTML = list.map((o) => `<li class="${o.done ? 'done' : ''}">${o.text}</li>`).join('');
+    const before = this.shownTasks || new Set();
+    this.shownTasks = new Set(list.map((o) => o.text));
+    // a task that just appeared glows for a moment so you notice it
+    this.el.objectives.innerHTML = list.map((o) => `<li class="${o.done ? 'done' : before.has(o.text) ? '' : 'new'}">${o.text}</li>`).join('');
   }
 
   card(ch) {
