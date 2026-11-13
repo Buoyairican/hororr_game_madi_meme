@@ -7,7 +7,7 @@ export class Input {
     this.keys = { talk: false, phone: false };
     this.mouse = { talk: false, phone: false };
     this.touchBtn = { talk: false, phone: false };
-    this.pressed = { echo: false, ask: false };   // one-shot actions
+    this.pressed = { echo: false, ask: false, tap: false };   // one-shot actions (tap: E / click with the phone up)
     this.choiceKey = -1;
     this.sens = 1;
     this.enabled = false;
@@ -30,7 +30,7 @@ export class Input {
       if (!this.enabled || this.isTouchMouse(e)) return;
       if (!this.locked && !this.touch) { this.wantLock = true; this.requestLock(); }
       // without pointer lock the left button drags the view, so talking stays on E
-      if (e.button === 0 && this.locked) this.mouse.talk = true;
+      if (e.button === 0 && this.locked) { this.mouse.talk = true; this.pressed.tap = true; }
       if (e.button === 2) this.mouse.phone = true;
       this.dragging = true;
       this.onAnyInput && this.onAnyInput();
@@ -48,7 +48,7 @@ export class Input {
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
       const k = e.key.toLowerCase();
-      if (k === 'e' || k === ' ') this.keys.talk = true;
+      if (k === 'e' || k === ' ') { this.keys.talk = true; if (this.enabled) this.pressed.tap = true; }
       if (k === 'q' || k === 'f') this.keys.phone = true;
       if (this.enabled && k === 'r') this.pressed.echo = true;
       if (this.enabled && k === 't') this.pressed.ask = true;
@@ -95,7 +95,7 @@ export class Input {
   isTouchMouse() { return performance.now() - this.lastTouchTime < 800; }
 
   bindButton(el, name) {
-    const on = (e) => { e.preventDefault(); this.touchBtn[name] = true; el.classList.add('active'); this.onAnyInput && this.onAnyInput(); };
+    const on = (e) => { e.preventDefault(); this.touchBtn[name] = true; if (name === 'talk' && this.enabled) this.pressed.tap = true; el.classList.add('active'); this.onAnyInput && this.onAnyInput(); };
     const off = (e) => { e.preventDefault(); this.touchBtn[name] = false; el.classList.remove('active'); };
     el.addEventListener('touchstart', on, { passive: false });
     el.addEventListener('touchend', off, { passive: false });
@@ -113,8 +113,8 @@ export class Input {
   }
 
   takePressed() {
-    const p = { echo: this.pressed.echo, ask: this.pressed.ask };
-    this.pressed.echo = this.pressed.ask = false;
+    const p = { echo: this.pressed.echo, ask: this.pressed.ask, tap: this.pressed.tap };
+    this.pressed.echo = this.pressed.ask = this.pressed.tap = false;
     return p;
   }
 

@@ -130,6 +130,27 @@ export class UI {
 
   call(side, on) { this.set('call' + side, on, () => this.el[side === 'left' ? 'call-left' : 'call-right'].classList.toggle('show', on)); }
   phoneAlert(on) { this.el['phone-alert'].classList.toggle('show', on); }
+  /** with the phone up the keys (and touch buttons) work the phone instead */
+  phoneControls(mode, touch) {
+    this.set('phonectl', mode || '', () => {
+      const lg = document.getElementById('keys-legend');
+      const T = document.getElementById('btn-talk'), A = document.getElementById('btn-ask'), E = document.getElementById('btn-echo');
+      if (lg && this.legendHtml == null) this.legendHtml = lg.innerHTML;
+      if (!mode) {
+        if (lg) lg.innerHTML = this.legendHtml;
+        if (T) T.textContent = 'TALK'; if (A) A.textContent = 'ASK'; if (E) E.textContent = 'ECHO';
+        return;
+      }
+      if (lg) {
+        lg.innerHTML = mode === 'game' ? '<kbd>E</kbd> / <kbd>SPACE</kbd> / click: fly · <kbd>T</kbd> meme app · let go of <kbd>Q</kbd> to hide it'
+          : mode === 'memes' ? '<kbd>E</kbd> next video · <kbd>R</kbd> show the friend you look at · <kbd>T</kbd> game app'
+            : 'let go of <kbd>Q</kbd> to hide it';
+      }
+      if (T) T.textContent = mode === 'memes' ? 'NEXT' : 'TAP';
+      if (A) A.textContent = 'APP';
+      if (E) E.textContent = 'SHOW';
+    });
+  }
   blackout(v) { this.el.blackout.style.opacity = v; }
   flash(v) { this.el.flash.style.opacity = v; }
 

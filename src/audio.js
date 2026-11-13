@@ -11,6 +11,8 @@ export const SFX = [
   'step_1', 'step_2', 'step_3', 'step_4', 'keys_1', 'keys_2', 'keys_3', 'key_enter', 'lid_slam', 'door_open', 'giggle', 'gasp',
   'projector_on', 'wipe', 'ding', 'page', 'pa_chime', 'pa_rip', 'power_up',
   'm_snore', 'm_boom', 'm_fart', 'm_airhorn', 'm_trombone', 'm_scratch', 'm_crickets', 'm_dun', 'm_pipe', 'm_honk', 'm_slide', 'desk_slap',
+  'v_phonk', 'v_lofi', 'v_euro', 'v_kazoo', 'v_mando', 'v_tbc', 'v_bonk', 'v_splash', 'v_pop', 'v_meow', 'v_bark', 'v_quack',
+  'v_applause', 'v_laugh', 'v_explode', 'phone_flap', 'phone_point', 'phone_fail',
 ];
 
 const _v = new THREE.Vector3();

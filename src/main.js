@@ -8,6 +8,7 @@ import { AudioSys } from './audio.js';
 import { Input } from './input.js';
 import { UI } from './ui.js';
 import { Phone } from './phone.js';
+import { loadUserVideos } from './memes.js';
 import { Game } from './game.js';
 import { preloadModels, instantiate } from './models.js';
 import { CHAPTERS } from './data.js';
@@ -76,9 +77,10 @@ async function boot() {
   for (const c of [...friends, ...students, kevin]) scene.add(c.root);
   kevin.setGone(true);
   const hand = await instantiate('hand');
-  const phone = new Phone(camera, portrait.image);
   const post = new PostFX(renderer);
   const audio = new AudioSys();
+  const phone = new Phone(camera, portrait.image, audio);
+  loadUserVideos(); // your own .mp4 files in assets/videos/ (optional)
   const input = new Input(canvas);
   if (input.touch) document.body.classList.add('touch');
   input.sens = settings.sens;
@@ -100,6 +102,7 @@ async function boot() {
     const w = innerWidth, h = innerHeight;
     camera.aspect = w / h;
     camera.fov = w / h < 1 ? 84 : w / h < 1.4 ? 74 : 68;
+    game.baseFov = camera.fov;
     camera.updateProjectionMatrix();
     post.setSize(w, h, settings.retro);
     if (input.touch && game.state !== 'title' && h <= w) ui.show('rotate', false);
@@ -305,10 +308,7 @@ async function boot() {
     launch('free', 0); // online play is Free Class
   };
   // ---------------- difficulty (title screen and the host's lobby) ----------------
-  const DIFF_NOTES = {
-    easy: 'Easy: 3 strikes. He warns you before he comes over.',
-    hard: 'Hard: no warnings. If he sees you, he comes right away. One strike and you\'re out.',
-  };
+  const DIFF_NOTES = { easy: 'Easy: 3 strikes. He warns you before he comes over.', hard: 'Hard: one strike and you\'re out. If he SEES you whispering or on your phone, he comes right away.' };
   const showDifficulty = () => {
     const d = settings.difficulty === 'hard' ? 'hard' : 'easy';
     for (const [id, v] of [['btn-easy', 'easy'], ['btn-hard', 'hard'], ['mp-easy', 'easy'], ['mp-hard', 'hard']]) $(id).classList.toggle('on', d === v);

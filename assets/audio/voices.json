@@ -74,6 +74,36 @@
   "text": "That... is not... funny.",
   "dur": 3.631
  },
+ "t_givephone": {
+  "who": "teacher",
+  "text": "Give... me... that... phone.",
+  "dur": 4.624
+ },
+ "t_sofunny": {
+  "who": "teacher",
+  "text": "What... is... so... funny?",
+  "dur": 4.624
+ },
+ "t_nophones": {
+  "who": "teacher",
+  "text": "No... phones... in... my... class.",
+  "dur": 6.243
+ },
+ "t_hmm": {
+  "who": "teacher",
+  "text": "Hmmmmm...",
+  "dur": 2.142
+ },
+ "t_wasityou": {
+  "who": "teacher",
+  "text": "Was it... you?",
+  "dur": 2.194
+ },
+ "t_ifind": {
+  "who": "teacher",
+  "text": "I... will... find you.",
+  "dur": 3.762
+ },
  "t_moment": {
   "who": "teacher",
   "text": "One... moment.",
@@ -369,11 +399,6 @@
   "text": "Where... is your friend?",
   "dur": 2.847
  },
- "t_hmm": {
-  "who": "teacher",
-  "text": "Hmmmmm...",
-  "dur": 2.142
- },
  "t_wrong": {
   "who": "teacher",
   "text": "No. No. That is wrong.",
@@ -383,11 +408,6 @@
   "who": "teacher",
   "text": "Who... did... that?",
   "dur": 3.318
- },
- "t_wasityou": {
-  "who": "teacher",
-  "text": "Was it... you?",
-  "dur": 2.194
  },
  "t_wakeup": {
   "who": "teacher",
@@ -772,6 +792,30 @@
   "whisper": true,
   "dur": 1.75
  },
+ "s_look": {
+  "who": "sam",
+  "text": "Psst! Look! Look at this!",
+  "whisper": true,
+  "dur": 2.194
+ },
+ "s_lookagain": {
+  "who": "sam",
+  "text": "No, look! You're missing it!",
+  "whisper": true,
+  "dur": 1.907
+ },
+ "s_sent": {
+  "who": "sam",
+  "text": "Check your phone. I sent you something.",
+  "whisper": true,
+  "dur": 2.429
+ },
+ "s_told": {
+  "who": "sam",
+  "text": "Told you. Best video ever.",
+  "whisper": true,
+  "dur": 1.881
+ },
  "n_free": {
   "who": "nora",
   "text": "Maybe we get a free period.",
@@ -852,7 +896,7 @@
  },
  "n_look": {
   "who": "nora",
-  "text": "Don't look at him. Don't look at him.",
+  "text": "Psst! You have to see this!",
   "whisper": true,
   "dur": 2.429
  },
@@ -1006,6 +1050,18 @@
   "whisper": true,
   "dur": 1.045
  },
+ "n_lookagain": {
+  "who": "nora",
+  "text": "Look! This is the best part!",
+  "whisper": true,
+  "dur": 1.776
+ },
+ "n_told": {
+  "who": "nora",
+  "text": "I can't breathe.",
+  "whisper": true,
+  "dur": 0.836
+ },
  "s_hey": {
   "who": "sam",
   "text": "HEY! ARE YOU EVEN LISTENING?",
@@ -1037,6 +1093,11 @@
   "who": "you",
   "text": "Here.",
   "dur": 0.34
+ },
+ "p_look": {
+  "who": "you",
+  "text": "Bro! Look at this!",
+  "dur": 1.411
  },
  "p_q_wet": {
   "who": "you",
@@ -1308,5 +1369,95 @@
   "who": "pa",
   "text": "Attention, students. The school is closed today. There is nobody in the building.",
   "dur": 5.59
+ },
+ "v_br_pencil": {
+  "who": "clip",
+  "text": "Matitino Gommarino!",
+  "dur": 1.489
+ },
+ "v_br_shark": {
+  "who": "clip",
+  "text": "Squalino Zainetto!",
+  "dur": 1.437
+ },
+ "v_br_banana": {
+  "who": "clip",
+  "text": "Bananito Calcolatrice!",
+  "dur": 1.802
+ },
+ "v_br_chalk": {
+  "who": "clip",
+  "text": "Gessetto Polverone!",
+  "dur": 1.724
+ },
+ "v_br_frog": {
+  "who": "clip",
+  "text": "Ranocchio Monociclo!",
+  "dur": 1.62
+ },
+ "v_tts_beat": {
+  "who": "clip",
+  "text": "When the beat drops in class.",
+  "dur": 1.437
+ },
+ "v_tts_wait": {
+  "who": "clip",
+  "text": "Wait for it.",
+  "dur": 0.627
+ },
+ "v_tts_pov": {
+  "who": "clip",
+  "text": "P O V. The sub does not know the lesson.",
+  "dur": 1.62
+ },
+ "v_tts_nobody": {
+  "who": "clip",
+  "text": "Nobody. Absolutely nobody.",
+  "dur": 1.855
+ },
+ "v_tts_aura": {
+  "who": "clip",
+  "text": "Plus one thousand aura.",
+  "dur": 1.097
+ },
+ "v_tts_cat": {
+  "who": "clip",
+  "text": "This cat has more riz than me.",
+  "dur": 1.254
+ },
+ "v_tts_weather": {
+  "who": "clip",
+  "text": "The weather in my town be like.",
+  "dur": 1.176
+ },
+ "v_tts_mewing": {
+  "who": "clip",
+  "text": "Shh. I'm mewing.",
+  "dur": 1.332
+ },
+ "v_tts_bell": {
+  "who": "clip",
+  "text": "Me waiting for the bell.",
+  "dur": 0.914
+ },
+ "v_umactually": {
+  "who": "clip",
+  "text": "Um, actually.",
+  "dur": 0.888
+ },
+ "v_ohno": {
+  "who": "clip",
+  "text": "Oh no.",
+  "dur": 0.418
+ },
+ "v_wow": {
+  "who": "clip",
+  "text": "Wow.",
+  "dur": 0.496
+ },
+ "v_letsgo": {
+  "who": "clip",
+  "text": "Let's go!",
+  "dur": 0.627
  }
 }

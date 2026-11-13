@@ -15,14 +15,14 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 
 | Time | Period | What happens |
 |---|---|---|
-| 8:30 AM | Roll Call | Footsteps in the hallway, a face in the door window. He walks in, writes his name and claps the chalk off his hands. Roll call: Kevin is absent. Nora passes you a note. Kevin's empty chair slides back by itself. Sam dares you to repeat what he says. The storm gets worse. |
-| 9:30 AM | The Lesson | "Open your books." Nobody has books. Ask him dumb questions: he walks to his laptop to look them up, and the projector shows the whole class what he searches for. He wipes Mr. Hale's glasses. The school speaker calls for Mr. Hale, and he tears it off the wall. Sam's note has to reach Nora without him seeing it (if he catches you, he reads it out loud). Then the projector shows his search history. |
-| 10:30 AM | Pop Quiz | He quizzes you to your face, asks how many students are in the class, and Kevin is back for a moment. Then he walks between the desks and stops right behind your chair. The power goes out: every flash of lightning shows him a little closer. Don't make a sound. |
-| 11:30 AM | Detention | Nora has a plan. The clock runs backwards. Mr. Hale texts you. "There is no lunch." The speaker he tore out comes back on: *the school is closed today, there is nobody in the building.* At the last bell, ask him something he can't look up. Three different endings. |
+| 8:30 AM | Roll Call | Footsteps in the hallway, a face in the door window. He walks in, writes his name and claps the chalk off his hands. Roll call: Kevin is absent. Nora passes you a note. Kevin's empty chair slides back by itself. Sam sends you a meme video: watch all of it without him seeing. Sam dares you to repeat what he says. The storm gets worse. |
+| 9:30 AM | The Lesson | "Open your books." Nobody has books. Ask him dumb questions: he walks to his laptop to look them up, and the projector shows the whole class what he searches for. He wipes Mr. Hale's glasses. The school speaker calls for Mr. Hale, and he tears it off the wall. Sam's note has to reach Nora without him seeing it (if he catches you, he reads it out loud). Nora holds her phone out: "Psst! You have to see this!" Then the projector shows his search history. |
+| 10:30 AM | Pop Quiz | He quizzes you to your face, asks how many students are in the class, and Kevin is back for a moment. Then he walks between the desks and stops right behind your chair. Sam needs to show you a video right now. The power goes out: every flash of lightning shows him a little closer. Don't make a sound. |
+| 11:30 AM | Detention | Nora has a plan. The clock runs backwards. Mr. Hale texts you. "There is no lunch." The speaker he tore out comes back on: *the school is closed today, there is nobody in the building.* Somebody sends you a video of this classroom, filmed from the back... At the last bell, ask him something he can't look up. Three different endings. |
 
 **Free Class**: the whole morning in one go (about 5 minutes), getting darker and stranger every hour.
 
-**Difficulty** (title screen): **Easy** gives you 3 strikes, and he warns you before he comes over. **Hard** has no warnings: if he sees you whispering or on your phone he comes for you right away, he gets angry faster, repeating him twice in a row (or asking 3 dumb questions) is enough, and the first time he catches you, it's over.
+**Difficulty** (title screen): **Easy** gives you 3 strikes. **Hard** plays the same (he still warns you when he only *hears* something) but you get **one strike**, and if he actually **sees** you whispering or on your phone, he comes for you right away.
 
 **Play with friends**: up to 4 players in the same Free Class (Easy or Hard, the host picks).
 
@@ -30,7 +30,7 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 2. Friends press **PLAY WITH FRIENDS**, type the code and **JOIN**, or just open the invite link (**COPY INVITE LINK**).
 3. The host picks Easy or Hard and presses **START FREE CLASS**. Friends who join later drop straight into the running class.
 
-Everyone sits at their own desk and sees the others as students with name tags. Look at a friend and hold **E** to whisper to them (only they see it). Repeating him, dumb questions, the phone and whispering all work for everyone, and he goes after whoever is making the most noise: he walks to *their* desk. Strikes are shared by the whole class (Easy: 3, plus 1 for every friend; Hard: one strike for everybody).
+Everyone sits at their own desk and sees the others as students with name tags. Look at a friend and hold **E** to whisper to them (only they see it). Hold your phone in the meme app, look at a friend and press **R**: you shout "Bro! Look at this!" and hold your phone out to them; they look at it to watch. Repeating him, dumb questions, the phone and whispering all work for everyone, and he goes after whoever is making the most noise: he walks to *their* desk. Strikes are shared by the whole class (Easy: 3, plus 1 for every friend; Hard: one strike for everybody).
 
 How it works: the host's browser runs the game and streams it to the friends over WebRTC (peer to peer, through [PeerJS](https://peerjs.com)'s free public server for the handshake). Nothing to install and no game server; it works from any static host such as Vercel. The host should keep the game's tab open (it keeps running in the background). A few very strict networks (some school or office Wi-Fi) block peer-to-peer connections; if friends can't connect, try another network or a phone hotspot.
 
@@ -40,12 +40,17 @@ How it works: the host's browser runs the game and streams it to the friends ove
 |---|---|---|
 | Look around | mouse (click the game first) | drag anywhere |
 | Whisper to a friend | look at Sam (left) / Nora (right), hold **E** | hold **TALK** |
-| Play on your phone | hold **Q** or right click | hold **PHONE** |
+| Use your phone | hold **Q** or right click | hold **PHONE** |
+| …fly the plane / next video | **E**, **Space** or click (phone up) | **TAP** / **NEXT** |
+| …switch app (game / memes) | **T** (phone up) | **APP** |
+| …show a friend your video (online) | **R** (phone up) | **SHOW** |
 | Repeat what he just said | **R** | **ECHO** |
 | Ask him a dumb question | **T** (pick with 1–3) | **ASK** |
 | Pause | **Esc** | **II** button |
 
-* **Repeat him**: right after he speaks, your squeaky impression makes the class laugh. He looks for who said it. Do it too many times in a row and he knows it was you.
+* **Repeat him**: right after he speaks, your squeaky impression makes the class laugh. He doesn't know who said it, so he walks down the rows and leans over the desks, looking at everyone, then goes back. Do it three times in a row and he knows it was you.
+* **Your phone** has two apps. **PAPER PLANE**: tap to fly between the pencils. Crash and the phone plays a LOUD game-over tune that the whole class (and he) hears: he turns right to you, so put it away. **Memes**: an endless feed of short funny videos.
+* **Meme videos**: friends send you videos and classmates hold their phone out to you ("LOOK! look at this!"). Watch them to the end, but **if he sees you watching a video, he comes and takes the phone**. The loud parts of a video can be heard across the room.
 * **Dumb questions**: he stares at you, he doesn't know, he goes to his laptop. While he types he isn't watching you. Ask too many and you're in trouble.
 * **When he wipes his glasses**, he can't see you.
 * **When the chalk stops, stop talking.** He turns around without warning.
@@ -99,6 +104,9 @@ index.html, style.css      UI shell (menus, HUD, touch buttons, choices)
 src/main.js                boot, loading, menus, settings
 src/game.js                the teacher's brain (coroutines), story chapters, free class,
                            echo / question mechanics, friends, phone, scares, endings
+src/videos.js              meme videos in class: missions, phones held out to you, the loud crash
+src/memes.js, src/clips.js the meme clips (original cartoons drawn live) and the clip player
+src/phone.js               your phone: PAPER PLANE, the meme feed, messages
 src/data.js                board text, lines, questions, messages, notes, chapter titles
 src/teacher.js             Mr. Madi: rigged suit body, IK arms and legs, walk cycle
                            (feet step, hips stay level so he seems to glide), glasses
@@ -114,8 +122,9 @@ src/audio.js               Web Audio engine: 3D HRTF sound, reverb, live ambienc
 src/post.js                retro post-processing (grain, aberration, glitch, blackout)
 assets/models/             rigged characters (built by tools/build_characters.py, bundled in models.json)
 assets/textures/           teacher face texture + glow mask (from the reference photo)
-assets/audio/voice/        240 spoken lines
-assets/audio/sfx/          65 sound effects
+assets/audio/voice/        269 spoken lines
+assets/audio/sfx/          83 sound effects and music loops
+assets/videos/             your own .mp4 memes (optional, see assets/videos/README.md)
 tools/                     scripts that generate all of the assets above + preview pages
 vendor/                    three.js r170 (+ GLTFLoader), PeerJS 1.5.5
 ```
@@ -128,7 +137,7 @@ pip install numpy pillow pyfqmr
 python3 tools/make_face_texture.py   # face texture + eye glow
 python3 tools/build_characters.py    # all characters (downloads the CC0 MakeHuman base mesh once)
 python3 tools/gen_voices.py          # voice lines that are missing (--all rebuilds every line)
-python3 tools/gen_sfx.py             # all sound effects (add 'memes' to build only the meme noises)
+python3 tools/gen_sfx.py             # all sound effects (add 'memes' or 'v4' to build only one group)
 ```
 
 ## Credits and licences
@@ -143,5 +152,9 @@ python3 tools/gen_sfx.py             # all sound effects (add 'memes' to build o
 * Meme noises (snore, boom, airhorn, sad trombone, record scratch, crickets, metal pipe, clown horn, slide
   whistle, whoopee cushion) are synthesised from scratch in `tools/gen_sfx.py`: no samples, no licences.
 * Sound effects and the music box tune: synthesized from scratch by `tools/gen_sfx.py` (no samples).
+* Meme videos: 38 original cartoons drawn in code (`src/clips.js`), with music loops (phonk, lo-fi, euro dance,
+  kazoo, mandolin) and cartoon sounds synthesised by `tools/gen_sfx.py` and voices made with eSpeak NG. They use
+  popular meme formats (dramatic zoom, "to be continued", brainrot names, aura, six seven…) but no copied clips.
+  PAPER PLANE is an original tap-to-fly game.
 * Classroom textures: painted procedurally at runtime (`src/textures.js`).
 * Teacher face: the reference image supplied for this project.

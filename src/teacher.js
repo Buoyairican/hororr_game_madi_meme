@@ -2,7 +2,7 @@
 // Arms and legs are driven by two-bone IK. He really walks: feet plant and
 // step, but his hips never bob, so he seems to slide across the room.
 import * as THREE from 'three';
-import { clamp, damp, dampAngle, rand } from './util.js';
+import { clamp, damp, dampAngle, rand, wrapAngle } from './util.js';
 import { buildHead } from './madi_head.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -13,6 +13,7 @@ const _x = new THREE.Vector3(), _y = new THREE.Vector3(), _z = new THREE.Vector3
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _qp = new THREE.Quaternion();
 const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3();
 const _eul = new THREE.Euler();
+const NECK = 1.2; // how far his head turns on its own (radians)
 
 /** rotation whose local +y is dir and local +x is n (made perpendicular to dir) */
 function frameQuat(dir, n, out) {
@@ -113,6 +114,8 @@ export class Teacher {
     this.vel = new THREE.Vector3();
     this.lookTarget = null;
     this.lookSpeed = 6;
+    this.assist = 0;    // extra body turn when what he looks at is behind him (a neck only turns so far)
+    this.owl = false;   // true: the head turns all the way round (only in the scare)
     this.headYaw = 0; this.headPitch = 0; this.headRoll = 0;
     this.rollTarget = 0;
     this.lean = 0; this.leanTarget = 0;
@@ -141,6 +144,7 @@ export class Teacher {
   place(x, z, facing) {
     this.pos.set(x, this.pos.y, z);
     this.facing = this.facingTarget = facing;
+    this.assist = 0;
     this.root.rotation.y = facing;
     this.moveTarget = null;
     this.vel.set(0, 0, 0);
@@ -186,7 +190,7 @@ export class Teacher {
     }
     if (!this.moveTarget) this.vel.multiplyScalar(Math.exp(-10 * dt));
     this.facing = dampAngle(this.facing, this.facingTarget, this.turnSpeed, dt);
-    root.rotation.y = this.facing;
+    root.rotation.y = this.facing + this.assist;
     // ---- torso: lean, crouch (hips sink but never bob)
     const fwd = Math.sin(this.facing) * this.vel.x + Math.cos(this.facing) * this.vel.z;
     this.lean = damp(this.lean, this.leanTarget + clamp(fwd * 0.025, -0.06, 0.1), 5, dt);
@@ -218,6 +222,18 @@ export class Teacher {
         yaw = _eul.y; pitch = _eul.x; rollL = _eul.z;
       }
     }
+    // a real neck: past ~70 degrees his whole body turns with his head (the glasses and face never
+    // stay pointing backwards). Only the scare lets the head turn all the way round.
+    let want = 0, base = 0;
+    const neckOnly = !this.lookTarget || this.owl;
+    if (!neckOnly) {
+      base = wrapAngle(yaw + this.assist);
+      if (Math.abs(base) > Math.PI / 2 && Math.abs(this.assist) > 0.05 && Math.sign(base) !== Math.sign(this.assist)) base += Math.sign(this.assist) * Math.PI * 2;
+      if (Math.abs(base) > NECK && !this.moveTarget) want = clamp(base - Math.sign(base) * NECK, -2.3, 2.3);
+    }
+    this.assist += (want - this.assist) * (1 - Math.exp(-4 * dt));
+    if (!neckOnly) yaw = clamp(base - this.assist, -NECK, NECK);
+    root.rotation.y = this.facing + this.assist;
     this.headYaw = dampAngle(this.headYaw, yaw, this.lookSpeed, dt);
     this.headPitch = damp(this.headPitch, clamp(pitch, -1.6, 1.2), this.lookSpeed, dt);
     this.headRoll = damp(this.headRoll, this.rollTarget + rollL, this.lookTarget ? Math.max(2.5, this.lookSpeed * 0.5) : 2.5, dt);
@@ -274,7 +290,7 @@ export class Teacher {
   }
 
   updateFeet(dt) {
-    const yaw = this.facing, c = Math.cos(yaw), s = Math.sin(yaw);
+    const yaw = this.facing + this.assist, c = Math.cos(yaw), s = Math.sin(yaw);
     const ground = this.pos.y;
     const sp = Math.hypot(this.vel.x, this.vel.z);
     const stride = clamp(0.22 + sp * 0.2, 0.2, 0.62);
