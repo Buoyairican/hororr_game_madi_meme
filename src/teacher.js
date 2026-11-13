@@ -157,7 +157,8 @@ export class Teacher {
   facePoint(p, speed = 6) { this.faceTo(Math.atan2(p.x - this.pos.x, p.z - this.pos.z), speed); }
   lookAt(p, speed = 6) { this.lookTarget = p; this.lookSpeed = speed; }
   setPose(name, data = {}) { this.pose = name; this.poseData = data; }
-  startClap(count, interval, onClap) { this.clap = { left: count, interval, phase: Math.PI, onClap }; this.setPose('clap'); }
+  /** clap the chalk dust off: hands come up first, then `count` claps, one every `interval` seconds */
+  startClap(count, interval, onClap) { this.clap = { left: count, interval, phase: Math.PI, delay: 0.3, onClap }; this.setPose('clap'); }
 
   glassesHome(out = new THREE.Vector3()) { return this.head.localToWorld(out.copy(this.glasses.userData.home)); }
   takeGlasses() { this.glassesOn = false; this.bones.handR.attach(this.glasses); this.glassesHeld = true; }
@@ -339,12 +340,15 @@ export class Teacher {
         a.aim = d.point; a.k = 16;
         this.local(-0.9, 1.0, -0.2, a.pole);
       } else if (P === 'clap' && this.clap) {
-        const sep = 0.05 + 0.16 * (1 - Math.cos(this.clap.phase)) / 2;
-        this.local(s * sep, this.chestY - 0.05, 0.36, a.desired);
+        // quick claps are small and brush past each other (dusting chalk off); a slow clap swings wide
+        const quick = this.clap.interval < 0.4;
+        const sep = 0.045 + (quick ? 0.085 : 0.16) * (1 - Math.cos(this.clap.phase)) / 2;
+        const brush = quick ? s * 0.022 * Math.sin(this.clap.phase) : 0;
+        this.local(s * sep, this.chestY - 0.05 + brush, 0.36, a.desired);
         this.local(s * 1.0, 0.9, -0.1, a.pole);
         a.aim = this.local(-s * 0.02, this.chestY + 0.35, 0.62, new THREE.Vector3());
         a.twist = s * 1.25;
-        a.k = 40;
+        a.k = quick ? 60 : 40;
       } else if (P === 'gesture' && key === 'R') {
         this.local(-0.26, this.chestY - 0.02 + Math.sin(this.time * 1.3) * 0.03, 0.42, a.desired);
         this.local(-0.9, 0.9, -0.2, a.pole);
@@ -393,7 +397,8 @@ export class Teacher {
     const c = this.clap;
     if (c && P === 'clap') {
       const prev = c.phase;
-      c.phase += dt * (Math.PI * 2) / c.interval;
+      if (c.delay > 0) c.delay -= dt; // raising the hands
+      else c.phase += dt * (Math.PI * 2) / c.interval;
       if (Math.floor(prev / (Math.PI * 2)) !== Math.floor(c.phase / (Math.PI * 2))) {
         c.left--;
         const mid = this.handPos('L', new THREE.Vector3()).add(this.handPos('R', new THREE.Vector3())).multiplyScalar(0.5);

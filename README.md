@@ -38,7 +38,7 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 * **When he wipes his glasses**, he can't see you.
 * **When the chalk stops, stop talking.** He turns around without warning.
 * If he catches you, he comes to your desk. **Three strikes** and the period is over.
-* **The class clowns**: if you do nothing for about 30 seconds (no whispering, phone, repeating or questions; just looking around doesn't count), somebody in the back does a meme noise: snoring, "bruh", an airhorn, a sad trombone, "six seven!", a goat, a whoopee cushion, crickets, a metal pipe… He stops, turns around and goes to find out who did it. He looks slang up on his laptop ("what does bruh mean"), wakes up the snorer by slapping their desk, and once the laptop even tells him who farted. In detention, the ones he catches don't look the same afterwards.
+* **The class clowns**: if you do nothing for a while (a random 30 seconds to over a minute each time; no whispering, phone, repeating or questions; just looking around doesn't count), somebody in the back does a meme noise: snoring, "bruh", an airhorn, a sad trombone, "six seven!", a goat, a whoopee cushion, crickets, a metal pipe… He stops, turns around and goes to find out who did it. He looks slang up on his laptop ("what does bruh mean"), wakes up the snorer by slapping their desk, and once the laptop even tells him who farted. In detention, the ones he catches don't look the same afterwards.
 * An optional helper HUD (Settings) shows when he is watching you and how angry he is.
 
 Tip: headphones. The audio is positional; you can hear his footsteps.

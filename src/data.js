@@ -65,7 +65,7 @@ export const QUESTIONS = [
 //   voice: kid line (a boy or girl version is picked)   sfx: sound effect   cap: subtitle for sfx
 //   react: 'lookup' he looks the slang up and answers it | 'check' he walks over to the culprit
 //          'snore' he wakes them up | 'smell' the laptop snitches | 'stare' a long dead stare
-export const MEME_IDLE = 30;  // seconds of you doing nothing
+export const MEME_IDLE = [30, 75];  // seconds of you doing nothing before it happens (random each time)
 export const MEMES = [
   { id: 'snore', sfx: 'm_snore', cap: '😴 <i>*loud snoring*</i>', react: 'snore' },
   { id: 'bruh', voice: 'm_bruh', react: 'lookup', typed: 'what does bruh mean', result: 'Slang. Disbelief. Also: brother.', answer: 't_bruh' },

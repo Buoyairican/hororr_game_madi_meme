@@ -101,7 +101,7 @@ export class Game {
     this.echoable = null; this.echoStreak = 0; this.lastEcho = -99; this.echoBusy = false;
     this.qCount = 0; this.qLast = -99; this.qBusy = false;
     this.choice = null;
-    this.idleT = 0; this.memeAt = MEME_IDLE; this.memesOn = false; this.memeBusy = false;
+    this.idleT = 0; this.memeAt = rand(MEME_IDLE[0], MEME_IDLE[1]); this.memesOn = false; this.memeBusy = false;
     this.memeBag = new Bag(MEMES); this.lastMemeKid = null; this.snitches = [];
     this.buzzRead = null;
     this.objectives = [];
@@ -885,7 +885,7 @@ export class Game {
       else if (act === 'lecture') yield* this.actLecture();
       else if (act === 'stare') yield* this.actStare(rand(2, 3.5));
       else if (act === 'ponder') yield* this.actPonder();
-      else if (act === 'clap') yield* this.actClap((3 + Math.random() * 2) | 0);
+      else if (act === 'clap') yield* this.actClap(5 + ((Math.random() * 3) | 0));
       else if (act === 'laptop') {
         const i = (Math.random() * 4) | 0;
         yield* this.laptopLookup(['how to be a teacher', 'how long can a class last', 'how often do people blink', 'what is a student'][i],
@@ -924,7 +924,7 @@ export class Game {
       T.lookAt(null, 3);
       yield* this.wait(0.5);
     }
-    if (!forced && chance(0.3)) yield* this.actClap(2 + ((Math.random() * 2) | 0));
+    if (!forced && chance(0.3)) yield* this.actClap(4 + ((Math.random() * 3) | 0));
   }
 
   *actErase() {
@@ -948,24 +948,32 @@ export class Game {
     } finally { if (snd) snd.stop(0.15); }
     this.boardRow = 0;
     T.setPose('rest');
-    yield* this.actClap(3);
+    yield* this.actClap(6);
   }
 
-  /** claps the chalk dust off his hands */
+  /** claps the chalk dust off his hands: quick, like a person does. Later in the day, one last slow, loud clap. */
   *actClap(n) {
     const T = this.teacher;
     yield* this.turnToClass();
     for (const f of this.friends) if (!f.call && !(this.talk && this.talk.friend === f)) f.lookTarget = T.headWorld(new THREE.Vector3());
-    yield* this.wait(0.4);
-    const big = this.phase >= 2;
-    T.startClap(n, big ? rand(0.75, 0.95) : rand(0.6, 0.72), (mid, left) => {
-      const loud = big && left === 0;
-      this.audio.play(loud ? 'clap_big' : pick(['clap_1', 'clap_2', 'clap_3']), { pos: mid, vol: loud ? 1.3 : 1.1, reverb: 0.6, ref: 2.6, rate: rand(0.92, 1.05) });
-      this.world.chalkBurst(mid, loud ? 70 : 35);
-      if (loud) this.shake = Math.max(this.shake, 0.3);
-    });
-    try { while (T.clap) yield; }
-    finally { for (const f of this.friends) if (!f.call && !(this.talk && this.talk.friend === f)) f.lookTarget = null; }
+    yield* this.wait(0.3);
+    try {
+      T.startClap(n, rand(0.2, 0.26), (mid) => {
+        this.audio.play(pick(['clap_1', 'clap_2', 'clap_3']), { pos: mid, vol: 0.9, reverb: 0.45, ref: 2.6, rate: rand(0.96, 1.12) });
+        this.world.chalkBurst(mid, 18);
+      });
+      while (T.clap) yield;
+      if (this.phase >= 2) {
+        yield* this.wait(0.6);
+        T.startClap(1, 0.8, (mid) => {
+          this.audio.play('clap_big', { pos: mid, vol: 1.3, reverb: 0.6, ref: 2.6 });
+          this.world.chalkBurst(mid, 70);
+          this.shake = Math.max(this.shake, 0.3);
+        });
+        T.clap.delay = 0;
+        while (T.clap) yield;
+      }
+    } finally { for (const f of this.friends) if (!f.call && !(this.talk && this.talk.friend === f)) f.lookTarget = null; }
     yield* this.wait(0.4);
   }
 
@@ -1059,7 +1067,7 @@ export class Game {
     this.idleT += dt;
     if (!this.memesOn || this.idleT < this.memeAt) return;
     if (!this.brainIdle || this.lockBully || this.memeBusy || !this.present || !this.teacher.root.visible || this.anger >= 40 || this.blackout > 0.3) return;
-    if (this.startMeme()) { this.idleT = 0; this.memeAt = MEME_IDLE + rand(0, 4); }
+    if (this.startMeme()) { this.idleT = 0; this.memeAt = rand(MEME_IDLE[0], MEME_IDLE[1]); }
   }
 
   startMeme(forceId) {
@@ -1877,7 +1885,7 @@ export class Game {
 
   /** the chalk dust... and the only rule */
   *rules() {
-    yield* this.actClap(3);
+    yield* this.actClap(6);
     yield* this.wait(0.6);
     yield* this.say('t_rule', 0.6);
     yield* this.actStare(2.2);
@@ -2255,7 +2263,7 @@ export class Game {
   *pencilsDown() {
     yield* this.turnToClass();
     yield* this.say('t_pencils', 0.6);
-    yield* this.actClap(2);
+    yield* this.actClap(4);
     yield* this.actStare(1.5);
   }
 
