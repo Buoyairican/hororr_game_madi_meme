@@ -104,6 +104,30 @@ TEACHER = {
     "t_where": "Where | is your friend?",
     "t_hmm": "hmmmmmm",
     "t_wrong": "No. | No. | That is wrong.",
+    "t_whodid": "Who | did | that?",
+    "t_wasityou": "Was it | you?",
+    "t_wakeup": "Wake | up.",
+    "t_smell": "What | is | that | smell?",
+    "t_back": "Back | to | work.",
+    "t_veryfunny": "Very | funny.",
+    "t_bruh": "Bruh.",
+    "t_sus": "I am | not | suspicious.",
+    "t_67": "Six. | | Seven.",
+    "t_rizz": "I | have | riz.",
+    "t_skill": "You | have | a skill | issue.",
+    "t_goat": "We do not | have | a goat.",
+    "t_yeet": "Do not | yeet.",
+    "t_thanks": "Thank | you.",
+    "t_rule": "In my class | nobody | talks.",
+    "t_window": "Do not | look | at the window.",
+    "t_books": "Open | your | books.",
+    "t_everyone": "Now | everyone | is | here.",
+    "t_pencils": "Pencils | down.",
+    "t_quietfav": "Quiet | students | are my | favorite.",
+    "t_nolunch": "There is | no | lunch.",
+    "t_onehour": "One | more | hour.",
+    "t_important": "This | is | very | important.",
+    "t_hale": "Mister Hale | is | resting.",
 }
 SUBS = {
     "t_iam": "I am... your... teacher.",
@@ -182,6 +206,30 @@ SUBS = {
     "t_where": "Where... is your friend?",
     "t_hmm": "Hmmmmm...",
     "t_wrong": "No. No. That is wrong.",
+    "t_whodid": "Who... did... that?",
+    "t_wasityou": "Was it... you?",
+    "t_wakeup": "Wake... up.",
+    "t_smell": "What... is... that... smell?",
+    "t_back": "Back... to... work.",
+    "t_veryfunny": "Very... funny.",
+    "t_bruh": "Bruh.",
+    "t_sus": "I am... not... suspicious.",
+    "t_67": "Six... ... seven.",
+    "t_rizz": "I... have... rizz.",
+    "t_skill": "You... have... a skill... issue.",
+    "t_goat": "We do not... have... a goat.",
+    "t_yeet": "Do not... yeet.",
+    "t_thanks": "Thank... you.",
+    "t_rule": "In my class... nobody... talks.",
+    "t_window": "Do not... look... at the window.",
+    "t_books": "Open... your... books.",
+    "t_everyone": "Now... everyone... is... here.",
+    "t_pencils": "Pencils... down.",
+    "t_quietfav": "Quiet... students... are my... favorite.",
+    "t_nolunch": "There is... no... lunch.",
+    "t_onehour": "One... more... hour.",
+    "t_important": "This... is... very... important.",
+    "t_hale": "Mister Hale... is... resting.",
 }
 TEACHER_WHISPER = {
     "tw_turn": ("Turn | around.", "Turn... around."),
@@ -215,6 +263,16 @@ SAM = {
     "s_scared": "I'm not scared. You're scared.",
     "s_sorry": "Sorry, sorry. I'll be quiet.",
     "s_warn": "Stop! He's looking at you!",
+    "s_name": "Mister Madi? What kind of name is that?",
+    "s_books": "We don't even have books.",
+    "s_meme": "Bro. Who was that?",
+    "s_meme2": "Oh no. He heard that.",
+    "s_dead": "They are so dead.",
+    "s_laughing": "Don't make me laugh. I'm gonna laugh.",
+    "s_study": "I didn't study. Did you study?",
+    "s_hungry": "I'm so hungry. When is lunch?",
+    "s_ready": "Get ready. When the bell rings, we go.",
+    "s_close": "That was close.",
 }
 NORA = {
     "n_free": "Maybe we get a free period.",
@@ -241,6 +299,17 @@ NORA = {
     "n_hands": "Why does he keep clapping like that?",
     "n_sorry": "Okay, okay. Shh.",
     "n_warn": "He's coming. Stop talking!",
+    "n_door": "There's someone at the door.",
+    "n_name": "Madi. I've never heard of him.",
+    "n_meme": "Don't laugh. Don't laugh.",
+    "n_going": "He's going to the back...",
+    "n_room13": "Room thirteen. That's our room.",
+    "n_eyes": "Look at the back row. Their eyes are black.",
+    "n_storm": "The storm is getting worse.",
+    "n_hale_msg": "Mister Hale texted you? He's alive!",
+    "n_almost": "Almost there. Just a little longer.",
+    "n_quietone": "Don't be too quiet. He likes the quiet ones.",
+    "n_poor": "Poor kid.",
 }
 # Lines spoken aloud: (voice, speed, espeak pitch, rubberband pitch, who, text)
 ALOUD = {
@@ -270,6 +339,25 @@ ALOUD = {
     "p_a_four": ("mb-us3", 150, 55, 1.17, "you", "Four."),
     "p_a_fish": ("mb-us3", 150, 55, 1.17, "you", "Fish."),
 }
+
+# Background classmates goofing off with meme noises (each voiced by a boy and a girl).
+# (text for espeak, subtitle, extra ffmpeg filter)
+MEMES = {
+    "m_bruh": ("Bruh.", "Bruh.", ""),
+    "m_sus": ("Sus.", "Sus.", ""),
+    "m_67": ("Six, seven!", "SIX SEVEN!", ""),
+    "m_rizz": ("Mister Madi has no riz.", "Mister Madi has no rizz.", ""),
+    "m_oof": ("Oof.", "Oof.", ""),
+    "m_sheesh": ("[[S'i:::::::::S]]", "Sheeeeesh!", ""),
+    "m_huh": ("Huh?", "Huh?", ""),
+    "m_yeet": ("Yeet!", "YEET!", ""),
+    "m_goat": ("[[m'E:::::::::]]", "Meeeeeh!", ""),
+    "m_skill": ("Skill issue.", "Skill issue.", ""),
+    "k_notme": ("It wasn't me!", "It wasn't me!", ""),
+    "k_awake": ("Huh? I'm awake! I'm awake!", "Huh?! I'm awake! I'm awake!", ""),
+    "k_sorry": ("Sorry, sir.", "Sorry, sir.", ""),
+}
+KID_VOICES = {"b": ("mb-us3", 165, 62, 1.22), "g": ("mb-us1", 165, 70, 1.12)}
 
 SHOUTS = {
     "s_hey": ("mb-us3", 175, 70, "Hey! Are you even listening?"),
@@ -388,15 +476,34 @@ def duration(path):
     return round(float(r.stdout.strip()), 3)
 
 
+def wobble(x, f=7.0, depth=0.04, trem=0.6):
+    """goat bleat: fast pitch vibrato + tremolo"""
+    n = len(x)
+    t = np.arange(n) / SR
+    pos = np.cumsum(1 + depth * np.sin(2 * np.pi * f * t))
+    pos = pos[pos < n - 1]
+    y = np.interp(pos, np.arange(n), x)
+    tt = np.arange(len(y)) / SR
+    return (y * (1 - trem * 0.5 * (1 + np.sin(2 * np.pi * f * tt)))).astype(np.float32)
+
+
 def norm(x, peak=0.9):
     m = np.max(np.abs(x)) + 1e-9
     return x * (peak / m)
 
 
 manifest = {}
+ALL = "--all" in sys.argv
+
+
+def need(key):
+    return ALL or not os.path.exists(os.path.join(OUT, key + ".mp3"))
 
 # ---------------- Teacher -----------------
 for key, text in TEACHER.items():
+    manifest[key] = {"who": "teacher", "text": SUBS[key]}
+    if not need(key):
+        continue
     x = speak("mb-us2", 92, 18, text, gap=0.7)
     raw = os.path.join(TMP, key + "_raw.wav")
     write_wav(raw, norm(x), SR)
@@ -412,9 +519,11 @@ for key, text in TEACHER.items():
          "highpass=f=70,lowpass=f=7500,acrusher=bits=10:mix=0.18:mode=log,"
          "aecho=0.8:0.55:45|97:0.22|0.12,alimiter=limit=0.9,loudnorm=I=-16:TP=-1.5",
          "-ac", "1", "-ar", "44100", "-b:a", "56k", os.path.join(OUT, key + ".mp3")])
-    manifest[key] = {"who": "teacher", "text": SUBS[key]}
 
 for key, (text, sub) in TEACHER_WHISPER.items():
+    manifest[key] = {"who": "teacher", "text": sub, "whisper": True}
+    if not need(key):
+        continue
     x = speak("mb-us2", 90, 10, text, gap=0.6)
     raw = os.path.join(TMP, key + "_raw.wav")
     write_wav(raw, norm(x), SR)
@@ -426,36 +535,59 @@ for key, (text, sub) in TEACHER_WHISPER.items():
     write_wav(w, norm(y, 0.8), SR)
     ffmpeg_proc(w, os.path.join(OUT, key + ".mp3"),
                 "highpass=f=250,lowpass=f=9000,aecho=0.8:0.4:30|60:0.18|0.1,loudnorm=I=-17:TP=-1.5")
-    manifest[key] = {"who": "teacher", "text": sub, "whisper": True}
 
 # ---------------- Friends (whispers) -----------------
 for who, voice, table, seed in (("sam", "mb-us3", SAM, 3), ("nora", "mb-us1", NORA, 5)):
     for key, text in table.items():
+        manifest[key] = {"who": who, "text": text, "whisper": True}
+        if not need(key):
+            continue
         x = speak(voice, 150 if who == "sam" else 155, 50, text, gap=0.15)
         y = whisperise(x, lifter=36, tilt=1.2, seed=seed + len(key))
         w = os.path.join(TMP, key + "_w.wav")
         write_wav(w, norm(y, 0.8), SR)
         ffmpeg_proc(w, os.path.join(OUT, key + ".mp3"),
                     "highpass=f=300,lowpass=f=8500,loudnorm=I=-18:TP=-1.5", "48k")
-        manifest[key] = {"who": who, "text": text, "whisper": True}
 
 for key, (voice, speed, pitch, text) in SHOUTS.items():
+    manifest[key] = {"who": "sam" if key.startswith("s") else "nora", "text": text.upper(), "shout": True}
+    if not need(key):
+        continue
     x = speak(voice, speed, pitch, text, gap=0.1)
     raw = os.path.join(TMP, key + "_raw.wav")
     write_wav(raw, norm(x), SR)
     ffmpeg_proc(raw, os.path.join(OUT, key + ".mp3"),
                 "rubberband=pitch=1.12:formant=preserved,highpass=f=120,"
                 "acompressor=threshold=-20dB:ratio=6,loudnorm=I=-12:TP=-1", "64k")
-    manifest[key] = {"who": "sam" if key.startswith("s") else "nora", "text": text.upper(), "shout": True}
 
 for key, (voice, speed, pitch, rb, who, text) in ALOUD.items():
+    manifest[key] = {"who": who, "text": text}
+    if not need(key):
+        continue
     x = speak(voice, speed, pitch, text, gap=0.12)
     raw = os.path.join(TMP, key + "_raw.wav")
     write_wav(raw, norm(x), SR)
     ffmpeg_proc(raw, os.path.join(OUT, key + ".mp3"),
                 f"rubberband=pitch={rb}:formant=preserved,highpass=f=110,lowpass=f=9000,"
                 "acompressor=threshold=-22dB:ratio=4,loudnorm=I=-15:TP=-1.2", "64k")
-    manifest[key] = {"who": who, "text": text}
+
+for base, (text, sub, extra) in MEMES.items():
+    for g, (voice, speed, pitch, rb) in KID_VOICES.items():
+        key = base + "_" + g
+        manifest[key] = {"who": "kid", "text": sub, "meme": True}
+        if not need(key):
+            continue
+        sp = {"m_bruh": 120, "m_goat": 70, "m_sheesh": 90}.get(base, speed)
+        x = speak(voice, sp, pitch if base != "m_bruh" else 40, text, gap=0.12)
+        if base == "m_goat":
+            x = wobble(x, f=11.0)
+        raw = os.path.join(TMP, key + "_raw.wav")
+        write_wav(raw, norm(x), SR)
+        r = rb if base != "m_bruh" else rb * 0.86
+        tempo = {"m_sheesh": 0.36, "m_goat": 0.6}.get(base, 1.0)
+        ffmpeg_proc(raw, os.path.join(OUT, key + ".mp3"),
+                    f"rubberband=pitch={r}:tempo={tempo}:formant=preserved,{extra}highpass=f=110,lowpass=f=9000,"
+                    "acompressor=threshold=-22dB:ratio=4,loudnorm=I=-14:TP=-1.2", "64k")
 
 for key in manifest:
     manifest[key]["dur"] = duration(os.path.join(OUT, key + ".mp3"))

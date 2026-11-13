@@ -671,8 +671,208 @@ def make_v2():
     save("page", pg, 0.45)
 
 
+# ----------------------------------------------------------------- meme noises (background classmates)
+def ph_of(freq):
+    return np.cumsum(np.asarray(freq, dtype=np.float64)) / SR
+
+
+def osc_sin(freq):
+    return np.sin(2 * np.pi * ph_of(freq))
+
+
+def osc_saw(freq):
+    return 2 * (ph_of(freq) % 1.0) - 1
+
+
+def osc_sq(freq, duty=0.5):
+    return np.where((ph_of(freq) % 1.0) < duty, 1.0, -1.0)
+
+
+def svf(x, fc, q=0.7, mode="lp"):
+    """state-variable filter with a per-sample cutoff (for wah / sweeps)"""
+    fc = np.broadcast_to(np.asarray(fc, dtype=np.float64), x.shape)
+    f = 2 * np.sin(np.pi * np.clip(fc, 20, SR / 6) / SR)
+    damp = 1 / q
+    lp = bp = 0.0
+    y = np.zeros_like(x)
+    for i in range(len(x)):
+        hp = x[i] - lp - damp * bp
+        bp += f[i] * hp
+        lp += f[i] * bp
+        y[i] = lp if mode == "lp" else bp if mode == "bp" else hp
+    return y
+
+
+def adsr(dur, a=0.01, r=0.05):
+    t = t_axis(dur)
+    return np.clip(t / a, 0, 1) * np.clip((dur - t) / r, 0, 1)
+
+
+def make_memes():
+    # --- big cartoon snore with the whistling exhale
+    def snore_in(dur, f0, amp=1.0):
+        t = t_axis(dur)
+        fl = f0 * (1 + 0.25 * np.sin(np.pi * t / dur))
+        flap = np.maximum(0, osc_saw(fl)) ** 3
+        n = noise(dur)
+        body = biquad(n * (0.3 + flap * 1.6), "bp", 420, 0.9) + biquad(n * flap, "lp", 700) * 0.9
+        return body * np.sin(np.pi * np.clip(t / dur, 0, 1)) ** 0.6 * amp
+
+    def snore_out(dur, f_hi=1550, f_lo=950):
+        t = t_axis(dur)
+        f = f_hi + (f_lo - f_hi) * (t / dur) + 25 * np.sin(2 * np.pi * 6 * t)
+        wh = osc_sin(f) * 0.32
+        br = biquad(noise(dur), "bp", 1700, 1.1) * 0.45
+        return (wh + br) * np.sin(np.pi * t / dur) ** 1.4
+
+    x = np.zeros(int(7.2 * SR))
+    place(x, snore_in(1.5, 36), 0.05)
+    place(x, snore_out(1.0), 1.75)
+    place(x, snore_in(1.8, 32, 1.25), 3.15)
+    place(x, snore_out(1.2, 1700, 900), 5.1)
+    place(x, snore_in(0.35, 60, 0.9), 6.6)
+    save("m_snore", reverb(x, 0.15, dur=1.0, decay=0.3), 0.85)
+
+    # --- the deep dramatic "boom"
+    dur = 3.0
+    t = t_axis(dur)
+    f = 52 + 75 * np.exp(-t / 0.05)
+    body = osc_sin(f) * np.exp(-t / 0.7)
+    mid = biquad(osc_saw(104 + 90 * np.exp(-t / 0.04)), "lp", 600) * np.exp(-t / 0.22) * 0.5
+    ring = (osc_sin(np.full(len(t), 183.0)) * 0.25 + osc_sin(np.full(len(t), 412.0)) * 0.12) * np.exp(-t / 0.5)
+    click = np.zeros(len(t)); click[: int(0.02 * SR)] = biquad(noise(0.02), "lp", 2500) * 0.6
+    boom = np.tanh((body + mid + ring + click) * 2.6)
+    save("m_boom", reverb(boom, 0.5, dur=2.8, decay=1.0, damp=2500), 0.95)
+
+    # --- whoopee-cushion fart (with the squeak at the end)
+    dur = 1.7
+    t = t_axis(dur)
+    wob = np.convolve(rng.standard_normal(len(t)), np.ones(2000) / 2000, "same") * 40
+    f = 82 + 22 * np.sin(2 * np.pi * 3.3 * t) + wob
+    tail = np.clip((t - 1.3) / 0.35, 0, 1)
+    f = f * (1 + tail * 2.4)
+    src = osc_sq(f, 0.22)
+    amp = (0.55 + 0.45 * np.sin(2 * np.pi * 9 * t + np.sin(2 * np.pi * 2 * t))) * adsr(dur, 0.03, 0.08)
+    amp *= 1 - 0.6 * np.clip((t - 1.45) / 0.25, 0, 1)
+    fart = biquad(src * amp, "lp", 1000) + biquad(noise(dur) * amp, "bp", 260, 0.8) * 0.35
+    fart = biquad(fart, "peak", 180, 1.0, 6)
+    save("m_fart", reverb(fart, 0.12, dur=0.8, decay=0.25), 0.9)
+
+    # --- airhorn: buh buh BUHHHHHH
+    def blast(dur):
+        t = t_axis(dur)
+        bend = 1 - 0.04 * np.exp(-t / 0.04)
+        v = sum(osc_saw(np.full(len(t), fr) * bend * (1 + 0.004 * np.sin(2 * np.pi * 5.5 * t + k))) for k, fr in enumerate((415.0, 523.0, 622.0, 830.0)))
+        v = np.tanh(v * 1.4)
+        v = biquad(biquad(v, "peak", 1700, 1.2, 9), "lp", 6500)
+        return v * adsr(dur, 0.008, 0.04)
+    x = np.zeros(int(2.0 * SR))
+    place(x, blast(0.14), 0.0)
+    place(x, blast(0.14), 0.22)
+    place(x, blast(1.05), 0.44)
+    save("m_airhorn", reverb(x, 0.2, dur=1.2, decay=0.4), 0.92)
+
+    # --- sad trombone: wah wah wah wahhhhh
+    notes = [(233.1, 0.45), (220.0, 0.45), (207.7, 0.45), (196.0, 1.7)]
+    x = np.zeros(int(3.4 * SR))
+    at = 0.0
+    for i, (fr, d) in enumerate(notes):
+        t = t_axis(d)
+        vib = 1 + (0.02 * np.sin(2 * np.pi * 5.5 * t) * np.clip((t - 0.3) / 0.4, 0, 1) if i == 3 else 0)
+        v = osc_saw(np.full(len(t), fr) * vib) + 0.3 * osc_sq(np.full(len(t), fr * vib), 0.5)
+        cut = 350 + 1400 * np.sin(np.pi * np.clip(t / min(d, 0.45), 0, 1)) ** 0.8
+        if i == 3:
+            cut = 350 + 1300 * (0.55 + 0.45 * np.sin(2 * np.pi * 2.7 * t)) * np.exp(-t / 1.6)
+        v = svf(v, cut, 1.4) * adsr(d, 0.03, 0.12)
+        place(x, v, at)
+        at += d + 0.04
+    save("m_trombone", reverb(x, 0.25, dur=1.4, decay=0.45), 0.85)
+
+    # --- record scratch
+    x = np.zeros(int(1.3 * SR))
+    for at, d, f0, f1 in ((0.0, 0.16, 900, 3800), (0.2, 0.14, 3400, 700), (0.42, 0.42, 3000, 300)):
+        t = t_axis(d)
+        fc = f0 + (f1 - f0) * (t / d) ** 0.7
+        z = svf(noise(d), fc, 3.0, "bp") * 2.0 + osc_saw(fc * 0.08) * 0.2
+        place(x, z * adsr(d, 0.005, 0.03), at)
+    save("m_scratch", x + biquad(noise(1.3), "hp", 3000) * 0.015, 0.85)
+
+    # --- crickets (awkward silence)
+    dur = 4.5
+    x = np.zeros(int(dur * SR))
+    for fr, per, off in ((4700.0, 0.58, 0.1), (5300.0, 0.71, 0.37)):
+        at = off
+        while at < dur - 0.3:
+            for k in range(3):
+                pt = t_axis(0.018)
+                place(x, osc_sin(np.full(len(pt), fr)) * np.sin(np.pi * pt / 0.018) ** 2 * 0.5, at + k * 0.032)
+            at += per + rng.uniform(-0.04, 0.04)
+    save("m_crickets", reverb(x, 0.3, dur=1.5, decay=0.5), 0.55)
+
+    # --- dun dun DUNNNN
+    def stab(freqs, d, trem=False):
+        t = t_axis(d)
+        v = sum(osc_saw(np.full(len(t), fr) * (1 + 0.003 * np.sin(2 * np.pi * (4.8 + k) * t))) for k, fr in enumerate(freqs))
+        if trem:
+            v *= 0.75 + 0.25 * np.sin(2 * np.pi * 9 * t)
+        v = biquad(v, "lp", 1800) * adsr(d, 0.01, 0.25 if trem else 0.08)
+        tim = osc_sin(70 + 40 * np.exp(-t / 0.03)) * np.exp(-t / 0.35) * 1.8
+        return v + tim
+    x = np.zeros(int(3.6 * SR))
+    place(x, stab((65.4, 130.8, 155.6, 196.0, 261.6), 0.32), 0.0)
+    place(x, stab((65.4, 130.8, 155.6, 196.0, 261.6), 0.32), 0.48)
+    place(x, stab((46.2, 92.5, 110.0, 130.8, 185.0), 2.3, True), 1.0)
+    save("m_dun", reverb(np.tanh(x * 0.6), 0.4, dur=2.5, decay=0.9), 0.92)
+
+    # --- metal pipe falling on the floor
+    def clang(d=2.4, seed=0):
+        t = t_axis(d)
+        r = np.random.default_rng(seed)
+        v = np.zeros(len(t))
+        for fr, dec, a in ((523, 1.5, 1.0), (531, 1.4, 0.7), (812, 1.2, 0.6), (1270, 0.9, 0.55), (2380, 0.6, 0.4), (3570, 0.4, 0.3), (4870, 0.25, 0.25)):
+            v += np.sin(2 * np.pi * fr * (1 + r.uniform(-0.01, 0.01)) * t + r.uniform(0, 6)) * np.exp(-t / dec) * a
+        hit = biquad(noise(0.03), "hp", 1500) * env_exp(0.03, 0.008)
+        v[: len(hit)] += hit * 3
+        return v
+    x = np.zeros(int(3.4 * SR))
+    for k, (at, a) in enumerate(((0.0, 1.0), (0.34, 0.55), (0.56, 0.32), (0.7, 0.18), (0.79, 0.1))):
+        place(x, clang(2.5, k) * a, at)
+    save("m_pipe", reverb(np.tanh(x * 1.3), 0.35, dur=2.2, decay=0.7), 0.92)
+
+    # --- clown horn: honk honk
+    def honk(d=0.26):
+        t = t_axis(d)
+        f = 400 * (1 - 0.12 * t / d)
+        v = np.tanh(osc_sq(f, 0.35) * 2 + osc_saw(f * 1.5) * 0.4)
+        v = biquad(biquad(v, "bp", 1300, 1.5), "peak", 650, 1.0, 6)
+        return v * adsr(d, 0.01, 0.04)
+    x = np.zeros(int(0.85 * SR))
+    place(x, honk(), 0.0)
+    place(x, honk(), 0.38)
+    save("m_honk", reverb(x, 0.15, dur=0.7, decay=0.25), 0.85)
+
+    # --- slide whistle up... and down
+    d = 1.3
+    t = t_axis(d)
+    f = np.where(t < 0.5, 520 + 1300 * (t / 0.5) ** 1.3, 1820 - 1250 * np.clip((t - 0.5) / 0.8, 0, 1) ** 0.8)
+    f = f * (1 + 0.012 * np.sin(2 * np.pi * 6 * t))
+    v = osc_sin(f) * 0.8 + svf(noise(d), f, 4.0, "bp") * 0.5
+    save("m_slide", v * adsr(d, 0.03, 0.08), 0.75)
+
+    # --- desk slap (he wakes a sleeper up)
+    d = 0.9
+    t = t_axis(d)
+    slap = biquad(noise(d), "bp", 1400, 0.8) * np.exp(-t / 0.018) * 2
+    body = (osc_sin(140 + 60 * np.exp(-t / 0.02)) + 0.5 * osc_sin(np.full(len(t), 310.0))) * np.exp(-t / 0.09)
+    save("desk_slap", reverb(slap + body, 0.3, dur=1.2, decay=0.4), 0.95)
+
+
 if __name__ == "__main__":
+    import sys
     print("Synthesising sound effects ->", OUT)
+    if "memes" in sys.argv:  # only the newest group
+        make_memes()
+        raise SystemExit(0)
     make_claps()
     make_chalk()
     make_eraser()
@@ -686,4 +886,5 @@ if __name__ == "__main__":
     make_music_box()
     make_misc()
     make_v2()
+    make_memes()
     print("done")

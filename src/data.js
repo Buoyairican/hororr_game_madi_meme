@@ -27,7 +27,7 @@ export const MESSAGES = [
   [['Mom', 'pick up milk on the way home ❤️'], ['Sam', 'bro look at his HANDS 💀'], ['Nora', "don't let him see your phone"], ['Group: Room 13', 'who is the sub??']],
   [['Sam', 'why is he clapping so much'], ['Unknown', 'hello'], ['Group: Room 13', 'has anyone seen Mr. Hale since Friday?'], ['Nora', 'stop looking at your phone lol']],
   [['Unknown', 'i can see you'], ['Unknown', 'put it away'], ['Mr. Hale', "don't trust the substitute"], ['Unknown', 'eyes on the board']],
-  [['Unknown', 'LOOK UP'], ['Mr. Hale', 'he has my glasses. ask him what he is'], ['Unknown', 'stay after class'], ['Unknown', 'no one leaves']],
+  [['Unknown', 'LOOK UP'], ['Mr. Hale', 'room 13. supply closet. hurry'], ['Unknown', 'stay after class'], ['Unknown', 'no one leaves']],
 ];
 
 export const NOTES = [
@@ -36,6 +36,12 @@ export const NOTES = [
   ['nora', 'Rules (trust me):<br>1. When the chalk stops, stop talking.<br>2. When he wipes his glasses, he can\'t see.<br>3. If he leans over your desk, <b>don\'t make a sound.</b>'],
   ['sam', 'Kevin talked in his class last week.<br>Kevin\'s desk is empty now.<br>dont tell anyone i wrote this'],
   ['nora', 'He keeps the quiet ones after class.<br>Don\'t be <b>too</b> quiet. Talk a little.<br>Just don\'t get caught.'],
+];
+// Notes passed to you as part of the story (one per period)
+export const STORY_NOTES = [
+  ['nora', 'Mr. Hale has never missed a day. Not once in 30 years.<br>This guy just walked in.<br><b>Nobody called a substitute.</b>'],
+  ['sam', 'Kevin talked in class last Friday.<br>The "substitute" was here THAT day too.<br>Kevin\'s desk is still empty.<br><i>dont tell anyone i wrote this</i>'],
+  ['nora', 'Rules (trust me):<br>1. When the chalk stops, stop talking.<br>2. When he wipes his glasses, he can\'t see.<br>3. If he stands behind you, <b>don\'t turn around.</b>'],
 ];
 export const PLAN_NOTE = 'When he doesn\'t know something he <b>has</b> to look it up. He can\'t help it.<br><br>At the last bell, ask him something he can\'t look up.<br>While he\'s at the laptop, <b>we run.</b>';
 
@@ -53,6 +59,35 @@ export const QUESTIONS = [
   { id: 'day', ask: 'p_q_day', type: 'laptop', typed: 'what day is it', result: 'Monday', answer: 'a_day' },
   { id: 'lunch', ask: 'p_q_lunch', type: 'laptop', typed: 'what do teachers eat', result: 'Sandwiches. Coffee. Apples.', answer: 'a_lunch' },
   { id: 'glasses', ask: 'p_q_glasses', type: 'instant', answer: 'a_glasses', anger: 12 },
+];
+// Background classmates goofing off. When you do nothing for a while (no whispering, phone,
+// repeating or questions), somebody in the back does a meme noise and he goes to check.
+//   voice: kid line (a boy or girl version is picked)   sfx: sound effect   cap: subtitle for sfx
+//   react: 'lookup' he looks the slang up and answers it | 'check' he walks over to the culprit
+//          'snore' he wakes them up | 'smell' the laptop snitches | 'stare' a long dead stare
+export const MEME_IDLE = 30;  // seconds of you doing nothing
+export const MEMES = [
+  { id: 'snore', sfx: 'm_snore', cap: '😴 <i>*loud snoring*</i>', react: 'snore' },
+  { id: 'bruh', voice: 'm_bruh', react: 'lookup', typed: 'what does bruh mean', result: 'Slang. Disbelief. Also: brother.', answer: 't_bruh' },
+  { id: 'fart', sfx: 'm_fart', cap: '💨 <i>*pfffrrrrrt*</i>', react: 'smell' },
+  { id: 'airhorn', sfx: 'm_airhorn', cap: '📯 <i>*AIRHORN*</i>', react: 'check' },
+  { id: 'sus', voice: 'm_sus', react: 'lookup', typed: 'what is sus', result: 'Short for: suspicious.', answer: 't_sus' },
+  { id: 'boom', sfx: 'm_boom', cap: '<i>*dramatic BOOM*</i>', react: 'stare', line: 't_veryfunny' },
+  { id: 'goat', voice: 'm_goat', react: 'check', line: 't_goat' },
+  { id: 'trombone', sfx: 'm_trombone', cap: '🎺 <i>*wah wah wah wahhh*</i>', react: 'check' },
+  { id: '67', voice: 'm_67', react: 'lookup', typed: 'what does 6 7 mean', result: 'Nobody knows.', answer: 't_67' },
+  { id: 'pipe', sfx: 'm_pipe', cap: '<i>*CLANG* *clang* *clang*</i>', react: 'check' },
+  { id: 'yeet', voice: 'm_yeet', react: 'check', line: 't_yeet' },
+  { id: 'crickets', sfx: 'm_crickets', cap: '🦗 <i>*crickets*</i>', react: 'stare', line: 't_question', again: true },
+  { id: 'rizz', voice: 'm_rizz', react: 'lookup', typed: 'what is rizz', result: 'Charm. Charisma.', answer: 't_rizz' },
+  { id: 'honk', sfx: 'm_honk', cap: '🤡 <i>*honk honk*</i>', react: 'check' },
+  { id: 'dun', sfx: 'm_dun', cap: '<i>*dun dun DUNNNN*</i>', react: 'stare', line: 't_veryfunny' },
+  { id: 'skill', voice: 'm_skill', react: 'lookup', typed: 'what is a skill issue', result: 'A problem with your skill.', answer: 't_skill' },
+  { id: 'oof', voice: 'm_oof', react: 'check' },
+  { id: 'scratch', sfx: 'm_scratch', cap: '<i>*record scratch*</i>', react: 'stare', line: 't_veryfunny' },
+  { id: 'sheesh', voice: 'm_sheesh', react: 'lookup', typed: 'what does sheesh mean', result: 'Amazement. A compliment.', answer: 't_thanks' },
+  { id: 'slide', sfx: 'm_slide', cap: '<i>*slide whistle*</i>', react: 'check' },
+  { id: 'huh', voice: 'm_huh', react: 'check' },
 ];
 export const HISTORY = ['how to be a teacher', 'what is 2 + 2', 'how often do people blink', 'how long can a class last', 'mr hale room 13 found?'];
 

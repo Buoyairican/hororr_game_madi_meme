@@ -6,7 +6,7 @@ import { clamp, lerp, damp, rand, pick, chance, wrapAngle, Bag, Timers } from '.
 import { PLAYER_EYE, BOARD_Z } from './world.js';
 import {
   FREE_LENGTH, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
-  QUESTIONS, HISTORY, CHAPTERS, ENDINGS, mock, clockLabel,
+  QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, MEMES, MEME_IDLE, mock, clockLabel,
 } from './data.js';
 
 const CALM = 0.85;           // he walks slowly unless he is angry
@@ -17,6 +17,11 @@ const CALL_GAP = [[30, 42], [26, 38], [22, 34], [20, 30]];
 const BUZZ_GAP = [[44, 60], [38, 54], [34, 48], [30, 44]];
 const STEPS = ['step_1', 'step_2', 'step_3', 'step_4'];
 const FRONT = new THREE.Vector3(0, 1.2, -1.0); // roughly where the class is, for "looking at the class"
+// walking between the desks: aisles run front to back; the walkways are in front of and behind the rows
+const AISLES = [-2.25, -0.75, 0.75, 2.25];
+const FRONT_Z = -3.0, BACK_Z = 4.3;
+const region = (z) => (z <= -2.75 ? 0 : z >= 3.95 ? 2 : 1); // 0 front, 1 among the desks, 2 back
+const nearestAisle = (x) => AISLES.reduce((b, a) => (Math.abs(a - x) < Math.abs(b - x) ? a : b), AISLES[0]);
 
 const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3(), v4 = new THREE.Vector3();
 
@@ -89,13 +94,16 @@ export class Game {
     this.nextCall = 18; this.nextBuzz = 30; this.nextScare = 36; this.nextWipe = 50;
     this.scareDone = {}; this.lastScare = {};
     this.notesGiven = 0;
-    this.stats = { caught: 0, talk: 0, phone: 0, echoes: 0, questions: 0 };
+    this.stats = { caught: 0, talk: 0, phone: 0, echoes: 0, questions: 0, memes: 0 };
     this.talk = null; this.buzz = null; this.phoneUpTime = 0; this.phoneScares = 0; this.noteLatch = false;
     this.noise = 0; this.watching = false; this.near = false; this.blind = false; this.typing = false;
     this.teacherDist = 9;
     this.echoable = null; this.echoStreak = 0; this.lastEcho = -99; this.echoBusy = false;
     this.qCount = 0; this.qLast = -99; this.qBusy = false;
     this.choice = null;
+    this.idleT = 0; this.memeAt = MEME_IDLE; this.memesOn = false; this.memeBusy = false;
+    this.memeBag = new Bag(MEMES); this.lastMemeKid = null; this.snitches = [];
+    this.buzzRead = null;
     this.objectives = [];
     this.quizScore = 0;
     this.emergency = 0;
@@ -126,7 +134,7 @@ export class Game {
       f.setGone(false); f.setHollow(false); f.lookTarget = null; f.forcePitch = null; f.tremble = 0; f.leanRollTarget = 0;
       f.call = null; f.bag = new Bag(FRIEND_LINES[f.kind]); f.linesDone = 0; f.speaking = null; f.speakNoise = 0; f.talking = 0;
     }
-    for (const s of this.students) { s.lookTarget = null; s.speed = 4; s.setHollow(false); s.setGone(false); s.forcePitch = null; s.tremble = 0; }
+    for (const s of this.students) { s.lookTarget = null; s.speed = 4; s.taken = false; s.setHollow(false); s.setGone(false); s.forcePitch = null; s.tremble = 0; s.talking = 0; }
     if (this.kevin) { this.kevin.setGone(true); this.kevin.setHollow(true); this.kevin.lookTarget = null; }
     this.phone.up = false; this.phone.mode = 'game'; this.phone.score = 0;
     this.ui.clearTransient();
@@ -201,10 +209,11 @@ export class Game {
     this.updateWatching();
     if (!this.cutscene) this.updateActions(dt); else { this.phone.up = false; if (this.talk) this.endTalk(); this.noise = 0; this.input.takePressed(); }
     this.updateChoice(dt);
+    this.updateIdle(dt);
     this.updateHand(dt);
     this.phone.update(dt);
     this.updateAnger(dt);
-    if (!this.cutscene) {
+    if (!this.cutscene && !this.memeBusy) { // everyone is busy watching the class clown get caught
       if (this.callsOn) this.updateCalls(dt);
       if (this.buzzOn) this.updateBuzz(dt);
       if (this.scaresOn) this.updateDirector(dt);
@@ -383,6 +392,7 @@ export class Game {
       tk.stage = 'friend'; tk.timer = 0; tk.line = f.speaking;
     } else if (tk.stage === 'friend' && tk.timer > (tk.line ? tk.line.duration : 2) + 0.2) {
       this.mischief += 25;
+      this.completeObjective('whisper');
       f.linesDone++;
       if (f.linesDone % 3 === 0 && this.notesGiven < NOTES.length) this.timers.after(1.2, () => this.giveNote());
       tk.stage = 'player'; tk.timer = 0;
@@ -436,7 +446,7 @@ export class Game {
 
   // ------------------------------------------------------------- bully: repeat him
   canEcho() {
-    return this.allowEcho && !this.cutscene && !this.lockBully && !!this.echoable && this.t < this.echoable.until && !this.echoBusy && this.present;
+    return this.allowEcho && !this.cutscene && !this.lockBully && !this.eventLock && !!this.echoable && this.t < this.echoable.until && !this.echoBusy && this.present;
   }
 
   doEcho() {
@@ -447,6 +457,7 @@ export class Game {
     this.audio.play(e.id, { rate: 1.42, vol: 0.85, pos: v1.clone(), ref: 0.7, reverb: 0.08, bus: 'voice' });
     this.ui.subtitle('you', mock(e.text), 'you mock', 2.6);
     this.echoStreak++; this.lastEcho = this.t; this.stats.echoes++;
+    this.idleT = 0;
     this.mischief += 35;
     this.completeObjective('echo');
     this.timers.after(0.9, () => {
@@ -480,7 +491,7 @@ export class Game {
   }
 
   // ------------------------------------------------------------- bully: dumb questions
-  canAsk() { return this.allowAsk && !this.cutscene && !this.lockBully && !this.qBusy && this.present && !this.choice; }
+  canAsk() { return this.allowAsk && !this.cutscene && !this.lockBully && !this.eventLock && !this.qBusy && this.present && !this.choice; }
 
   openAsk() {
     const qs = [];
@@ -494,6 +505,7 @@ export class Game {
     this.handT = 2.8;
     const h = this.playerSay(q.ask);
     this.qCount++; this.qLast = this.t; this.stats.questions++;
+    this.idleT = 0;
     this.qBusy = true;
     this.mischief += 10;
     this.timers.after(h ? h.duration + 0.2 : 1.5, () => {
@@ -725,6 +737,7 @@ export class Game {
   }
 
   resolveBuzz() {
+    if (this.buzz) this.buzzRead = this.buzz.msg;
     this.buzz = null;
     this.msgShow = 0;
     this.mischief += 10;
@@ -745,7 +758,7 @@ export class Game {
     if (this.cutscene || this.ending) return;
     const a = this.anger, fl = this.flags;
     if (a >= 100) { this.interrupt(this.bustedSeq('noise')); return; }
-    if (!this.lockBully && !this.choice) {
+    if (!this.lockBully && !this.choice && !this.eventLock) {
       if (a >= 70 && !fl.r70) { fl.r70 = fl.r40 = true; this.interrupt(this.reactApproach()); }
       else if (a >= 40 && !fl.r40) { fl.r40 = true; this.interrupt(this.reactWarn(false)); }
     }
@@ -763,6 +776,7 @@ export class Game {
 
   /** run a story beat as the teacher's brain; retry if a reaction interrupts it */
   *cmd(make, tries = 6) {
+    yield* this.until(() => !this.memeBusy, 45); // let him finish dealing with the class clown
     for (let i = 0; i < tries; i++) {
       let done = false;
       const g = make();
@@ -793,8 +807,31 @@ export class Game {
   *until(fn, timeout = 1e9) { let t = 0; while (!fn() && t < timeout) { t += this.dt; yield; } }
   *waitVoice(h, extra = 0.3) { yield* this.wait((h ? h.duration : 0) + extra); }
 
-  /** walk somewhere, facing the way he walks */
+  /** walk somewhere, facing the way he walks. Between the desks he only uses the aisles. */
   *walk(x, z, speed = CALM) {
+    const T = this.teacher;
+    const from = region(T.pos.z), to = region(z);
+    const needPath = from !== 1 && to !== 1 ? from !== to : Math.abs(x - T.pos.x) > 0.3;
+    if (needPath) {
+      const pts = [];
+      let cz = T.pos.z, cx = T.pos.x;
+      if (from === 1) {
+        // leave by the end of this aisle that is closer to where he is going
+        const end = to === 2 ? BACK_Z : to === 0 ? FRONT_Z : (Math.abs(cz - FRONT_Z) + Math.abs(z - FRONT_Z) <= Math.abs(cz - BACK_Z) + Math.abs(z - BACK_Z) ? FRONT_Z : BACK_Z);
+        cx = nearestAisle(cx); pts.push([cx, end]); cz = end;
+      }
+      const side = region(cz);
+      if (to === 1) pts.push([x, side === 2 ? BACK_Z : FRONT_Z]);
+      else if (to !== side) {
+        const a = nearestAisle(cx);
+        pts.push([a, side === 2 ? BACK_Z : FRONT_Z], [a, to === 2 ? BACK_Z : FRONT_Z]);
+      }
+      for (const [px, pz] of pts) yield* this.walkLine(px, pz, speed);
+    }
+    yield* this.walkLine(x, z, speed);
+  }
+
+  *walkLine(x, z, speed = CALM) {
     const T = this.teacher;
     const goal = new THREE.Vector3(x, 0, z);
     if (goal.distanceTo(T.pos) > 0.15) T.facePoint(goal, 4);
@@ -1014,6 +1051,230 @@ export class Game {
     yield* this.wait(0.4);
   }
 
+  // ------------------------------------------------------------- the class clowns (background memes)
+  /** you have been doing nothing for a while: somebody else will */
+  updateIdle(dt) {
+    if (this.talk || this.phone.up || this.choice || this.ui.noteOpen) { this.idleT = 0; return; }
+    if (this.cutscene || this.eventLock || this.ending || this.memeBusy) return; // paused, not reset
+    this.idleT += dt;
+    if (!this.memesOn || this.idleT < this.memeAt) return;
+    if (!this.brainIdle || this.lockBully || this.memeBusy || !this.present || !this.teacher.root.visible || this.anger >= 40 || this.blackout > 0.3) return;
+    if (this.startMeme()) { this.idleT = 0; this.memeAt = MEME_IDLE + rand(0, 4); }
+  }
+
+  startMeme(forceId) {
+    const pool = this.students.filter((s) => !s.gone && !s.hollow);
+    if (!pool.length) return false;
+    const back = pool.filter((s) => s.seat.row >= 2 && s !== this.lastMemeKid);
+    const kid = back.length && chance(0.7) ? pick(back) : pick(pool.filter((s) => s !== this.lastMemeKid).length ? pool.filter((s) => s !== this.lastMemeKid) : pool);
+    const m = forceId ? MEMES.find((x) => x.id === forceId) : this.memeBag.next();
+    this.lastMemeKid = kid;
+    this.stats.memes++;
+    this.interrupt(this.reactMeme(kid, m));
+    return true;
+  }
+
+  kidVoice(kid, base) {
+    const gnd = (kid.model.extras && kid.model.extras.gender) || (['Ava', 'Maya', 'Zoe', 'Lily', 'Nora'].includes(kid.name) ? 'female' : 'male');
+    return base + (gnd === 'female' ? '_g' : '_b');
+  }
+
+  /** the noise itself, from the kid's seat. Returns its length. */
+  memeSound(kid, m, vol = 1) {
+    const pos = kid.headWorld(new THREE.Vector3());
+    const who = kid.seat.row === 1 ? 'someone behind you' : 'someone in the back';
+    if (m.voice) {
+      const id = this.kidVoice(kid, m.voice);
+      const meta = this.audio.voices[id] || { text: '' };
+      const h = this.audio.say(id, { pos, ref: 1.8, reverb: 0.25, vol: 1.3 * vol });
+      const d = h ? h.duration : 1;
+      kid.talking = d;
+      this.ui.subtitle(who, meta.text, 'meme', d + 1.4);
+      return d;
+    }
+    const h = this.audio.play(m.sfx, { pos, ref: 2.2, reverb: 0.3, vol: 1.15 * vol });
+    const d = Math.min(h ? h.duration : 1.5, 4);
+    this.ui.subtitle(who, m.cap, 'meme', d + 1);
+    return d;
+  }
+
+  /** the class is terrible at hiding who did it */
+  snitch(kid, n) {
+    const head = kid.headWorld(new THREE.Vector3());
+    const others = [...this.students, ...this.friends].filter((s) => s !== kid && !s.gone && !s.hollow && !s.call);
+    this.snitches = others.sort(() => Math.random() - 0.5).slice(0, n);
+    for (const s of this.snitches) { s.lookTarget = head; s.speed = 3; }
+  }
+  unsnitch() {
+    for (const s of this.snitches) if (!s.call && !(this.talk && this.talk.friend === s)) { s.lookTarget = null; s.speed = 4; }
+    this.snitches = [];
+  }
+
+  /** stand in the aisle right next to the kid, facing them */
+  *goToKid(kid) {
+    const T = this.teacher, sx = kid.seat.x;
+    const cands = AISLES.filter((a) => Math.abs(Math.abs(a - sx) - 0.75) < 0.01);
+    const ax = cands.reduce((b, a) => (Math.abs(a - T.pos.x) < Math.abs(b - T.pos.x) ? a : b), cands[0]);
+    T.lookAt(null, 3);
+    yield* this.walk(ax, kid.seat.z - 0.05, 1.0);
+    T.facePoint(new THREE.Vector3(sx, 0, kid.seat.z), 3);
+    T.lookAt(kid.headWorld(new THREE.Vector3()), 3);
+    yield* this.wait(0.7);
+  }
+
+  /** he bends down over the kid; the kid looks up at him, shaking */
+  loom(kid, on) {
+    const T = this.teacher;
+    T.leanTarget = on ? 0.6 : 0; T.crouchTarget = on ? 0.18 : 0;
+    if (on) {
+      T.lookAt(kid.headWorld(new THREE.Vector3()), 4);
+      kid.forcePitch = null; kid.speed = 6; kid.tremble = 1;
+      kid.lookTarget = T.headWorld(new THREE.Vector3());
+    } else { kid.tremble = 0; kid.lookTarget = null; kid.speed = 4; }
+  }
+
+  kidDesk(kid) {
+    const T = this.teacher, sx = kid.seat.x, dz = kid.seat.z - 0.5;
+    const side = Math.sign(T.pos.x - sx) || 1;
+    const c = new THREE.Vector3(sx + side * 0.2, 0.76, dz + 0.05);
+    const face = Math.atan2(-side, 0);
+    const left = new THREE.Vector3(Math.cos(face), 0, -Math.sin(face));
+    return { L: c.clone().addScaledVector(left, 0.2), R: c.clone().addScaledVector(left, -0.2), c };
+  }
+
+  *reactMeme(kid, m) {
+    const T = this.teacher, A = this.audio, W = this.world;
+    const sam = this.friend('sam'), nora = this.friend('nora');
+    const kidHead = () => kid.headWorld(new THREE.Vector3());
+    const g = (base) => this.kidVoice(kid, base);
+    let snore = null, wentOver = false;
+    this.memeBusy = true;
+    try {
+      if (m.react === 'snore') { kid.forcePitch = 0.9; kid.lookTarget = null; kid.speed = 1.5; yield* this.wait(1.4); }
+      const dur = this.memeSound(kid, m);
+      // he stops dead in the middle of whatever he was doing
+      T.clap = null; T.setPose('rest');
+      yield* this.wait(Math.min(dur, 1.1) + 0.3);
+      if (m.react !== 'snore') {
+        this.timers.after(0.15, () => A.play('giggle', { pos: new THREE.Vector3(kid.seat.x * 0.5, 1.1, kid.seat.z), vol: 0.75, ref: 3, reverb: 0.2 }));
+        for (const s of this.students) if (s !== kid && !s.gone && !s.hollow && chance(0.4)) s.talking = 1.2;
+      }
+      // his head turns first. Then the rest of him.
+      T.lookAt(kidHead(), 2.2);
+      yield* this.wait(0.9);
+      T.facePoint(kid.root.position, 1.5);
+      this.snitch(kid, m.react === 'snore' ? 2 : 4);
+      yield* this.wait(Math.max(0.5, dur - 1.6));
+      const f = [sam, nora].filter((x) => x && !x.gone && !x.call);
+      if (f.length && m.react !== 'smell') {
+        const ff = pick(f);
+        this.timers.after(0.4, () => { if (this.memeBusy && !this.watching) this.friendSay(ff, ff.kind === 'sam' ? pick(['s_meme', 's_meme2', 's_laughing']) : pick(['n_meme', 'n_meme']), 0); });
+      }
+
+      if (m.react === 'lookup') {
+        // he does not know what it means. He has to look it up.
+        T.rollTarget = pick([-0.32, 0.32]);
+        yield* this.wait(2.2);
+        T.rollTarget = 0;
+        yield* this.say('t_moment', 0.2);
+        this.unsnitch();
+        yield* this.laptopLookup(m.typed, m.result);
+        yield* this.turnToClass();
+        T.lookAt(kidHead(), 3); T.facePoint(kid.root.position, 2);
+        yield* this.wait(1.0);
+        yield* this.say(m.answer, 0.7);
+        this.giggle();
+        yield* this.wait(1.2);
+      } else if (m.react === 'smell') {
+        T.rollTarget = 0.25;
+        yield* this.wait(1.4); // ...sniff
+        T.rollTarget = 0;
+        yield* this.say('t_smell', 0.5);
+        yield* this.say('t_moment', 0.2);
+        this.unsnitch();
+        yield* this.laptopLookup('what is that smell', `It was ${kid.name}.`);
+        // the laptop told him. His head turns. Slowly. Right at them.
+        T.lookAt(kidHead(), 1.0); T.facePoint(kid.root.position, 1.2);
+        this.snitch(kid, 7);
+        yield* this.wait(2.4);
+        yield* this.waitVoice(this.sayAt(kid, g('k_notme'), 0, 1.0), 0.8);
+        yield* this.say('t_back', 0.4);
+        this.giggle();
+      } else if (m.react === 'stare') {
+        // the longest, emptiest stare
+        T.rollTarget = pick([-0.35, 0.35]);
+        yield* this.wait(3.6);
+        T.rollTarget = 0;
+        yield* this.say(m.line || 't_veryfunny', 0.8);
+        if (m.again) { this.memeSound(kid, m, 0.7); yield* this.wait(2.5); this.giggle(); }
+      } else {
+        // 'check' and 'snore': he goes over there
+        if (m.react !== 'snore') {
+          yield* this.say(m.voice ? 't_whosaid' : 't_whodid', 0.5);
+          const others = this.students.filter((s) => s !== kid && !s.gone).sort(() => Math.random() - 0.5).slice(0, 2);
+          for (const s of others) { T.lookAt(s.headWorld(new THREE.Vector3()), 3); yield* this.wait(0.9); }
+          T.lookAt(kidHead(), 2.5);
+          yield* this.wait(1.0);
+        } else yield* this.wait(1.0);
+        this.unsnitch();
+        if (nora && !nora.gone && chance(0.6)) this.timers.after(2, () => { if (this.memeBusy && !this.watching) this.friendSay(nora, 'n_going', 0); });
+        wentOver = true;
+        yield* this.goToKid(kid);
+        if (m.react === 'snore') {
+          // still asleep... still snoring
+          snore = A.play('m_snore', { pos: kidHead(), ref: 1.5, vol: 0.8, offset: 3.1 });
+          T.leanTarget = 0.5; T.lookAt(kidHead(), 3);
+          yield* this.wait(2.2);
+          if (snore) { snore.stop(0.1); snore = null; }
+          const d = this.kidDesk(kid);
+          T.setPose('desk', { L: d.L, R: d.R });
+          yield* this.wait(0.45);
+          A.play('desk_slap', { pos: d.c, vol: 1.4, ref: 2.5, reverb: 0.3 });
+          this.shake = Math.max(this.shake, 0.2);
+          this.loom(kid, true);
+          kid.talking = 0;
+          yield* this.wait(0.3);
+          T.setPose('rest');
+          yield* this.waitVoice(this.sayAt(kid, g('k_awake'), 0, 1.0), 0.3);
+          yield* this.say('t_wakeup', 0.6);
+          this.giggle();
+        } else {
+          this.loom(kid, true);
+          yield* this.wait(1.2);
+          yield* this.say(m.line || 't_wasityou', 0.4);
+          yield* this.waitVoice(this.sayAt(kid, g(pick(['k_notme', 'k_sorry'])), 0, 0.9), 0.6);
+        }
+        yield* this.wait(1.4); // he keeps staring at them
+        if (this.phase >= 3) {
+          // in detention, he takes them
+          for (const b of W.lights.banks) if (!b.dead) b.flicker = 0.9;
+          A.play('stinger_1', { vol: 0.6, pos: kidHead(), ref: 3 });
+          T.eyeGlow = 0.8;
+          yield* this.wait(0.8);
+          kid.setHollow(true); kid.taken = true;
+          T.eyeGlow = 0.12;
+          yield* this.wait(1.2);
+          if (nora && !nora.gone) this.timers.after(6, () => { if (!this.cutscene) this.friendSay(nora, 'n_eyes', 0); });
+        } else yield* this.say(m.react === 'snore' ? 't_back' : pick(['t_back', 't_veryfunny']), 0.4);
+        this.loom(kid, false);
+        if (sam && !sam.gone && chance(0.5)) this.timers.after(3, () => { if (!this.watching && !this.cutscene) this.friendSay(sam, pick(['s_dead', 's_close']), 0); });
+        T.lookAt(null, 3);
+        yield* this.walk(rand(-1.2, 1.2), -5.4);
+      }
+    } finally {
+      if (snore) snore.stop(0.1);
+      this.unsnitch();
+      this.loom(kid, false);
+      T.rollTarget = 0;
+      if (!kid.hollow) {
+        kid.forcePitch = 0.45; // embarrassed, head down
+        this.timers.after(9, () => { if (kid.forcePitch === 0.45) kid.forcePitch = null; });
+      }
+      this.memeBusy = false;
+    }
+    if (!wentOver) yield* this.wait(0.6);
+  }
+
   // ------------------------------------------------------------- reactions
   *reactWarn(loud) {
     const T = this.teacher;
@@ -1188,7 +1449,7 @@ export class Game {
 
   updateDirector(dt) {
     this.nextScare -= dt;
-    if (this.nextScare > 0 || this.eventLock || this.anger >= 30 || this.choice || !this.present) return;
+    if (this.nextScare > 0 || this.eventLock || this.anger >= 30 || this.choice || !this.present || this.memeBusy) return;
     const list = this.scareList().filter((s) => s.fx || this.brainIdle);
     if (!list.length) { this.nextScare = 4; return; }
     const g = SCARE_GAP[this.phase];
@@ -1288,7 +1549,7 @@ export class Game {
       }
       yield* this.until(() => !this.lookingBack(), 30);
     } finally {
-      for (const s of this.students) { s.lookTarget = null; s.speed = 4; if (hollow) s.setHollow(false); }
+      for (const s of this.students) { s.lookTarget = null; s.speed = 4; if (hollow) s.setHollow(!!s.taken); }
     }
   }
 
@@ -1465,56 +1726,131 @@ export class Game {
     return h;
   }
 
+  // ------------------------------------------------------------- story pacing helpers
+  /** he is free to start a new story beat */
+  ready() { return this.brainIdle && !this.cutscene && !this.memeBusy && !this.choice && !this.eventLock; }
+  /** run a story beat once he is free */
+  *beat(make, tries = 1) { yield* this.until(() => this.ready(), 40); return yield* this.cmd(make, tries); }
+  /** let the lesson simply play for a while (time spent in cutscenes does not count) */
+  *lesson(sec) { let t = 0; while (t < sec) { if (!this.cutscene && !this.eventLock) t += this.dt; yield; } }
+  /** a scripted whisper from a friend, said while he is not looking */
+  *whisper(f, id, after = 0.6) {
+    if (!f || f.gone) return;
+    yield* this.until(() => (!this.watching || this.blind || this.typing) && !this.cutscene && !this.talk && !this.choice && !this.ui.noteOpen && !f.call && this.t >= (f.speakUntil || 0), 14);
+    if (f.call) { f.call = null; this.ui.call('left', false); this.ui.call('right', false); }
+    yield* this.waitVoice(this.friendSay(f, id, 0), after);
+  }
+  /** add one task to the list (keeps the list short: the newest finished task + what is left) */
+  addObjective(o) {
+    const done = this.objectives.filter((x) => x.done && x.id !== 'bell');
+    const keep = done.slice(-1);
+    const list = this.objectives.filter((x) => !x.done || keep.includes(x) || x.id === 'bell');
+    const item = { ...o, done: false };
+    const bi = list.findIndex((x) => x.id === 'bell');
+    if (bi >= 0) list.splice(bi, 0, item); else list.push(item);
+    this.objectives = list;
+    this.ui.setObjectives(list);
+  }
+  *storyNote(i) {
+    yield* this.until(() => this.ready() && !this.ui.noteOpen && !this.talk, 25);
+    const [who, text] = STORY_NOTES[i];
+    if (!this.giveNote(text, who)) return;
+    yield* this.until(() => !this.ui.noteOpen, 30);
+    yield* this.wait(1.2);
+  }
+
   // ------------------------------------------------------------- PERIOD 1: ROLL CALL (8:30)
   *chapter1() {
     const T = this.teacher, W = this.world, A = this.audio, sam = this.friend('sam'), nora = this.friend('nora');
-    this.setClockRun(0, 18, 90);
+    const touch = this.input.touch;
+    this.setClockRun(0, 4, 45);
     W.gloomTarget = 0.15;
     this.present = false; this.idleKind = 'none';
     T.place(6.0, -5.0, -Math.PI / 2);
     this.ui.card(CHAPTERS[0]);
     this.setObjectives([{ id: 'wait', text: 'Wait for the teacher' }]);
-    const h = this.hintControls();
-    yield* this.wait(3.5);
-    yield* this.waitVoice(this.friendSay(sam, 's_late', 0), 0.8);
-    yield* this.waitVoice(this.friendSay(nora, 'n_free', 0), 1.2);
+    this.hintControls();
+    // an empty class, rain on the windows
+    yield* this.wait(6);
+    yield* this.waitVoice(this.friendSay(sam, 's_late', 0), 2);
+    yield* this.waitVoice(this.friendSay(nora, 'n_free', 0), 3);
     this.fx.push(this.fxLightning(false));
-    yield* this.wait(3);
-    // the door opens
+    yield* this.wait(5);
+    // slow footsteps in the hallway
+    yield* this.hallSteps();
+    this.doorFace.visible = true;
+    yield* this.wait(0.8);
+    yield* this.waitVoice(this.friendSay(nora, 'n_door', 0), 1.2);
+    this.doorFace.visible = false;
+    yield* this.wait(2.2);
     A.play('door_open', { pos: W.door.pos, vol: 1.2, ref: 2.5 });
     W.door.openTarget = 1;
     A.fadeBus('amb', 0.55, 2);
     yield* this.wait(1.6);
     this.present = true;
     yield* this.cmd(() => this.enterRoom());
-    this.friendSay(sam, 's_sub', 0);
     this.completeObjective('wait');
+    yield* this.waitVoice(this.friendSay(sam, 's_sub', 0), 0.6);
     A.fadeBus('amb', 1, 2);
     this.lockBully = true;
+    this.setClockRun(this.clockMin, 14, 80);
     yield* this.cmd(() => this.introduce());
+    this.friendSay(sam, 's_name', 0);
+    yield* this.cmd(() => this.rules());
     this.setObjectives([{ id: 'roll', text: 'Answer the roll call' }]);
     yield* this.cmd(() => this.rollCall());
     this.lockBully = false;
+
+    // ---- the lesson begins
+    this.setObjectives([{ id: 'bell', text: 'Survive until 9:30' }]);
+    this.setClockRun(this.clockMin, 58, 300);
+    yield* this.beat(() => this.actWrite('RULE 1:  SILENCE'));
+    this.idleKind = 'lesson'; this.memesOn = true;
+    yield* this.lesson(10);
+    yield* this.whisper(nora, 'n_chalk');
+    yield* this.lesson(5);
+    this.addObjective({ id: 'whisper', text: touch ? 'Whisper to Sam or Nora (hold TALK)' : 'Whisper to Sam or Nora  [hold E]' });
+    this.ui.hint(touch ? 'Look at Sam (left) or Nora (right) and hold <b>TALK</b> to whisper. Do it while his back is turned.' : 'Look at Sam (left) or Nora (right) and hold <b>E</b> to whisper. Do it while his back is turned.', 7);
+    this.timers.after(9, () => this.state === 'playing' && !this.cutscene && !this.objDone('whisper') && this.ui.hint('<b>When the chalk stops… stop talking.</b>', 5));
+    yield* this.until(() => this.objDone('whisper'), 60);
+    yield* this.lesson(14);
+    yield* this.storyNote(0);
+    yield* this.lesson(20);
     // the dare
-    yield* this.wait(0.8);
-    yield* this.waitVoice(this.friendSay(sam, 's_dare', 0), 0.3);
+    yield* this.whisper(sam, 's_dare');
     this.allowEcho = true;
-    this.setObjectives([{ id: 'echo', text: this.input.touch ? 'Repeat what he says (ECHO)' : 'Repeat what he says  [R]' }, { id: 'bell', text: 'Survive until 9:30' }]);
-    this.ui.hint(this.input.touch ? 'When he says something, tap <b>ECHO</b> to repeat it back at him.' : 'When he says something, press <b>R</b> to repeat it back at him.', 7);
-    h(9, this.input.touch ? 'Look at Sam (left) or Nora (right) and hold <b>TALK</b> to whisper.' : 'Look at Sam (left) or Nora (right) and hold <b>E</b> to whisper.', 6);
-    h(18, '<b>When the chalk stops… stop talking.</b>', 5);
-    this.idleKind = 'lesson';
-    this.callsOn = true; this.nextCall = 30;
-    this.setClockRun(this.clockMin, 55, 100);
-    yield* this.until(() => this.objDone('echo') || this.clockMin > 38);
-    if (this.objDone('echo')) { yield* this.until(() => this.brainIdle, 15); this.friendSay(sam, 's_didit', 0); }
-    yield* this.until(() => this.clockMin >= 40);
-    yield* this.until(() => this.brainIdle && !this.cutscene, 20);
-    yield* this.cmd(() => this.scareFlickerApproach());
-    yield* this.until(() => this.clockMin >= 55 * 0.985);
-    yield* this.until(() => !this.cutscene, 20);
+    this.addObjective({ id: 'echo', text: touch ? 'Repeat what he says (ECHO)' : 'Repeat what he says  [R]' });
+    this.ui.hint(touch ? 'When he says something, tap <b>ECHO</b> to repeat it back at him.' : 'When he says something, press <b>R</b> to repeat it back at him.', 7);
+    yield* this.until(() => this.objDone('echo'), 60);
+    if (this.objDone('echo')) { yield* this.until(() => this.ready(), 20); yield* this.whisper(sam, 's_didit'); }
+    this.callsOn = true; this.nextCall = 25;
+    yield* this.lesson(25);
+    // the storm
+    yield* this.beat(() => this.windowBeat());
+    yield* this.whisper(nora, 'n_storm');
+    yield* this.lesson(28);
+    yield* this.beat(() => this.scareFlickerApproach());
+    yield* this.lesson(6);
+    yield* this.whisper(sam, 's_close');
+    yield* this.lesson(22);
+    this.memesOn = false; this.callsOn = false;
+    yield* this.until(() => !this.cutscene && !this.memeBusy, 40);
     yield* this.cmd(() => this.periodBell('t_nobody'));
     this.completeChapter();
+  }
+
+  /** slow footsteps coming down the hallway, outside the door */
+  *hallSteps() {
+    const W = this.world, A = this.audio;
+    const n = 7;
+    for (let i = 0; i < n; i++) {
+      const k = i / (n - 1);
+      const p = new THREE.Vector3(5.4, 0.05, 3.5 - k * 8.0);
+      A.play(pick(STEPS), { pos: p, vol: 0.35 + k * 0.6, ref: 1.6, reverb: 0.5, rate: rand(0.86, 0.94) });
+      if (i === 3) for (const c of this.allKids()) if (!c.gone && chance(0.8)) { c.lookTarget = W.door.pos; c.speed = 2.5; }
+      yield* this.wait(1.05);
+    }
+    yield* this.wait(1.2);
   }
 
   *enterRoom() {
@@ -1524,7 +1860,7 @@ export class Game {
     yield* this.walk(3.9, -5.0, 0.8);
     W.door.openTarget = 0;
     this.timers.after(1.4, () => A.play('door_slam', { pos: W.door.pos, vol: 0.45, ref: 2 }));
-    for (const k of this.allKids()) k.lookTarget = null;
+    for (const k of this.allKids()) { k.lookTarget = null; k.speed = 4; }
     yield* this.walk(0.4, -5.5, 0.8);
     T.facePoint(this.camPos, 2); T.lookAt(this.camPos, 2.2);
     yield* this.wait(1.6);
@@ -1537,6 +1873,14 @@ export class Game {
     this.boardRow = 1;
     yield* this.turnToClass();
     yield* this.say('t_name', 0.6);
+  }
+
+  /** the chalk dust... and the only rule */
+  *rules() {
+    yield* this.actClap(3);
+    yield* this.wait(0.6);
+    yield* this.say('t_rule', 0.6);
+    yield* this.actStare(2.2);
   }
 
   *rollCall() {
@@ -1582,46 +1926,112 @@ export class Game {
     this.completeObjective('roll');
   }
 
+  /** lightning: he turns to the window... and tells you not to look */
+  *windowBeat() {
+    const T = this.teacher;
+    const win = new THREE.Vector3(-5.6, 1.8, -1.5);
+    this.fx.push(this.fxLightning(false));
+    yield* this.wait(0.4);
+    T.lookAt(win, 1.6);
+    for (const k of this.allKids()) if (!k.gone && !k.call && chance(0.7)) { k.lookTarget = win; k.speed = 3; }
+    yield* this.wait(3.0);
+    T.lookAt(this.camPos, 3); T.facePoint(this.camPos, 2);
+    yield* this.wait(0.9);
+    yield* this.say('t_window', 0.4);
+    for (const k of this.allKids()) if (!k.call) { k.lookTarget = null; k.speed = 4; }
+    yield* this.actStare(1.6);
+  }
+
   // ------------------------------------------------------------- PERIOD 2: THE LESSON (9:30)
   *chapter2() {
     const W = this.world, sam = this.friend('sam'), nora = this.friend('nora');
-    this.setClockRun(60, 116, 200);
+    const touch = this.input.touch;
+    this.setClockRun(60, 64, 40);
     W.gloomTarget = 0.35;
     this.ui.card(CHAPTERS[1]);
     this.idleKind = 'none';
     this.allowEcho = true;
     this.projAuto = true;
     this.hintControls();
-    yield* this.cmd(() => this.actWrite('LESSON 7:  ???'));
-    this.idleKind = 'lesson';
-    yield* this.waitVoice(this.friendSay(nora, 'n_ask', 0), 0.3);
+    this.setObjectives([{ id: 'bell', text: 'Survive until 10:30' }]);
+    yield* this.wait(2.5);
+    yield* this.cmd(() => this.actWrite('LESSON 7:  ???'), 2);
+    yield* this.cmd(() => this.openBooks(), 1);
+    yield* this.whisper(sam, 's_books');
+    this.idleKind = 'lesson'; this.memesOn = true;
+    this.setClockRun(this.clockMin, 116, 380);
+    yield* this.lesson(25);
+    // Nora's idea: ask him things
+    yield* this.whisper(nora, 'n_ask');
     this.allowAsk = true;
-    this.callsOn = true; this.nextCall = 35; this.buzzOn = true; this.nextBuzz = 45;
-    this.setObjectives([
-      { id: 'ask', text: this.input.touch ? 'Ask him a dumb question (ASK)' : 'Ask him a dumb question  [T]' },
-      { id: 'laptop', text: 'Whisper to a friend while he is at the laptop' },
-      { id: 'glasses', text: 'Whisper while he wipes his glasses' },
-      { id: 'bell', text: 'Survive until 10:30' },
-    ]);
-    this.ui.hint(this.input.touch ? 'Tap <b>ASK</b> to raise your hand and ask him something.' : 'Press <b>T</b> to raise your hand and ask him something.', 7);
-    yield* this.until(() => this.objDone('ask') || this.clockMin > 78);
-    if (!this.objDone('ask')) yield* this.cmd(() => this.laptopLookup('how to be a teacher', 'Stand at the front of the class.'));
-    yield* this.until(() => this.brainIdle, 20);
-    this.friendSay(nora, 'n_laptop', 0);
-    this.ui.hint('While he is typing he isn\'t watching you. <b>Whisper!</b>', 5);
-    yield* this.until(() => this.clockMin >= 84);
-    yield* this.until(() => this.brainIdle && !this.cutscene, 30);
+    this.addObjective({ id: 'ask', text: touch ? 'Ask him a dumb question (ASK)' : 'Ask him a dumb question  [T]' });
+    this.ui.hint(touch ? 'Tap <b>ASK</b> to raise your hand and ask him something.' : 'Press <b>T</b> to raise your hand and ask him something.', 7);
+    yield* this.until(() => this.objDone('ask'), 55);
+    if (!this.objDone('ask')) yield* this.beat(() => this.laptopLookup('how to be a teacher', 'Stand at the front of the class.'), 2);
+    yield* this.until(() => this.ready(), 30);
+    yield* this.lesson(8);
+    yield* this.whisper(nora, 'n_laptop');
+    this.addObjective({ id: 'laptop', text: 'Whisper to a friend while he types' });
+    this.ui.hint('While he is typing he isn\'t watching you. <b>Whisper!</b>', 6);
+    yield* this.lesson(14);
+    if (!this.objDone('laptop')) yield* this.beat(() => this.laptopLookup('how to teach lesson 7', 'Step 1: Know lesson 7.'), 2);
+    yield* this.until(() => this.objDone('laptop'), 25);
+    this.callsOn = true; this.nextCall = 20; this.buzzOn = true; this.nextBuzz = 30;
+    yield* this.lesson(25);
+    // his glasses
+    yield* this.until(() => this.ready(), 30);
+    this.addObjective({ id: 'glasses', text: 'Whisper while he wipes his glasses' });
     this.timers.after(2.2, () => this.friendSay(nora, 'n_blind', 0));
-    yield* this.cmd(() => this.glassesWipe(8));
-    this.nextWipe = this.t + 50;
-    this.timers.after(1.5, () => this.friendSay(sam, 's_glasses', 0));
-    yield* this.until(() => this.clockMin >= 104);
-    yield* this.until(() => this.brainIdle && !this.cutscene, 30);
+    yield* this.cmd(() => this.glassesWipe(9), 3);
+    this.nextWipe = this.t + 55;
+    yield* this.whisper(sam, 's_glasses');
+    yield* this.lesson(16);
+    yield* this.storyNote(1);
+    yield* this.lesson(25);
+    // he stares at the board for a very long time
+    yield* this.beat(() => this.longPonder());
+    yield* this.whisper(sam, 's_board');
+    yield* this.lesson(22);
+    // the projector shows his search history
     this.lockBully = true;
-    yield* this.cmd(() => this.reveal());
+    this.memesOn = false;
+    yield* this.beat(() => this.reveal(), 6);
     this.lockBully = false;
+    yield* this.lesson(2);
+    yield* this.whisper(nora, 'n_room13');
+    yield* this.beat(() => this.actWrite('EYES ON THE BOARD'));
+    this.memesOn = true;
+    yield* this.lesson(22);
+    this.memesOn = false; this.callsOn = false; this.buzzOn = false;
+    if (this.buzz) this.resolveBuzz();
+    yield* this.until(() => !this.cutscene && !this.memeBusy, 40);
     yield* this.cmd(() => this.periodBell('t_sitdown'));
     this.completeChapter();
+  }
+
+  *openBooks() {
+    const T = this.teacher;
+    yield* this.turnToClass();
+    T.setPose('gesture');
+    yield* this.say('t_books', 0.5);
+    T.setPose('rest');
+    yield* this.actStare(1.8);
+  }
+
+  *longPonder() {
+    const T = this.teacher, B = this.world.board, W = this.world;
+    T.lookAt(null, 3);
+    yield* this.walk(0, -6.1);
+    T.faceTo(Math.PI, 3);
+    B.toWorld(420, B.rows[0], W.boardAnchor, v1);
+    T.lookAt(v1.clone(), 2);
+    yield* this.wait(3);
+    T.rollTarget = 0.4;
+    this.teacherSay('t_hmm', 1.1);
+    yield* this.wait(7);
+    T.rollTarget = -0.2;
+    yield* this.wait(4);
+    T.rollTarget = 0;
   }
 
   /** the projector shows everyone what he has been searching for */
@@ -1670,31 +2080,55 @@ export class Game {
 
   // ------------------------------------------------------------- PERIOD 3: POP QUIZ (10:30)
   *chapter3() {
-    const T = this.teacher, W = this.world;
-    this.setClockRun(120, 140, 90);
+    const T = this.teacher, W = this.world, sam = this.friend('sam'), nora = this.friend('nora');
+    this.setClockRun(120, 124, 30);
     W.gloomTarget = 0.6;
     W.lights.banks[2].dead = true;
     T.place(0.3, -5.4, 0);
     this.ui.card(CHAPTERS[2]);
     this.idleKind = 'none';
     this.allowEcho = true; this.allowAsk = true; this.projAuto = true;
-    this.scaresOn = true; this.scarePool = ['lightning', 'flicker', 'door', 'whisper'];
+    this.scaresOn = true; this.nextScare = 70; this.scarePool = ['lightning', 'flicker', 'door', 'whisper', 'book'];
     this.hintControls();
+    this.setObjectives([{ id: 'bell', text: 'Survive until 11:30' }]);
+    // he is already facing you. He has been for a while.
+    T.lookAt(this.camPos, 60);
+    yield* this.wait(5);
+    yield* this.whisper(sam, 's_study');
     yield* this.wait(2.5);
-    this.setObjectives([{ id: 'quiz', text: 'Pass his pop quiz' }, { id: 'bell', text: 'Survive until 11:30' }]);
+    this.addObjective({ id: 'quiz', text: 'Pass his pop quiz' });
     // the quiz plays out once: no echoes, calls or phone while he is asking
     this.lockBully = true;
     yield* this.cmd(() => this.quizIntro(), 2);
     yield* this.cmd(() => this.quizKid(), 2);
     yield* this.cmd(() => this.quizYou(), 2);
     yield* this.cmd(() => this.countClass(), 2);
+    yield* this.cmd(() => this.everyoneHere(), 2);
     this.lockBully = false;
+    this.idleKind = 'lesson'; this.memesOn = true;
+    this.setClockRun(Math.max(132, this.clockMin), 176, 290);
+    yield* this.lesson(22);
+    yield* this.storyNote(2);
+    yield* this.lesson(12);
+    // he starts walking between the desks
     this.ui.hint('He walks between the desks. <b>When he is close, he can hear you whisper.</b>', 6);
-    this.callsOn = true; this.nextCall = 25; this.buzzOn = true; this.nextBuzz = 30;
+    this.callsOn = true; this.nextCall = 25; this.buzzOn = true; this.nextBuzz = 35;
     this.idleKind = 'patrol';
-    this.setClockRun(Math.max(140, this.clockMin), 176, 75);
-    yield* this.until(() => this.clockMin >= 176 * 0.985);
-    yield* this.until(() => !this.cutscene, 20);
+    yield* this.lesson(40);
+    yield* this.beat(() => this.behindYou());
+    yield* this.lesson(28);
+    this.idleKind = 'lesson';
+    yield* this.until(() => this.ready(), 30);
+    this.lastScare.students = this.t;
+    this.fx.push(this.fxStudentsStare());
+    yield* this.lesson(14);
+    yield* this.whisper(sam, 's_scared');
+    yield* this.lesson(22);
+    yield* this.beat(() => this.pencilsDown());
+    yield* this.lesson(14);
+    this.memesOn = false; this.callsOn = false; this.buzzOn = false;
+    if (this.buzz) this.resolveBuzz();
+    yield* this.until(() => !this.cutscene && !this.memeBusy, 40);
     yield* this.cmd(() => this.periodBell('t_notover'));
     this.completeChapter();
   }
@@ -1709,8 +2143,6 @@ export class Game {
     const T = this.teacher;
     const maya = this.students.find((s) => s.name === 'Maya') || this.students[0];
     const p = maya.root.position;
-    yield* this.walk(0.75, -3.0, 0.75);
-    yield* this.walk(0.75, p.z - 0.3, 0.75);
     yield* this.walk(-0.75, p.z - 0.3, 0.75);
     T.facePoint(new THREE.Vector3(p.x, 0, p.z), 2);
     T.lookAt(maya.headWorld(new THREE.Vector3()), 3);
@@ -1788,10 +2220,50 @@ export class Game {
     yield* this.waitVoice(this.friendSay(sam, 's_kevin', 0), 0.3);
   }
 
+  *everyoneHere() {
+    yield* this.turnToClass();
+    yield* this.wait(1.2);
+    yield* this.say('t_everyone', 0.6);
+    yield* this.actStare(2.4);
+  }
+
+  /** on his walk he stops right behind your chair */
+  *behindYou() {
+    const T = this.teacher, A = this.audio;
+    let br = null;
+    try {
+      T.lookAt(null, 3);
+      yield* this.walk(0.75, -0.95, 0.7);
+      T.facePoint(this.camPos, 2); T.lookAt(this.camPos, 3);
+      T.leanTarget = 0.35;
+      br = A.play('breath', { loop: true, pos: T.headWorld(new THREE.Vector3()), vol: 0.8, ref: 0.6, reverb: 0.05 });
+      yield* this.wait(2.5);
+      v1.set(0.25, 0.05, 0.25).applyQuaternion(this.camera.quaternion).add(this.camPos);
+      this.teacherSayAt('tw_here', v1.clone(), 1.3, 0.35);
+      let t = 0, seen = false;
+      while (t < 7) { t += this.dt; if (this.lookingAtTeacher) { seen = true; break; } yield; }
+      if (seen) { A.play('stinger_1', { vol: 0.9 }); this.scareFear = 1; this.shake = 0.3; yield* this.wait(2); }
+      else { this.audio.say('tw_shh', { pos: v1.clone(), ref: 0.3, vol: 1.2, reverb: 0.02 }); yield* this.wait(2.4); }
+    } finally {
+      if (br) br.stop(0.5);
+      T.leanTarget = 0;
+    }
+    yield* this.walk(0.75, 2.6, 0.75);
+    yield* this.walk(rand(-1, 1), -5.3);
+  }
+
+  *pencilsDown() {
+    yield* this.turnToClass();
+    yield* this.say('t_pencils', 0.6);
+    yield* this.actClap(2);
+    yield* this.actStare(1.5);
+  }
+
   // ------------------------------------------------------------- PERIOD 4: DETENTION (11:30)
   *chapter4() {
     const T = this.teacher, W = this.world, sam = this.friend('sam'), nora = this.friend('nora');
-    this.setClockRun(180, 240, 170);
+    const touch = this.input.touch;
+    this.setClockRun(180, 183, 30);
     W.gloomTarget = 0.92; W.gloom = 0.8;
     W.lights.banks[2].dead = true;
     this.emergency = 1;
@@ -1800,23 +2272,46 @@ export class Game {
     this.idleKind = 'none';
     this.allowEcho = true; this.allowAsk = true; this.projAuto = true;
     this.hintControls();
-    yield* this.wait(2);
-    yield* this.cmd(() => this.detentionIntro());
-    this.setObjectives([{ id: 'note', text: 'Read Nora\'s note' }, { id: 'bell', text: 'Survive until 12:30' }, { id: 'final', text: 'At the bell, ask him something he can\'t look up' }]);
-    this.idleKind = 'lesson';
-    this.scaresOn = true; this.nextScare = 25; this.scarePool = ['lightning', 'flicker', 'students', 'boardmsg', 'whisper', 'behind', 'neck', 'headturn'];
-    yield* this.wait(3);
-    yield* this.until(() => !this.cutscene && !this.choice);
+    this.setObjectives([{ id: 'bell', text: 'Survive until 12:30' }]);
+    yield* this.wait(2.5);
+    yield* this.cmd(() => this.detentionIntro(), 1);
+    this.idleKind = 'lesson'; this.memesOn = true;
+    this.setClockRun(this.clockMin, 238, 360);
+    yield* this.lesson(18);
+    // Nora's plan
+    this.addObjective({ id: 'note', text: 'Read Nora\'s note' });
+    yield* this.until(() => this.ready() && !this.ui.noteOpen && !this.talk, 25);
     this.giveNote(PLAN_NOTE, 'nora');
     yield* this.until(() => !this.ui.noteOpen, 30);
     this.completeObjective('note');
     yield* this.wait(1.2);
-    yield* this.waitVoice(this.friendSay(sam, 's_plan', 0), 3);
-    this.callsOn = true; this.nextCall = 40; this.buzzOn = true; this.nextBuzz = 30;
-    yield* this.until(() => this.clockMin >= 210);
-    this.friendSay(nora, 'n_plan', 0);
-    yield* this.until(() => this.clockMin >= 240 * 0.985);
-    yield* this.until(() => !this.cutscene, 20);
+    yield* this.whisper(sam, 's_plan', 1);
+    this.addObjective({ id: 'final', text: 'At the bell, ask him something he can\'t look up' });
+    this.scaresOn = true; this.nextScare = 30; this.scarePool = ['lightning', 'flicker', 'students', 'boardmsg', 'whisper', 'neck', 'headturn', 'door'];
+    yield* this.lesson(25);
+    yield* this.whisper(sam, 's_hungry');
+    yield* this.lesson(10);
+    yield* this.beat(() => this.saySomething('t_nolunch'));
+    yield* this.lesson(20);
+    // a message from Mr. Hale
+    yield* this.haleMessage(touch);
+    yield* this.lesson(22);
+    yield* this.beat(() => this.saySomething('t_quietfav'));
+    yield* this.whisper(nora, 'n_quietone');
+    this.callsOn = true; this.nextCall = 25; this.buzzOn = true; this.nextBuzz = 40;
+    yield* this.lesson(25);
+    yield* this.until(() => this.ready(), 30);
+    this.lastScare.behind = this.t;
+    yield* this.cmd(() => this.scareBehind(), 1);
+    yield* this.lesson(14);
+    yield* this.whisper(nora, 'n_plan');
+    yield* this.lesson(25);
+    yield* this.whisper(sam, 's_ready');
+    yield* this.lesson(12);
+    yield* this.whisper(nora, 'n_almost');
+    yield* this.lesson(10);
+    this.memesOn = false;
+    yield* this.until(() => !this.cutscene && !this.memeBusy, 40);
     this.scaresOn = false; this.callsOn = false; this.buzzOn = false;
     yield* this.cmd(() => this.finale(), 3);
   }
@@ -1825,6 +2320,35 @@ export class Game {
     yield* this.turnToClass();
     yield* this.say('t_detention', 1);
     yield* this.actStare(1.5);
+    yield* this.say('t_onehour', 0.8);
+  }
+
+  /** turn around, say one thing, stare */
+  *saySomething(id) {
+    yield* this.turnToClass();
+    yield* this.wait(0.6);
+    yield* this.say(id, 0.6);
+    yield* this.actStare(2);
+  }
+
+  /** your phone buzzes: it is Mr. Hale */
+  *haleMessage(touch) {
+    const nora = this.friend('nora');
+    yield* this.until(() => !this.buzz && this.ready(), 30);
+    const msg = { from: 'Mr. Hale', text: 'its me. he took my glasses. at the bell ask him what he is' };
+    this.addObjective({ id: 'phone', text: touch ? 'Check your phone (hold PHONE)' : 'Check your phone  [hold Q]' });
+    this.buzzOn = true; this.nextBuzz = 60;
+    this.buzz = { timer: 16, read: 0, tick: 0, msg };
+    this.ui.phoneAlert(true);
+    this.ui.hint(touch ? 'Your phone is buzzing. Hold <b>PHONE</b> to read it — while he isn\'t looking.' : 'Your phone is buzzing. Hold <b>Q</b> to read it — while he isn\'t looking.', 6);
+    yield* this.until(() => this.buzz === null, 30);
+    if (this.buzzRead === msg) {
+      this.completeObjective('phone');
+      yield* this.wait(1);
+      yield* this.whisper(nora, 'n_hale_msg', 1.5);
+      // ...he knows
+      yield* this.beat(() => this.saySomething('t_hale'));
+    }
   }
 
   *finale() {
@@ -1945,7 +2469,7 @@ export class Game {
     h(30, 'Three strikes and you are done.', 5);
     this.setObjectives([{ id: 'echo', text: 'Repeat what he says' }, { id: 'ask', text: 'Ask him a dumb question' }, { id: 'bell', text: 'Survive until 12:30' }]);
     yield* this.cmd(() => this.freeIntro(), 1);
-    this.idleKind = 'lesson';
+    this.idleKind = 'lesson'; this.memesOn = true;
     this.callsOn = true; this.buzzOn = true; this.scaresOn = true;
     yield* this.until(() => this.t >= FREE_LENGTH && !this.cutscene);
     this.ending = true;

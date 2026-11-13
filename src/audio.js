@@ -10,6 +10,7 @@ export const SFX = [
   'paper', 'whoosh', 'book_drop', 'ringtone', 'phone_buzz',
   'step_1', 'step_2', 'step_3', 'step_4', 'keys_1', 'keys_2', 'keys_3', 'key_enter', 'lid_slam', 'door_open', 'giggle', 'gasp',
   'projector_on', 'wipe', 'ding', 'page',
+  'm_snore', 'm_boom', 'm_fart', 'm_airhorn', 'm_trombone', 'm_scratch', 'm_crickets', 'm_dun', 'm_pipe', 'm_honk', 'm_slide', 'desk_slap',
 ];
 
 const _v = new THREE.Vector3();

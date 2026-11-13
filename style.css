@@ -166,6 +166,7 @@ body.touch #echo-cue .key { display: none; }
 #keys-legend { position: absolute; left: max(14px, env(safe-area-inset-left)); bottom: max(10px, env(safe-area-inset-bottom)); font-size: 11px; color: var(--dim); letter-spacing: 1px; text-shadow: 0 0 4px #000; }
 body.touch .desk-only { display: none !important; }
 #subtitle .mock { color: #f0c27a; }
+#subtitle .meme { color: #ffe27a; font-weight: 600; }
 #touch-buttons { align-items: flex-end; }
 .tcol { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .tbtn.small { width: 62px; height: 62px; font-size: 12px; }
