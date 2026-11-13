@@ -159,6 +159,7 @@ export class Teacher {
   setPose(name, data = {}) { this.pose = name; this.poseData = data; }
   startClap(count, interval, onClap) { this.clap = { left: count, interval, phase: Math.PI, onClap }; this.setPose('clap'); }
 
+  glassesHome(out = new THREE.Vector3()) { return this.head.localToWorld(out.copy(this.glasses.userData.home)); }
   takeGlasses() { this.glassesOn = false; this.bones.handR.attach(this.glasses); this.glassesHeld = true; }
   wearGlasses() { this.head.attach(this.glasses); this.glassesHeld = false; this.glassesOn = true; }
 
@@ -372,7 +373,7 @@ export class Teacher {
         // right hand holds the glasses at his chest, left hand rubs them
         const rub = key === 'L' ? Math.sin(this.time * 9) * 0.03 : 0;
         if (d.stage === 'reach' && key === 'R') {
-          this.glasses.getWorldPosition(a.desired);
+          if (d.target) a.desired.copy(d.target); else this.glasses.getWorldPosition(a.desired);
           a.desired.add(_v.set(-0.12, -0.1, -0.02).applyAxisAngle(UP, this.facing));
           a.k = 9;
         } else if (d.stage !== 'reach') {

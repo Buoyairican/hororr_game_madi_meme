@@ -1,32 +1,46 @@
-# DEAD STARE: Room 13
+# MADI CLASS
 
-A first-person 3D horror game set in a dark, foggy classroom. You sit in the
-front row. The substitute teacher is not a real teacher: he doesn't know the
-lesson, he stares at the board, he claps the chalk off his very long hands, and
-he stares at **you**. Your friends won't stop whispering. Don't get caught.
+A first-person 3D horror game set in Room 13, from **8:30 AM to 12:30 PM**.
+You sit in the front row. Mr. Hale, your teacher, never misses class. Today a
+substitute walks in: **Mr. Madi**. He is too tall, his hands hang past his
+waist, he wears round glasses that are not his, and he knows nothing about the
+lesson. He stares. He claps the chalk off his hands. He looks everything up on
+his laptop. And he is listening.
 
 Runs in any modern browser on desktop **and iPhone/Android** (no install, no build step).
+
+## Modes
+
+**Story mode**: four periods, each a few minutes long. Progress is saved.
+
+| Time | Period | What happens |
+|---|---|---|
+| 8:30 AM | Roll Call | He walks in. He takes attendance. Kevin is absent. Sam dares you to repeat what he says. |
+| 9:30 AM | The Lesson | Ask him dumb questions. He walks to his laptop to look them up, and the projector shows the whole class what he searches for. |
+| 10:30 AM | Pop Quiz | He walks between the desks and quizzes you to your face. Then he asks how many students are in the class. |
+| 11:30 AM | Detention | Nora has a plan. At the last bell, ask him something he can't look up. Three different endings. |
+
+**Free Class**: the whole morning in one go (about 5 minutes), getting darker and stranger every hour.
 
 ## How to play
 
 | | Desktop | Phone / tablet |
 |---|---|---|
 | Look around | mouse (click the game first) | drag anywhere |
-| Whisper to a friend | look at Sam (left) / Nora (right), hold **E** or left click | hold **TALK** |
+| Whisper to a friend | look at Sam (left) / Nora (right), hold **E** | hold **TALK** |
 | Play on your phone | hold **Q** or right click | hold **PHONE** |
+| Repeat what he just said | **R** | **ECHO** |
+| Ask him a dumb question | **T** (pick with 1–3) | **ASK** |
 | Pause | **Esc** | **II** button |
 
-* Survive until the bell rings at **3:00**.
-* Talking and playing earn **mischief**. Leave class with almost none and he keeps you *after class*.
-* **When the chalk stops, stop talking.** If he sees you, he gets angry: first a warning, then he comes closer,
-  then he leans over your desk. Get caught at the top of his anger and one of your friends disappears.
-  When nobody is left... it's you.
-* Friends call you ("psst!"). Answer them quickly or they get loud.
-* When your phone buzzes, check it before it rings.
-* The red eye at the top tells you when he is watching you; the red line under it is his anger
-  (both can be hidden in Settings).
+* **Repeat him**: right after he speaks, your squeaky impression makes the class laugh. He looks for who said it. Do it too many times in a row and he knows it was you.
+* **Dumb questions**: he stares at you, he doesn't know, he goes to his laptop. While he types he isn't watching you. Ask too many and you're in trouble.
+* **When he wipes his glasses**, he can't see you.
+* **When the chalk stops, stop talking.** He turns around without warning.
+* If he catches you, he comes to your desk. **Three strikes** and the period is over.
+* An optional helper HUD (Settings) shows when he is watching you and how angry he is.
 
-Tip: headphones. The audio is positional, so you can hear where he is.
+Tip: headphones. The audio is positional; you can hear his footsteps.
 
 ## Run it locally
 
@@ -48,51 +62,57 @@ Opening `index.html` directly from disk will not work, because browsers block mo
 
 On iPhone, turn the silent switch off or you may not hear anything.
 
+## Performance
+
+The game is made to run on phones and old PCs: about 9k triangles per character, every
+character is one or two draw calls, matte vertex-coloured materials, a low-resolution retro
+render (setting), and shadows off by default on phones. The whole game is about 9 MB.
+
 ## What's inside
 
 ```
-index.html, style.css      UI shell (menus, HUD, touch buttons)
+index.html, style.css      UI shell (menus, HUD, touch buttons, choices)
 src/main.js                boot, loading, menus, settings
-src/game.js                gameplay: the teacher's brain (coroutines), anger, friends,
-                           phone, scare director, punishments, endings
-src/teacher.js             the monster: head built from the photo silhouette, long IK arms
+src/game.js                the teacher's brain (coroutines), story chapters, free class,
+                           echo / question mechanics, friends, phone, scares, endings
+src/data.js                board text, lines, questions, messages, notes, chapter titles
+src/teacher.js             Mr. Madi: rigged suit body, IK arms and legs, walk cycle
+                           (feet step, hips stay level so he seems to glide), glasses
+src/madi_head.js           the head shaped from the reference photo, jaw, teeth, glasses
+src/students.js            Sam, Nora, the class and Kevin (blink, talk, look, breathe)
+src/props.js               laptop, projector (shows his searches), classroom door
 src/world.js               the classroom (merged static geometry, lights, rain, dust)
-src/board.js               chalkboard that is written letter by letter
-src/students.js            Sam, Nora and the faceless students
-src/audio.js               Web Audio engine: 3D HRTF sound, reverb, live synth ambience
+src/board.js               chalkboard written letter by letter
+src/models.js              loads the rigged character models
+src/audio.js               Web Audio engine: 3D HRTF sound, reverb, live ambience
 src/post.js                retro post-processing (grain, aberration, glitch, blackout)
-src/phone.js, input.js, ui.js, util.js
-assets/textures/           teacher face texture + glow mask (made from the reference photo)
-assets/audio/voice/        63 spoken lines (teacher + whispering friends)
-assets/audio/sfx/          34 sound effects
-tools/                     scripts that generate the assets above + a scene preview page
-vendor/                    three.js r170
+assets/models/             rigged .glb characters (built by tools/build_characters.py)
+assets/textures/           teacher face texture + glow mask (from the reference photo)
+assets/audio/voice/        156 spoken lines
+assets/audio/sfx/          50 sound effects
+tools/                     scripts that generate all of the assets above + preview pages
+vendor/                    three.js r170 (+ GLTFLoader)
 ```
-
-### How the monster was made
-
-`tools/make_face_texture.py` cuts the face out of the reference photo, fills the background with the
-nearest face colours, and builds a glow mask for the white eye crescents. In `src/teacher.js` the head
-is a mesh shaped from the photo's measured silhouette (row by row), with the photo projected onto the
-front, extra depth for the long nose and sunken eyes, glossy eyeballs, ears, and a jaw that unhinges.
-He is about 2.35 m tall, his hands hang past his waist, and he glides rather than walks.
 
 ### Regenerating the assets
 
 ```bash
 sudo apt-get install espeak-ng mbrola mbrola-us1 mbrola-us2 mbrola-us3 ffmpeg
-pip install numpy pillow
+pip install numpy pillow pyfqmr
 python3 tools/make_face_texture.py   # face texture + eye glow
-python3 tools/gen_voices.py          # all voice lines (teacher + whispers)
+python3 tools/build_characters.py    # all characters (downloads the CC0 MakeHuman base mesh once)
+python3 tools/gen_voices.py          # all voice lines
 python3 tools/gen_sfx.py             # all sound effects
 ```
 
 ## Credits and licences
 
 * Engine: [three.js](https://threejs.org) r170, MIT licence (`vendor/THREE_LICENSE`).
+* Human base mesh, skeleton, skin weights and shape targets: [MakeHuman](http://www.makehumancommunity.org/) / MPFB2, **CC0**.
+  Clothes, hair, eyes and poses are generated from it by `tools/build_characters.py`.
 * Fonts: Caveat, Special Elite and Nosifer from Google Fonts via Fontsource, SIL Open Font License 1.1.
-* Voices: generated with eSpeak NG + MBROLA voices (us1, us2, us3), then pitch-shifted and processed
-  with ffmpeg/rubberband; whispers are made by re-exciting the speech envelope with noise.
-* Sound effects and music box tune: synthesized from scratch by `tools/gen_sfx.py` (no samples).
+* Voices: eSpeak NG + MBROLA voices (us1, us2, us3), processed with ffmpeg/rubberband; whispers are
+  made by re-exciting the speech envelope with noise.
+* Sound effects and the music box tune: synthesized from scratch by `tools/gen_sfx.py` (no samples).
 * Classroom textures: painted procedurally at runtime (`src/textures.js`).
-* Teacher face: the reference meme image supplied for this project.
+* Teacher face: the reference image supplied for this project.

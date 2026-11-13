@@ -1,7 +1,7 @@
 {
-  "name": "Dead Stare",
-  "short_name": "Dead Stare",
-  "description": "A first-person classroom horror game. Don't get caught talking.",
+  "name": "Madi Class",
+  "short_name": "Madi Class",
+  "description": "A first-person classroom horror game. Survive Mr. Madi's class from 8:30 AM to 12:30 PM.",
   "start_url": "./index.html",
   "display": "fullscreen",
   "orientation": "landscape",

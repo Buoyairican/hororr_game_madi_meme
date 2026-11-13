@@ -7,6 +7,8 @@ export class Input {
     this.keys = { talk: false, phone: false };
     this.mouse = { talk: false, phone: false };
     this.touchBtn = { talk: false, phone: false };
+    this.pressed = { echo: false, ask: false };   // one-shot actions
+    this.choiceKey = -1;
     this.sens = 1;
     this.enabled = false;
     this.locked = false;
@@ -48,6 +50,9 @@ export class Input {
       const k = e.key.toLowerCase();
       if (k === 'e' || k === ' ') this.keys.talk = true;
       if (k === 'q' || k === 'f') this.keys.phone = true;
+      if (this.enabled && k === 'r') this.pressed.echo = true;
+      if (this.enabled && k === 't') this.pressed.ask = true;
+      if (this.enabled && k >= '1' && k <= '3') this.choiceKey = Number(k) - 1;
       if ((k === 'escape' || k === 'p') && this.enabled && this.onPause) this.onPause();
       if (this.enabled && this.onAnyInput) this.onAnyInput();
     });
@@ -99,6 +104,21 @@ export class Input {
     el.addEventListener('mouseup', off);
     el.addEventListener('mouseleave', off);
   }
+
+  /** tap buttons for one-shot actions (ECHO / ASK) */
+  bindTap(el, name) {
+    const on = (e) => { e.preventDefault(); if (this.enabled) this.pressed[name] = true; };
+    el.addEventListener('touchstart', on, { passive: false });
+    el.addEventListener('mousedown', on);
+  }
+
+  takePressed() {
+    const p = { echo: this.pressed.echo, ask: this.pressed.ask };
+    this.pressed.echo = this.pressed.ask = false;
+    return p;
+  }
+
+  takeChoice() { const c = this.choiceKey; this.choiceKey = -1; return c; }
 
   requestLock() {
     if (this.touch) return;

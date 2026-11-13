@@ -8,6 +8,8 @@ export const SFX = [
   'erase', 'bell', 'scream', 'stinger_1', 'stinger_2', 'stinger_swell', 'sub_hit', 'breath', 'thunder', 'rain_loop',
   'whispers_loop', 'music_box', 'chair_scrape', 'door_slam', 'glitch', 'heartbeat', 'neck_crack', 'lights_off', 'zap',
   'paper', 'whoosh', 'book_drop', 'ringtone', 'phone_buzz',
+  'step_1', 'step_2', 'step_3', 'step_4', 'keys_1', 'keys_2', 'keys_3', 'key_enter', 'lid_slam', 'door_open', 'giggle', 'gasp',
+  'projector_on', 'wipe', 'ding', 'page',
 ];
 
 const _v = new THREE.Vector3();

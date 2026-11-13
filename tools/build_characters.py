@@ -549,6 +549,8 @@ def export(path, pose, parts, joint_spec, simplify=None, extras=None, transform=
             n = len(V)
             V = np.concatenate([V, V]); N = np.concatenate([N, -N]); C = np.concatenate([C, C * 0.8]); Wg = np.concatenate([Wg, Wg])
             T = np.concatenate([T, T[:, ::-1] + n])
+        if Wg.shape[1] < 4:  # glTF wants exactly 4 influences per vertex
+            Wg = np.concatenate([Wg, np.zeros((len(Wg), 4 - Wg.shape[1]), Wg.dtype)], 1)
         order = np.argsort(-Wg, 1)[:, :4]
         Wt = np.take_along_axis(Wg, order, 1)
         Wt /= np.maximum(Wt.sum(1, keepdims=True), 1e-9)

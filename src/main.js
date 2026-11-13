@@ -9,20 +9,29 @@ import { Input } from './input.js';
 import { UI } from './ui.js';
 import { Phone } from './phone.js';
 import { Game } from './game.js';
+import { preloadModels, instantiate } from './models.js';
+import { CHAPTERS } from './data.js';
 
 const ui = new UI();
 window.addEventListener('error', (e) => ui.error('Something broke: ' + e.message));
 window.addEventListener('unhandledrejection', (e) => ui.error('Something broke: ' + ((e.reason && e.reason.message) || e.reason)));
 
 const query = new URLSearchParams(location.search);
-const DEFAULTS = { sens: 1, vol: 0.9, retro: true, meter: true, subs: true, shadows: true };
+const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+// phones get the cheapest settings by default
+const DEFAULTS = { sens: 1, vol: 0.9, retro: true, meter: false, subs: true, shadows: !isTouch };
 function loadSettings() {
-  try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('deadstare.settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; }
+  try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('madiclass.settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; }
 }
-function saveSettings(s) { try { localStorage.setItem('deadstare.settings', JSON.stringify(s)); } catch (e) { /* private mode */ } }
+function saveSettings(s) { try { localStorage.setItem('madiclass.settings', JSON.stringify(s)); } catch (e) { /* private mode */ } }
+function progress() { try { return Number(localStorage.getItem('madiclass.progress') || 0); } catch (e) { return 0; } }
 const settings = loadSettings();
 
 const withTimeout = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+
+// the class: [row, column, model, name]. Row 1 column 1 is Kevin's empty desk.
+const KIDS = [[1, 0, 'kid_a', 'Leo'], [1, 2, 'kid_d', 'Ava'], [1, 4, 'kid_b', 'Omar'], [2, 1, 'kid_c', 'Maya'], [2, 3, 'kid_e', 'Jin'],
+  [3, 0, 'kid_f', 'Zoe'], [3, 2, 'kid_a', 'Max'], [3, 4, 'kid_c', 'Lily']];
 
 async function boot() {
   const canvas = document.getElementById('view');
@@ -34,13 +43,13 @@ async function boot() {
     return;
   }
   renderer.shadowMap.enabled = settings.shadows;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.03, 60);
   camera.rotation.order = 'YXZ';
   scene.add(camera);
 
-  ui.progress(0.04, 'painting the walls&hellip;');
+  ui.progress(0.03, 'painting the walls&hellip;');
   await withTimeout(Promise.all([document.fonts.load('700 54px Caveat'), document.fonts.load('20px "Special Elite"')]), 4000);
   const world = buildWorld(scene, renderer);
   const tl = new THREE.TextureLoader();
@@ -48,12 +57,19 @@ async function boot() {
   face.colorSpace = THREE.SRGBColorSpace;
   portrait.colorSpace = THREE.SRGBColorSpace;
   face.anisotropy = 4;
-  const teacher = new Teacher(face, eyes);
+
+  ui.progress(0.08, 'seating the students&hellip;');
+  await preloadModels('assets/models/', (p) => ui.progress(0.08 + p * 0.12));
+  const teacher = new Teacher(await instantiate('madi', { shadows: true }), face, eyes);
   scene.add(teacher.root);
   const seat = (r, c) => world.seats.find((s) => s.row === r && s.col === c);
-  const friends = [new Classmate('sam', seat(0, 1)), new Classmate('nora', seat(0, 3))];
-  const students = [[1, 0], [1, 2], [1, 4], [2, 1], [2, 3], [3, 0], [3, 2], [3, 4]].map(([r, c]) => new Classmate('blank', seat(r, c)));
-  for (const c of [...friends, ...students]) scene.add(c.root);
+  const friends = [new Classmate('sam', 'Sam', await instantiate('sam'), seat(0, 1)), new Classmate('nora', 'Nora', await instantiate('nora'), seat(0, 3))];
+  const students = [];
+  for (const [r, c, m, name] of KIDS) students.push(new Classmate('kid', name, await instantiate(m), seat(r, c)));
+  const kevin = new Classmate('kid', 'Kevin', await instantiate('kid_e'), seat(1, 1));
+  for (const c of [...friends, ...students, kevin]) scene.add(c.root);
+  kevin.setGone(true);
+  const hand = await instantiate('hand');
   const phone = new Phone(camera, portrait.image);
   const post = new PostFX(renderer);
   const audio = new AudioSys();
@@ -62,12 +78,14 @@ async function boot() {
   input.sens = settings.sens;
   input.bindButton(document.getElementById('btn-talk'), 'talk');
   input.bindButton(document.getElementById('btn-phone'), 'phone');
+  input.bindTap(document.getElementById('btn-echo'), 'echo');
+  input.bindTap(document.getElementById('btn-ask'), 'ask');
 
-  ui.progress(0.12, 'tuning the whispers&hellip;');
-  await audio.load((p) => ui.progress(0.12 + p * 0.83, p < 0.5 ? 'tuning the whispers&hellip;' : 'sharpening the chalk&hellip;'));
+  ui.progress(0.2, 'tuning the whispers&hellip;');
+  await audio.load((p) => ui.progress(0.2 + p * 0.78, p < 0.5 ? 'tuning the whispers&hellip;' : 'sharpening the chalk&hellip;'));
   audio.setVolume(settings.vol);
 
-  const game = new Game({ renderer, scene, camera, post, audio, ui, input, world, teacher, friends, students, phone, portraitTex: portrait });
+  const game = new Game({ renderer, scene, camera, post, audio, ui, input, world, teacher, friends, students, kevin, hand, phone, portraitTex: portrait });
   if (query.has('debug')) window.game = game;
   ui.subsOn = settings.subs;
   ui.meterOn = settings.meter;
@@ -85,7 +103,7 @@ async function boot() {
   resize();
 
   // ---------------- title screen ----------------
-  const titlePose = () => { teacher.place(0.35, -5.1, 0); teacher.lookAt(game.camPos, 4); };
+  const titlePose = () => { teacher.root.visible = true; teacher.place(0.35, -5.1, 0); teacher.lookAt(game.camPos, 4); };
   titlePose();
   let musicOn = false;
   const startTitleAudio = () => {
@@ -95,7 +113,7 @@ async function boot() {
     audio.fadeBus('music', 1, 0.3);
     audio.fadeBus('amb', 0.6, 0.5);
     audio.startAmbience(new THREE.Vector3(0, 3, -2), new THREE.Vector3(-5.5, 1.8, -1));
-    game.titleMusic = audio.play('music_box', { loop: true, bus: 'music', vol: 0.55, reverb: 0.35 });
+    audio.play('music_box', { loop: true, bus: 'music', vol: 0.55, reverb: 0.35 });
   };
   document.getElementById('title').addEventListener('pointerdown', startTitleAudio);
 
@@ -107,20 +125,31 @@ async function boot() {
 
   // ---------------- menus ----------------
   let backTo = 'title';
+  let pending = null;
   const $ = (id) => document.getElementById(id);
   const go = (id) => ui.screen(id);
-  const startGame = () => {
+  const launch = (mode, ch) => {
     audio.unlock();
-    if (input.touch && innerHeight > innerWidth && !startGame.rotateOk) {
-      ui.show('rotate', true);
-      return;
-    }
+    if (input.touch && innerHeight > innerWidth && !launch.rotateOk) { pending = [mode, ch]; ui.show('rotate', true); return; }
     ui.show('rotate', false);
     musicOn = false;
-    game.start();
+    game.start(mode, ch);
   };
-  $('btn-start').onclick = startGame;
-  $('btn-rotate-ok').onclick = () => { startGame.rotateOk = true; startGame(); };
+  const buildChapters = () => {
+    const p = progress();
+    const list = $('chapter-list');
+    list.innerHTML = '';
+    CHAPTERS.forEach((c, i) => {
+      const b = document.createElement('button');
+      b.innerHTML = `<span>${i < p + 1 ? c.title : '???'}</span><span class="t">${c.time}</span>`;
+      b.disabled = i > p;
+      b.onclick = () => launch('story', i);
+      list.appendChild(b);
+    });
+  };
+  $('btn-story').onclick = () => { audio.unlock(); if (progress() === 0) launch('story', 0); else { buildChapters(); backTo = 'title'; go('chapters'); } };
+  $('btn-free').onclick = () => launch('free', 0);
+  $('btn-rotate-ok').onclick = () => { launch.rotateOk = true; if (pending) launch(...pending); };
   $('btn-how').onclick = () => { backTo = 'title'; go('how'); };
   $('btn-settings').onclick = () => { backTo = 'title'; go('settings'); };
   document.querySelectorAll('.back').forEach((b) => (b.onclick = () => go(backTo)));
@@ -143,7 +172,7 @@ async function boot() {
     if (audio.ctx && audio.ctx.state !== 'running') audio.ctx.resume();
     audio.stopAll();
     audio.stopAmbience();
-    game.reset();
+    game.reset('free', 0);
     game.state = 'title';
     titlePose();
     ui.show('hud', false);
@@ -156,9 +185,9 @@ async function boot() {
   $('btn-pause').addEventListener('touchend', (e) => { e.preventDefault(); pause(); });
   $('btn-resume').onclick = resume;
   $('btn-pause-settings').onclick = () => { backTo = 'pause'; go('settings'); };
-  $('btn-restart').onclick = () => { if (audio.ctx) audio.ctx.resume(); go(null); game.start(); };
+  $('btn-restart').onclick = () => { if (audio.ctx) audio.ctx.resume(); go(null); game.start(game.mode, game.chapter); };
   $('btn-quit').onclick = toTitle;
-  $('btn-again').onclick = () => { go(null); game.start(); };
+  $('btn-again').onclick = () => { go(null); if (!game.endPrimary()) toTitle(); };
   $('btn-menu').onclick = toTitle;
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
@@ -191,7 +220,7 @@ async function boot() {
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
-  if (query.has('autostart')) { go(null); game.start(); }
+  if (query.has('autostart')) { go(null); game.start(query.get('mode') || 'free', Number(query.get('ch') || 0)); }
 }
 
 boot().catch((e) => { console.error(e); ui.error('Could not start the game: ' + e.message); });

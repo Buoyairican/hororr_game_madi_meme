@@ -7,9 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Dead Stare">
-<meta name="description" content="A first-person classroom horror game. Don't get caught talking.">
-<title>Dead Stare</title>
+<meta name="apple-mobile-web-app-title" content="Madi Class">
+<meta name="description" content="A first-person classroom horror game. Survive Mr. Madi's class from 8:30 AM to 12:30 PM.">
+<title>Madi Class</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 <link rel="icon" href="assets/icons/icon-192.png">
@@ -24,30 +24,49 @@
 <!-- ============ HUD ============ -->
 <div id="hud" class="hidden">
   <div id="hud-top">
-    <div id="score"><span class="lbl">MISCHIEF</span> <span id="score-val">0</span></div>
+    <div id="hud-left">
+      <div id="score"><span class="lbl">MISCHIEF</span> <span id="score-val">0</span></div>
+      <ul id="objectives"></ul>
+    </div>
     <div id="eye-wrap">
       <svg id="eye" viewBox="0 0 64 32" aria-hidden="true">
         <path id="eye-lid" d="M2 16 Q32 -4 62 16 Q32 36 2 16 Z"/>
         <circle id="eye-pupil" cx="32" cy="16" r="7"/>
+        <path id="eye-slash" d="M6 30 L58 2"/>
       </svg>
+      <div id="eye-label"></div>
       <div id="anger"><div id="anger-fill"></div></div>
+      <div id="strikes"></div>
+      <div id="bully"></div>
     </div>
-    <div id="clock-hud">2:15 PM</div>
+    <div id="clock-hud">8:30 AM</div>
   </div>
   <div id="crosshair"></div>
   <div id="prompt"></div>
   <div id="hint"></div>
+  <div id="echo-cue"><span class="key">R</span> repeat him<div id="echo-bar"></div></div>
   <div id="call-left" class="call">psst!</div>
   <div id="call-right" class="call">psst!</div>
   <div id="phone-alert">📳 your phone is buzzing</div>
   <div id="subtitle"></div>
   <div id="toast"></div>
+  <div id="keys-legend" class="desk-only"><kbd>E</kbd> whisper · <kbd>Q</kbd> phone · <kbd>R</kbd> repeat him · <kbd>T</kbd> ask</div>
   <button id="btn-pause" class="touch-only" aria-label="Pause">II</button>
   <div id="touch-buttons" class="touch-only">
-    <button id="btn-phone" class="tbtn">PHONE</button>
-    <button id="btn-talk" class="tbtn">TALK</button>
+    <div class="tcol"><button id="btn-ask" class="tbtn small">ASK</button><button id="btn-phone" class="tbtn">PHONE</button></div>
+    <div class="tcol"><button id="btn-echo" class="tbtn small">ECHO</button><button id="btn-talk" class="tbtn">TALK</button></div>
   </div>
 </div>
+
+<!-- answer / question choices -->
+<div id="choices" class="hidden">
+  <div id="choices-title"></div>
+  <div id="choices-list"></div>
+  <div id="choices-time"><div id="choices-bar"></div></div>
+</div>
+
+<!-- chapter title card -->
+<div id="card" class="hidden"><div id="card-time"></div><div id="card-title"></div><div id="card-sub"></div></div>
 
 <div id="blackout"></div>
 <div id="flash"></div>
@@ -58,11 +77,12 @@
 <!-- ============ TITLE ============ -->
 <div id="title" class="screen">
   <div class="title-inner">
-    <h1 class="logo">DEAD STARE</h1>
-    <div class="sub">Room 13 &middot; Last period</div>
+    <h1 class="logo">MADI CLASS</h1>
+    <div class="sub">Room 13 &middot; 8:30 AM &ndash; 12:30 PM</div>
     <div id="loading"><div id="load-bar"><div id="load-fill"></div></div><div id="load-text">loading the classroom&hellip;</div></div>
     <div id="menu" class="hidden">
-      <button id="btn-start" class="big">ENTER CLASS</button>
+      <button id="btn-story" class="big">STORY MODE</button>
+      <button id="btn-free">FREE CLASS</button>
       <button id="btn-how">HOW TO PLAY</button>
       <button id="btn-settings">SETTINGS</button>
     </div>
@@ -70,19 +90,30 @@
   </div>
 </div>
 
+<!-- ============ CHAPTER SELECT ============ -->
+<div id="chapters" class="screen hidden">
+  <div class="panel center">
+    <h2>STORY MODE</h2>
+    <p class="dim">Mr. Hale never misses class. Today a substitute walked in.</p>
+    <div id="chapter-list"></div>
+    <button class="back">BACK</button>
+  </div>
+</div>
+
 <!-- ============ HOW TO PLAY ============ -->
 <div id="how" class="screen hidden">
   <div class="panel">
-    <h2>HOW TO SURVIVE CLASS</h2>
-    <p>You sit in the front row. The substitute is not a real teacher. He doesn't even know the lesson.</p>
+    <h2>HOW TO SURVIVE MR. MADI</h2>
+    <p>You sit in the front row of Room 13. The substitute, Mr. Madi, doesn't know anything about the lesson. Make his class fun, and don't get caught.</p>
     <ul>
       <li><b>Look around</b> &mdash; move the mouse (click first) or drag on the screen.</li>
-      <li><b>Whisper to a friend</b> &mdash; look at Sam (left) or Nora (right) and hold <kbd>E</kbd> / left click / <b>TALK</b>.</li>
-      <li><b>Play on your phone</b> &mdash; hold <kbd>Q</kbd> / right click / <b>PHONE</b>.</li>
-      <li>Talking and playing earn <b>mischief</b>. If you leave class with none, he keeps you&hellip; after class.</li>
-      <li><b>When the chalk stops, stop talking.</b> If he sees you, he gets angry. The angrier he is, the closer he comes.</li>
-      <li>When friends call you, answer quickly, or they get <b>loud</b>. When your phone buzzes, check it before it rings.</li>
-      <li>Survive until the bell rings at <b>3:00</b>.</li>
+      <li><b>Whisper</b> &mdash; look at Sam (left) or Nora (right) and hold <kbd>E</kbd> / <b>TALK</b>.</li>
+      <li><b>Phone</b> &mdash; hold <kbd>Q</kbd> / right click / <b>PHONE</b>.</li>
+      <li><b>Repeat him</b> &mdash; right after he says something, press <kbd>R</kbd> / <b>ECHO</b>. The class laughs and he looks for who said it. Do it too many times in a row and he knows it was you.</li>
+      <li><b>Ask a dumb question</b> &mdash; <kbd>T</kbd> / <b>ASK</b>. He stares at you, doesn't know the answer, and walks to his laptop to look it up. While he types, he isn't watching. Ask <b>too many</b> and you're in trouble.</li>
+      <li><b>When the chalk stops, stop talking.</b> He turns around without warning.</li>
+      <li>When he wipes his glasses, he can't see you at all.</li>
+      <li>If he catches you, he comes to your desk. <b>Three strikes</b> and the period is over.</li>
     </ul>
     <button class="back">BACK</button>
   </div>
@@ -94,10 +125,10 @@
     <h2>SETTINGS</h2>
     <label class="row">Look sensitivity <input id="set-sens" type="range" min="0.2" max="2.5" step="0.05" value="1"></label>
     <label class="row">Volume <input id="set-vol" type="range" min="0" max="1" step="0.05" value="0.9"></label>
-    <label class="row chk"><input id="set-retro" type="checkbox" checked> Retro pixel filter (faster)</label>
-    <label class="row chk"><input id="set-meter" type="checkbox" checked> Show his anger meter</label>
+    <label class="row chk"><input id="set-retro" type="checkbox" checked> Retro pixel filter (fastest)</label>
+    <label class="row chk"><input id="set-shadows" type="checkbox" checked> Shadows (slower on old phones)</label>
+    <label class="row chk"><input id="set-meter" type="checkbox"> Helper HUD (shows when he is watching + his anger)</label>
     <label class="row chk"><input id="set-subs" type="checkbox" checked> Subtitles</label>
-    <label class="row chk"><input id="set-shadows" type="checkbox" checked> Shadows</label>
     <button class="back">BACK</button>
   </div>
 </div>
@@ -109,7 +140,7 @@
     <p class="dim">He is waiting.</p>
     <button id="btn-resume" class="big">RESUME</button>
     <button id="btn-pause-settings">SETTINGS</button>
-    <button id="btn-restart">RESTART CLASS</button>
+    <button id="btn-restart">RESTART</button>
     <button id="btn-quit">MAIN MENU</button>
   </div>
 </div>

@@ -136,3 +136,65 @@ body:not(.touch) .touch-only { display: none !important; }
   .tbtn { width: 74px; height: 74px; }
   #subtitle { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 30px); width: min(560px, 62vw); }
 }
+
+/* ---------- v2: Madi Class ---------- */
+#hud-left { display: flex; flex-direction: column; gap: 8px; max-width: 34vw; }
+#objectives { list-style: none; margin: 0; padding: 0; font-size: 12px; letter-spacing: 0.5px; line-height: 1.45; color: var(--ink); text-shadow: 0 0 5px #000, 0 0 2px #000; }
+#objectives li { opacity: 0.9; }
+#objectives li::before { content: "☐ "; color: var(--dim); }
+#objectives li.done { opacity: 0.45; text-decoration: line-through; }
+#objectives li.done::before { content: "☑ "; color: #9fd08a; }
+#eye-label { font-size: 10px; letter-spacing: 2px; min-height: 12px; color: var(--dim); }
+#eye-slash { stroke: transparent; stroke-width: 3; }
+#eye.half { opacity: 1; }
+#eye.half #eye-lid { stroke: #e0a63a; }
+#eye.half #eye-pupil { transform: scaleY(0.5); fill: #e0a63a; }
+#eye.blind #eye-lid { stroke: #7cc4a0; }
+#eye.blind #eye-slash { stroke: #7cc4a0; }
+#eye.busy #eye-lid { stroke: #7cb4ff; }
+#eye.away { opacity: 0.15; }
+#strikes { font-size: 13px; letter-spacing: 4px; color: rgba(255,255,255,0.25); min-height: 14px; }
+#strikes .on { color: var(--blood-hi); text-shadow: 0 0 6px #000; }
+#bully { font-size: 10px; letter-spacing: 1.5px; color: var(--dim); text-align: center; line-height: 1.5; text-shadow: 0 0 4px #000; }
+#bully b { color: #f0c27a; font-weight: normal; }
+#echo-cue { position: absolute; left: 50%; bottom: calc(max(22px, env(safe-area-inset-bottom)) + 120px); transform: translateX(-50%); padding: 6px 12px 8px; font-size: 14px; letter-spacing: 1px;
+  background: rgba(20, 16, 6, 0.75); border: 1px solid rgba(240, 194, 122, 0.7); color: #f0c27a; opacity: 0; transition: opacity .15s; text-align: center; }
+#echo-cue.show { opacity: 1; }
+#echo-cue .key { border: 1px solid #f0c27a; padding: 0 5px; margin-right: 4px; }
+#echo-bar { height: 2px; background: #f0c27a; margin-top: 5px; width: 100%; }
+body.touch #echo-cue .key { display: none; }
+#keys-legend { position: absolute; left: max(14px, env(safe-area-inset-left)); bottom: max(10px, env(safe-area-inset-bottom)); font-size: 11px; color: var(--dim); letter-spacing: 1px; text-shadow: 0 0 4px #000; }
+body.touch .desk-only { display: none !important; }
+#subtitle .mock { color: #f0c27a; }
+#touch-buttons { align-items: flex-end; }
+.tcol { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.tbtn.small { width: 62px; height: 62px; font-size: 12px; }
+#btn-echo.ready { border-color: #f0c27a; color: #f0c27a; background: rgba(90, 60, 10, .55); animation: pulse .5s infinite alternate; }
+#choices { position: fixed; left: 50%; bottom: calc(max(18px, env(safe-area-inset-bottom)) + 110px); transform: translateX(-50%); z-index: 17; width: min(520px, 86vw);
+  background: rgba(8, 10, 9, 0.9); border: 1px solid var(--line); padding: 12px 14px; text-align: center; pointer-events: auto; }
+#choices-title { font-size: 13px; letter-spacing: 2px; color: var(--dim); margin-bottom: 8px; }
+#choices-list { display: flex; flex-direction: column; gap: 6px; }
+#choices-list button { margin: 0; min-width: 0; width: 100%; text-align: left; font-size: 15px; padding: 10px 12px; letter-spacing: 0.5px; }
+#choices-list button .n { color: #f0c27a; margin-right: 10px; }
+#choices-time { height: 2px; background: rgba(255,255,255,0.1); margin-top: 10px; }
+#choices-bar { height: 100%; width: 100%; background: var(--blood-hi); }
+#card { position: fixed; inset: 0; z-index: 14; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; text-align: center;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.55), rgba(0,0,0,0) 70%); animation: cardfade 4.2s forwards; }
+#card-time { font-size: clamp(30px, 6vw, 60px); letter-spacing: 6px; color: #e9e3cf; text-shadow: 0 0 18px #000; }
+#card-title { font-family: "Nosifer", "Special Elite", serif; font-size: clamp(22px, 4.5vw, 44px); color: var(--blood-hi); margin-top: 6px; text-shadow: 0 0 14px #000; }
+#card-sub { font-size: 13px; letter-spacing: 6px; color: var(--dim); margin-top: 8px; }
+@keyframes cardfade { 0% { opacity: 0; } 12% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+#chapter-list { display: flex; flex-direction: column; gap: 4px; margin: 14px 0; }
+#chapter-list button { min-width: 0; width: 100%; max-width: 380px; display: flex; justify-content: space-between; gap: 12px; }
+#chapter-list button .t { color: var(--dim); }
+#chapter-list button:disabled { opacity: 0.35; cursor: default; border-color: var(--line); background: rgba(20, 22, 20, 0.5); color: var(--ink); }
+@media (max-height: 500px) {
+  #objectives { font-size: 11px; }
+  .tbtn.small { width: 54px; height: 54px; }
+  #choices { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 70px); padding: 8px 10px; }
+  #choices-list button { padding: 7px 10px; font-size: 14px; }
+  #echo-cue { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 80px); }
+}
+@media (max-height: 500px) {
+  #hint { top: 36%; width: min(520px, 56vw); font-size: 14px; }
+}
