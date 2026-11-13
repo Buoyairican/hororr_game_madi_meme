@@ -10,13 +10,19 @@ const buffers = new Map();
 export const MODEL_NAMES = ['madi', 'sam', 'nora', 'kid_a', 'kid_b', 'kid_c', 'kid_d', 'kid_e', 'kid_f', 'hand'];
 
 export async function preloadModels(base = 'assets/models/', onProgress) {
-  let done = 0;
-  await Promise.all(MODEL_NAMES.map(async (n) => {
-    const r = await fetch(base + n + '.glb');
-    if (!r.ok) throw new Error('model ' + n + ' ' + r.status);
-    buffers.set(n, await r.arrayBuffer());
-    onProgress && onProgress(++done / MODEL_NAMES.length);
-  }));
+  // one JSON bundle (base64) holds every model: one request, and it works on hosts that don't serve .glb
+  onProgress && onProgress(0.1);
+  const r = await fetch(base + 'models.json');
+  if (!r.ok) throw new Error('models.json ' + r.status);
+  const bundle = await r.json();
+  for (const n of MODEL_NAMES) {
+    if (!bundle[n]) throw new Error('model missing: ' + n);
+    const bin = atob(bundle[n]);
+    const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    buffers.set(n, u8.buffer);
+  }
+  onProgress && onProgress(1);
 }
 
 /** returns { scene, bones: {name: Bone}, meshes: {materialName: SkinnedMesh}, extras } */

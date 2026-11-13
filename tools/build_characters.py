@@ -1034,6 +1034,16 @@ def build_hand():
     export(os.path.join(OUT, "hand.glb"), pose, [skin, p_sleeve], spec, {"skin": 900, "top": 260}, {"kind": "hand"}, transform=lambda P: P - origin, bake=bake)
 
 
+def write_bundle():
+    """All models in one JSON (base64) so hosts that do not serve .glb still work, in one request."""
+    import base64
+    names = sorted(f[:-4] for f in os.listdir(OUT) if f.endswith(".glb"))
+    bundle = {n: base64.b64encode(open(os.path.join(OUT, n + ".glb"), "rb").read()).decode() for n in names}
+    with open(os.path.join(OUT, "models.json"), "w") as f:
+        json.dump(bundle, f, separators=(",", ":"))
+    print("  models.json:", len(names), "models,", os.path.getsize(os.path.join(OUT, "models.json")) // 1024, "KB")
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     want = sys.argv[1:]
@@ -1044,3 +1054,4 @@ if __name__ == "__main__":
         build_madi()
     if not want or "hand" in want:
         build_hand()
+    write_bundle()
