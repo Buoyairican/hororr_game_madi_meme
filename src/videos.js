@@ -46,7 +46,11 @@ export const VideoMixin = {
     ph.onCrash = (s) => this.phoneFail(this.me, s);
     ph.onPoint = () => { this.mischief += 4; A.play('phone_point', { vol: 0.3, local: true, reverb: 0 }); };
     ph.onFlap = () => A.play('phone_flap', { vol: 0.22, local: true, reverb: 0 });
-    ph.onFeedDone = () => { if (this.role !== 'guest' && this.state === 'playing') { this.stats.videos = (this.stats.videos || 0) + 1; this.completeObjective('video'); } };
+    ph.onFeedDone = () => {
+      if (this.role === 'guest' || this.state !== 'playing') return;
+      this.note(this.me, 'videos'); this.track.event(this.t, this.me, 'video', { how: 'feed' });
+      this.completeObjective('video');
+    };
     ph.game.hint = this.input.touch ? 'tap: TAP button' : 'tap: [E] / [SPACE] / click';
   },
 
@@ -89,7 +93,7 @@ export const VideoMixin = {
     const pos = this.headOf(p, new THREE.Vector3()).add(_d.set(0, -0.3, 0));
     this.audio.play('phone_fail', { pos, vol: 1.3, ref: 1.8, reverb: 0.25 });
     p.failT = 2.4;
-    this.stats.fails = (this.stats.fails || 0) + 1;
+    this.note(p, 'fails'); this.track.event(this.t, p, 'fail');
     this.uiTo(p, 'hint', 'GAME OVER... and your phone is <b>LOUD</b>. Put it away!', 3);
     this.giggle && this.timers.after(1.2, () => this.state === 'playing' && this.giggle());
     if (!this.present || this.cutscene || this.ending) return;
@@ -180,7 +184,9 @@ export const VideoMixin = {
     }
     if (why === 'done') {
       this.mischief += 30;
-      this.stats.videos = (this.stats.videos || 0) + 1;
+      this.note(p, 'videos');
+      if (sh.fromP) this.note(sh.fromP, 'shown');
+      this.track.event(this.t, p, 'video', { how: f ? 'shown by ' + f.name : 'shown by ' + sh.fromP.name });
       if (f) { this.audio.play('giggle', { pos: f.headWorld(new THREE.Vector3()), vol: 0.7, ref: 1 }); f.talking = 1.5; }
       if (sh.fromP) { this.uiTo(sh.fromP, 'toast', `${p.name} watched your video 😂`, 2.5); this.uiTo(p, 'toast', '😂😂😂', 1.6); }
       if (!sh.mission) this.completeObjective('video');
@@ -294,6 +300,7 @@ export const VideoMixin = {
     if (job.done) {
       this.completeObjective(id);
       this.mischief += 30;
+      this.note(this.me, 'videos'); this.track.event(this.t, this.me, 'video', { how: 'sent by ' + name });
       if (k === 'found') this.localVideoScare(); // the video ends... and his face is on your phone
       yield* this.wait(1.2);
       this.phone.clearMission();

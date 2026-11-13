@@ -1,0 +1,13 @@
+{
+  "name": "madi-class-tests",
+  "private": true,
+  "description": "Browser tests for Madi Class (see README.md). Playwright and Chromium come from the machine.",
+  "scripts": {
+    "quick": "bash run.sh quick",
+    "full": "bash run.sh full"
+  },
+  "dependencies": {
+    "express": "4.22.3",
+    "peer": "1.0.2"
+  }
+}
