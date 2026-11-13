@@ -7,7 +7,7 @@ export class UI {
     for (const id of ['hud', 'score-val', 'eye', 'eye-label', 'anger', 'anger-fill', 'clock-hud', 'prompt', 'hint', 'call-left', 'call-right', 'phone-alert',
       'subtitle', 'toast', 'blackout', 'flash', 'note', 'note-text', 'title', 'loading', 'load-fill', 'load-text', 'menu', 'how', 'settings',
       'pause', 'end', 'end-title', 'end-text', 'end-stats', 'rotate', 'err', 'crosshair', 'objectives', 'strikes', 'bully', 'echo-cue', 'echo-bar',
-      'choices', 'choices-title', 'choices-list', 'choices-bar', 'card', 'card-time', 'card-title', 'card-sub', 'chapters', 'chapter-list', 'btn-again', 'btn-echo']) this.el[id] = $(id);
+      'choices', 'choices-title', 'choices-list', 'choices-bar', 'card', 'card-time', 'card-title', 'card-sub', 'chapters', 'chapter-list', 'btn-again', 'btn-echo', 'mp']) this.el[id] = $(id);
     this.subTimer = 0;
     this.hintTimer = 0;
     this.toastTimer = 0;
@@ -23,7 +23,7 @@ export class UI {
 
   show(id, on = true) { this.el[id].classList.toggle('hidden', !on); }
   screen(id) {
-    for (const s of ['title', 'how', 'settings', 'pause', 'end', 'chapters']) this.show(s, s === id);
+    for (const s of ['title', 'how', 'settings', 'pause', 'end', 'chapters', 'mp']) this.show(s, s === id);
   }
 
   /** only touch the DOM when a value actually changes */

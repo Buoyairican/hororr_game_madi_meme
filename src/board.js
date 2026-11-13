@@ -155,6 +155,9 @@ export class Chalkboard {
     this.dirty = true;
   }
 
+  /** stop writing / erasing right where the chalk is */
+  stopJob() { this.job = null; }
+
   erase(duration = 3.2) {
     this.job = { type: 'erase', t: 0, dur: duration, lastX: null, lastY: null };
   }

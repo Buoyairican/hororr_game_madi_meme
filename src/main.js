@@ -11,6 +11,8 @@ import { Phone } from './phone.js';
 import { Game } from './game.js';
 import { preloadModels, instantiate } from './models.js';
 import { CHAPTERS } from './data.js';
+import { MP, cleanName } from './mp.js';
+import { cleanCode } from './net.js';
 
 const ui = new UI();
 window.addEventListener('error', (e) => ui.error('Something broke: ' + e.message));
@@ -30,7 +32,7 @@ const settings = loadSettings();
 const withTimeout = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
 
 // the class: [row, column, model, name]. Row 1 column 1 is Kevin's empty desk.
-const KIDS = [[1, 0, 'kid_a', 'Leo'], [1, 2, 'kid_d', 'Ava'], [1, 4, 'kid_b', 'Omar'], [2, 1, 'kid_c', 'Maya'], [2, 3, 'kid_e', 'Jin'],
+const KIDS = [[0, 0, 'kid_a', 'Leo'], [1, 2, 'kid_d', 'Ava'], [0, 4, 'kid_b', 'Omar'], [2, 1, 'kid_c', 'Maya'], [2, 3, 'kid_e', 'Jin'],
   [3, 0, 'kid_f', 'Zoe'], [3, 2, 'kid_a', 'Max'], [3, 4, 'kid_c', 'Lily']];
 
 async function boot() {
@@ -156,6 +158,7 @@ async function boot() {
 
   const pause = () => {
     if (game.state !== 'playing') return;
+    if (game.mp) { input.enable(false); backTo = 'pause'; go('pause'); return; } // the class goes on for everyone else
     game.state = 'paused';
     input.enable(false);
     if (audio.ctx) audio.ctx.suspend();
@@ -164,8 +167,8 @@ async function boot() {
   };
   const resume = () => {
     go(null);
-    game.state = 'playing';
-    input.enable(true);
+    if (game.state === 'paused') game.state = 'playing';
+    if (game.state === 'playing') input.enable(true);
     if (audio.ctx) audio.ctx.resume();
   };
   const toTitle = () => {
@@ -186,10 +189,130 @@ async function boot() {
   $('btn-resume').onclick = resume;
   $('btn-pause-settings').onclick = () => { backTo = 'pause'; go('settings'); };
   $('btn-restart').onclick = () => { if (audio.ctx) audio.ctx.resume(); go(null); game.start(game.mode, game.chapter); };
-  $('btn-quit').onclick = toTitle;
   $('btn-again').onclick = () => { go(null); if (!game.endPrimary()) toTitle(); };
-  $('btn-menu').onclick = toTitle;
-  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && !game.mp) pause(); });
+
+  // ---------------- multiplayer ----------------
+  let mp = null;
+  const SEAT_NAMES = ['front row, middle', 'second row, left', 'second row, right', 'second row, behind Nora'];
+  const showEl = (id, on) => $(id).classList.toggle('hidden', !on);
+  const mpStatus = (t, ok) => { $('mp-status').textContent = t || ''; $('mp-status').classList.toggle('ok', !!ok); };
+  const savedName = () => { try { return localStorage.getItem('madiclass.name') || ''; } catch (e) { return ''; } };
+  const mpName = () => {
+    const n = cleanName($('mp-name').value) || 'Player';
+    try { localStorage.setItem('madiclass.name', n); } catch (e) { /* private mode */ }
+    return n;
+  };
+  const labels = () => {
+    const t = !mp ? 'MAIN MENU' : mp.role === 'host' ? 'BACK TO LOBBY' : 'LEAVE CLASS';
+    $('btn-menu').textContent = t; $('btn-quit').textContent = t;
+    showEl('btn-restart', !mp || mp.role === 'host');
+  };
+  const renderLobby = () => {
+    if (!mp) return;
+    const list = $('mp-players');
+    list.innerHTML = '';
+    for (let s = 0; s < 4; s++) {
+      const p = mp.lobby.find((x) => x.seat === s);
+      const li = document.createElement('li');
+      li.className = p ? '' : 'empty';
+      const who = p ? p.name + (p.id === mp.myId ? ' (you)' : '') + (p.id === 'host' ? ' &#9733;' : '') : 'empty desk';
+      li.innerHTML = `<span>${who}</span><span class="seat">${SEAT_NAMES[s]}</span>`;
+      list.appendChild(li);
+    }
+    $('mp-code-show').textContent = mp.code || '-----';
+  };
+  const buildModes = () => {
+    const sel = $('mp-mode'), p = progress(), keep = sel.value;
+    sel.innerHTML = '<option value="free">Free Class (8:30 to 12:30)</option>';
+    CHAPTERS.forEach((c, i) => {
+      const o = document.createElement('option');
+      o.value = 'story' + i;
+      o.textContent = i <= p ? `Story: ${c.sub}, ${c.title} (${c.time})` : `Story: ${c.sub} (locked)`;
+      o.disabled = i > p;
+      sel.appendChild(o);
+    });
+    if (keep && [...sel.options].some((o) => o.value === keep && !o.disabled)) sel.value = keep;
+  };
+  const roomView = () => {
+    showEl('mp-pick', false); showEl('mp-room', true);
+    const host = mp.role === 'host';
+    showEl('mp-host-ctl', host); showEl('mp-wait', !host);
+    if (host) buildModes();
+    renderLobby();
+    $('btn-mp-leave').textContent = host ? 'CLOSE THE CLASS' : 'LEAVE';
+    labels();
+  };
+  const openMp = (code) => {
+    backTo = 'title';
+    go('mp');
+    if (!$('mp-name').value) $('mp-name').value = savedName();
+    if (code) $('mp-code').value = code;
+    if (mp) roomView(); else { showEl('mp-pick', true); showEl('mp-room', false); mpStatus(''); }
+  };
+  const hooks = {
+    lobby: () => renderLobby(),
+    lost: (msg) => { if (mp) { mp.leave(); mp = null; } labels(); toTitle(); openMp(); mpStatus(msg); },
+    started: () => { go(null); ui.show('rotate', false); },
+    toLobby: () => { toTitle(); openMp(); mpStatus('The host is picking the next class…', true); },
+  };
+  const quitGame = () => {
+    if (mp && mp.role === 'host') { mp.backToLobby(); toTitle(); openMp(); return; }
+    if (mp) { mp.leave(); mp = null; labels(); }
+    toTitle();
+  };
+  $('btn-quit').onclick = quitGame;
+  $('btn-menu').onclick = quitGame;
+  $('btn-mp').onclick = () => { audio.unlock(); openMp(); };
+  $('btn-host').onclick = async () => {
+    audio.unlock();
+    const name = mpName();
+    mpStatus('Opening your class…', true);
+    $('btn-host').disabled = true;
+    try {
+      mp = new MP(game, hooks);
+      await mp.host(name);
+      mpStatus('Send the code (or the invite link) to your friends.', true);
+      roomView();
+    } catch (e) {
+      if (mp) mp.leave();
+      mp = null;
+      mpStatus('Could not open a class: ' + ((e && (e.message || e.type)) || e));
+    }
+    $('btn-host').disabled = false;
+  };
+  $('btn-join').onclick = async () => {
+    audio.unlock();
+    const code = cleanCode($('mp-code').value);
+    if (code.length !== 5) { mpStatus('Type the 5-letter class code.'); return; }
+    const name = mpName();
+    mpStatus('Joining…', true);
+    $('btn-join').disabled = true;
+    try {
+      mp = new MP(game, hooks);
+      await mp.join(code, name);
+      roomView();
+      mpStatus('You are in. Wait for the host to start the class.', true);
+    } catch (e) {
+      if (mp) mp.leave();
+      mp = null;
+      mpStatus((e && e.message) || 'Could not join that class.');
+    }
+    $('btn-join').disabled = false;
+  };
+  $('mp-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn-join').click(); });
+  $('btn-copy').onclick = async () => {
+    if (!mp) return;
+    const url = location.origin + location.pathname + '?join=' + mp.code;
+    try { await navigator.clipboard.writeText(url); mpStatus('Invite link copied. Paste it to your friends.', true); } catch (e) { mpStatus(url, true); }
+  };
+  $('btn-mp-go').onclick = () => {
+    if (!mp || mp.role !== 'host') return;
+    const v = $('mp-mode').value;
+    if (v === 'free') launch('free', 0); else launch('story', Number(v.slice(5)));
+  };
+  $('btn-mp-leave').onclick = () => { if (mp) { mp.leave(); mp = null; } labels(); go('title'); };
+  addEventListener('pagehide', () => { if (mp) mp.leave(); }); // say goodbye when the tab closes
 
   // ---------------- settings ----------------
   const bindSetting = (id, key, apply, isCheck) => {
@@ -220,7 +343,20 @@ async function boot() {
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
+  // in multiplayer the class must go on when this tab is in the background (the browser stops
+  // drawing hidden tabs, but a worker's timer keeps running)
+  try {
+    const ticker = new Worker(URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 50);'], { type: 'text/javascript' })));
+    ticker.onmessage = () => {
+      if (!document.hidden || !game.mp) return;
+      const now = performance.now();
+      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+      last = now;
+      game.tick(dt);
+    };
+  } catch (e) { /* no workers: a hidden host pauses the class */ }
   if (query.has('autostart')) { go(null); game.start(query.get('mode') || 'free', Number(query.get('ch') || 0)); }
+  else if (query.get('join')) openMp(cleanCode(query.get('join')));
 }
 
 boot().catch((e) => { console.error(e); ui.error('Could not start the game: ' + e.message); });

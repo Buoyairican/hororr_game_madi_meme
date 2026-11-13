@@ -83,6 +83,7 @@
     <div id="menu" class="hidden">
       <button id="btn-story" class="big">STORY MODE</button>
       <button id="btn-free">FREE CLASS</button>
+      <button id="btn-mp">PLAY WITH FRIENDS</button>
       <button id="btn-how">HOW TO PLAY</button>
       <button id="btn-settings">SETTINGS</button>
     </div>
@@ -115,8 +116,35 @@
       <li>When he wipes his glasses, he can't see you at all.</li>
       <li>If he catches you, he comes to your desk. <b>Three strikes</b> and the period is over.</li>
       <li>Sit still too long and the <b>class clowns</b> in the back start making noises. He will go and find out who did it.</li>
+      <li><b>Play with friends</b>: one of you hosts, the others join with the class code (up to 4). Look at a friend and hold <kbd>E</kbd> / <b>TALK</b> to whisper to them. Strikes are shared, so keep each other quiet.</li>
     </ul>
     <button class="back">BACK</button>
+  </div>
+</div>
+
+<!-- ============ MULTIPLAYER LOBBY ============ -->
+<div id="mp" class="screen hidden">
+  <div class="panel center">
+    <h2>PLAY WITH FRIENDS</h2>
+    <p class="dim">Up to 4 players in the same class. One of you hosts, the others join with the class code.</p>
+    <label class="mp-name">Your name <input id="mp-name" maxlength="12" autocomplete="off" spellcheck="false"></label>
+    <div id="mp-pick">
+      <button id="btn-host" class="big">HOST A CLASS</button>
+      <div class="mp-or">or join a friend</div>
+      <div class="mp-join"><input id="mp-code" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false"><button id="btn-join">JOIN</button></div>
+    </div>
+    <div id="mp-room" class="hidden">
+      <div class="mp-code-box">Class code <b id="mp-code-show">-----</b></div>
+      <button id="btn-copy" class="small-btn">COPY INVITE LINK</button>
+      <ul id="mp-players"></ul>
+      <div id="mp-host-ctl" class="hidden">
+        <select id="mp-mode"></select>
+        <button id="btn-mp-go" class="big">START CLASS</button>
+      </div>
+      <p id="mp-wait" class="dim hidden">Waiting for the host to start the class&hellip;</p>
+    </div>
+    <p id="mp-status"></p>
+    <button id="btn-mp-leave">BACK</button>
   </div>
 </div>
 

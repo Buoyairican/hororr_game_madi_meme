@@ -269,8 +269,9 @@ export class AudioSys {
     shimmerAmp.connect(a.shimmer); a.shimmer.connect(this.buses.amb);
     const sr = c.createGain(); sr.gain.value = 0.4; a.shimmer.connect(sr); sr.connect(this.reverbIn);
     // rain on the windows + whisper bed
-    a.rain = this.play('rain_loop', { loop: true, vol: 0.32, pos: rainPos, ref: 3, reverb: 0.05, bus: 'amb', lowpass: 3200 });
-    a.whispers = this.play('whispers_loop', { loop: true, vol: 0.0, pos: new THREE.Vector3(0, 1.4, 2), ref: 1, reverb: 0.4, bus: 'amb' });
+    // (local: every player runs their own ambience)
+    a.rain = this.play('rain_loop', { loop: true, vol: 0.32, pos: rainPos, ref: 3, reverb: 0.05, bus: 'amb', lowpass: 3200, local: true });
+    a.whispers = this.play('whispers_loop', { loop: true, vol: 0.0, pos: new THREE.Vector3(0, 1.4, 2), ref: 1, reverb: 0.4, bus: 'amb', local: true });
     a.whisperAngle = 0;
     this.amb = a;
   }
@@ -335,7 +336,7 @@ export class AudioSys {
       this.hbTimer -= dt;
       if (this.hbTimer <= 0) {
         this.hbTimer = lerp(1.15, 0.4, clamp((this.fear - 0.22) / 0.78, 0, 1));
-        this.play('heartbeat', { vol: 0.25 + this.fear * 0.75, reverb: 0, bus: 'sfx' });
+        this.play('heartbeat', { vol: 0.25 + this.fear * 0.75, reverb: 0, bus: 'sfx', local: true });
       }
     }
   }
