@@ -315,11 +315,11 @@ export class MP {
         g.me.id = m.id; g.me.name = m.name || this.name; this.name = g.me.name;
         g.seatPlayer(g.me, m.seat);
         break;
-      case 'full': this.hook('lost', 'That class is full (4 players max).'); break;
+      case 'full': if (CURRENT === this) this.hook('lost', 'That class is full (4 players max).'); break;
       case 'lobby': this.lobby = m.players || []; this.syncPlayers(); this.hook('lobby'); break;
       case 'start': this.startGuest(m); break;
       case 'b': for (const e of m.e) this.apply(e); break;
-      case 'bye': this.hook('lost', 'The host closed the class.'); break;
+      case 'bye': if (CURRENT === this) this.hook('lost', 'The host closed the class.'); break;
       case 'ping': break;
       case 'toLobby':
         g.state = 'title'; g.input.enable(false); g.audio.stopAll(); g.ui.show('hud', false); g.ui.closeChoices();
