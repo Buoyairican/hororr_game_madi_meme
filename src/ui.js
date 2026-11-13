@@ -93,6 +93,7 @@ export class UI {
       list.appendChild(b);
     });
     this.show('choices', true);
+    this.el.hint.classList.remove('show'); this.hintTimer = 0; // nothing behind the picker
   }
   closeChoices() { this.show('choices', false); }
   choiceTimer(k) { this.el['choices-bar'].style.width = Math.round(k * 100) + '%'; }

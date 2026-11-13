@@ -161,7 +161,11 @@ export class Teacher {
 
   glassesHome(out = new THREE.Vector3()) { return this.head.localToWorld(out.copy(this.glasses.userData.home)); }
   takeGlasses() { this.glassesOn = false; this.bones.handR.attach(this.glasses); this.glassesHeld = true; }
-  wearGlasses() { this.head.attach(this.glasses); this.glassesHeld = false; this.glassesOn = true; }
+  wearGlasses(snap = false) {
+    this.head.attach(this.glasses);
+    this.glassesHeld = false; this.glassesOn = true;
+    if (snap) { this.glasses.position.copy(this.glasses.userData.home); this.glasses.quaternion.identity(); }
+  }
 
   // ------------------------------------------------------------ update
   update(dt, ctx = {}) {

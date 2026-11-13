@@ -21,8 +21,9 @@ export class Classmate {
     this.eyesMat = model.meshes.eyes.material;
     this.bodyMat = model.meshes.body.material;
     this.slump = model.extras.pose === 'slump';
-    model.scene.updateMatrixWorld(true);
-    this.headLocal = this.b.head.getWorldPosition(new THREE.Vector3());
+    // head centre in the root's local space (the root is already placed at the seat)
+    root.updateMatrixWorld(true);
+    this.headLocal = root.worldToLocal(this.b.head.getWorldPosition(new THREE.Vector3()));
     this.headLocal.y += 0.07;
 
     this.lookTarget = null;      // world point, or null to idle

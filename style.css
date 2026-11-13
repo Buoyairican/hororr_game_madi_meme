@@ -198,3 +198,7 @@ body.touch .desk-only { display: none !important; }
 @media (max-height: 500px) {
   #hint { top: 36%; width: min(520px, 56vw); font-size: 14px; }
 }
+@media (max-height: 500px) {
+  #choices { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 100px); }
+  #choices-list { gap: 4px; }
+}

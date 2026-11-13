@@ -114,7 +114,7 @@ export class Game {
     W.showSilhouette = false;
     W.gloomTarget = 0.2;
     this.doorFace.visible = false;
-    if (T.glassesHeld || T.glasses.parent !== T.head) T.wearGlasses();
+    if (T.glassesHeld || T.glasses.parent !== T.head) T.wearGlasses(true);
     T.root.visible = true;
     T.root.position.y = 0;
     T.place(-1.9, -6.38, Math.PI);
