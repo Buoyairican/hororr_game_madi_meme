@@ -6,7 +6,7 @@ import { clamp, lerp, damp, rand, pick, chance, wrapAngle, Bag, Timers } from '.
 import { PLAYER_EYE, BOARD_Z } from './world.js';
 import {
   FREE_LENGTH, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
-  QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, MEMES, MEME_IDLE, mock, clockLabel,
+  QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, mock, clockLabel,
 } from './data.js';
 
 const CALM = 0.85;           // he walks slowly unless he is angry
@@ -51,7 +51,7 @@ export class Game {
     this.mode = 'free'; this.chapter = 0;
     // his face sometimes appears in the door window
     const door = this.world.door;
-    this.doorFace = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.42), new THREE.MeshBasicMaterial({ map: this.portraitTex, color: 0x6a6a6a }));
+    this.doorFace = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.42), new THREE.MeshBasicMaterial({ map: this.portraitTex, color: 0x7c7c7c, fog: false }));
     this.doorFace.position.copy(door.glass.position).add(new THREE.Vector3(-0.004, 0, 0));
     this.doorFace.rotation.y = -Math.PI / 2;
     this.doorFace.visible = false;
@@ -132,7 +132,7 @@ export class Game {
     T.eyeGlow = 0.12; T.faceGlow = 0.08; T.lensGlow = 0; T.clap = null;
     for (const f of this.friends) {
       f.setGone(false); f.setHollow(false); f.lookTarget = null; f.forcePitch = null; f.tremble = 0; f.leanRollTarget = 0;
-      f.call = null; f.bag = new Bag(FRIEND_LINES[f.kind]); f.linesDone = 0; f.speaking = null; f.speakNoise = 0; f.talking = 0;
+      f.call = null; f.bag = new Bag(FRIEND_LINES[f.kind]); f.earlyBag = new Bag(FRIEND_EARLY[f.kind]); f.linesDone = 0; f.speaking = null; f.speakNoise = 0; f.talking = 0;
     }
     for (const s of this.students) { s.lookTarget = null; s.speed = 4; s.taken = false; s.setHollow(false); s.setGone(false); s.forcePitch = null; s.tremble = 0; s.talking = 0; }
     if (this.kevin) { this.kevin.setGone(true); this.kevin.setHollow(true); this.kevin.lookTarget = null; }
@@ -388,7 +388,7 @@ export class Game {
       this.ui.subtitle('you', pick(PLAYER_LINES), 'you', 2.2);
       tk.stage = 'wait'; tk.timer = 0;
     } else if (tk.stage === 'wait' && tk.timer > 1.3) {
-      this.friendSay(f, f.bag.next(), 0.35);
+      this.friendSay(f, (this.present ? f.bag : f.earlyBag).next(), 0.35); // before he walks in, they talk about other things
       tk.stage = 'friend'; tk.timer = 0; tk.line = f.speaking;
     } else if (tk.stage === 'friend' && tk.timer > (tk.line ? tk.line.duration : 2) + 0.2) {
       this.mischief += 25;
@@ -748,7 +748,7 @@ export class Game {
 
   // ------------------------------------------------------------- anger (gentle: scary fun, not hardcore)
   updateAnger(dt) {
-    if (this.noise > 0) {
+    if (this.noise > 0 && this.present) { // nobody gets angry while he is not in the room
       const rate = this.watching ? 14 : this.near ? 8 : [2.5, 3, 3.4, 3.8][this.phase];
       this.anger += this.noise * rate * dt;
     } else {
@@ -1745,7 +1745,10 @@ export class Game {
   *whisper(f, id, after = 0.6) {
     if (!f || f.gone) return;
     yield* this.until(() => (!this.watching || this.blind || this.typing) && !this.cutscene && !this.talk && !this.choice && !this.ui.noteOpen && !f.call && this.t >= (f.speakUntil || 0), 14);
-    if (f.call) { f.call = null; this.ui.call('left', false); this.ui.call('right', false); }
+    if (f.call) {
+      f.call = null; this.ui.call('left', false); this.ui.call('right', false);
+      this.timers.after(3, () => { if (!f.call && !(this.talk && this.talk.friend === f)) f.lookTarget = null; });
+    }
     yield* this.waitVoice(this.friendSay(f, id, 0), after);
   }
   /** add one task to the list (keeps the list short: the newest finished task + what is left) */
@@ -1788,7 +1791,13 @@ export class Game {
     yield* this.hallSteps();
     this.doorFace.visible = true;
     yield* this.wait(0.8);
-    yield* this.waitVoice(this.friendSay(nora, 'n_door', 0), 1.2);
+    this.friendSay(nora, 'n_door', 0);
+    // he stays at the window until you see him (or for a while)
+    const wp = this.doorFace.getWorldPosition(new THREE.Vector3());
+    let seenT = 0, seen = false;
+    while (seenT < 7) { seenT += this.dt; if (this.lookingAt(wp, 0.95)) { seen = true; break; } yield; }
+    if (seen) { A.play('stinger_1', { vol: 0.5, pos: wp, ref: 3 }); this.scareFear = Math.max(this.scareFear, 0.6); yield* this.wait(1.1); }
+    else yield* this.wait(0.5);
     this.doorFace.visible = false;
     yield* this.wait(2.2);
     A.play('door_open', { pos: W.door.pos, vol: 1.2, ref: 2.5 });

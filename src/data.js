@@ -20,6 +20,11 @@ export const FRIEND_LINES = {
   sam: ['s_face', 's_arms', 's_board', 's_math', 's_blink', 's_real', 's_game', 's_after', 's_scared', 's_glasses', 's_kevin'],
   nora: ['n_look', 'n_writing', 'n_phone', 'n_quiet', 'n_chalk', 'n_head', 'n_clock', 'n_notes', 'n_hands', 'n_blind'],
 };
+// what they whisper about before the substitute walks in
+export const FRIEND_EARLY = {
+  sam: ['s_late', 's_game', 's_real', 's_after'],
+  nora: ['n_free', 'n_phone', 'n_clock', 'n_quiet'],
+};
 export const PLAYER_LINES = ["shh... he'll hear us", 'I know, right?', 'look at his neck', 'stop making me laugh', 'what is he even teaching?',
   "I'm gonna fail this class", "his eyes... don't look at them", 'worst class ever', 'wait, what?', 'no way', "we're so dead", 'lol'];
 
