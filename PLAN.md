@@ -2,9 +2,11 @@
 
 The game was scary once and then repetitive: you mostly sit and hold a key, the jokes are
 scripted, he does the same things every time and every run is the same. This plan fixes that in
-8 small phases. Each phase is one request ("do phase N"), ships on its own to `main` (Vercel),
-and the game stays fully playable after every phase. Play it after each one; what feels off gets
-fixed before the next phase starts.
+8 small phases. The phases run one after another automatically (no "do phase N" needed); each
+one ships on its own to `main` (Vercel) and the game stays fully playable after every phase.
+Before the next phase starts, a review by the Fable model must pass: it checks the work against
+this plan, reads the code, runs the full test suite and looks at screenshots. Whatever it finds
+gets fixed first.
 
 ## Rules for every phase
 
@@ -24,7 +26,7 @@ fixed before the next phase starts.
 6. **Count it.** Everything a player does goes through `game.note(p, key)` and
    `game.track.event(...)` (`src/stats.js`) so the report card and scoreboard can use it.
 7. **Test, then ship.** A test for the new feature in `tests/`, then `bash tests/run.sh full`,
-   screenshots checked by eye, one pull request merged into `main`, the claude.ai link updated.
+   screenshots checked, the Fable review passed, then one commit per phase merged into `main`.
 
 ## Controls budget (everything new, in one place)
 
@@ -62,6 +64,21 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, 
   sees throwing one back gets the blame ("I saw that."). Sam's dare in period 2; periods 3-4 and
   Free Class allow pranks (period 1 does not). Touch: PRANK, then DROP / BALL-PLANE / SWAP.
   Numbers in `PRANK` (`src/data.js`). Tests: `tests/pranks.js`, `tests/mp_prank.js`, touch.js.
+
+### [ ] Online fix: friends can always join
+- The bug: `src/net.js` passed its own `iceServers` (STUN only) to PeerJS, which threw away
+  PeerJS's default TURN relays. Without a relay, two phones on different networks (mobile data,
+  strict Wi-Fi, carrier NAT) often cannot reach each other: "could not connect to the host".
+  Vercel is not the cause.
+- Relays: keep PeerJS's free TURN servers, plus an optional own relay from a tiny Vercel function
+  (`api/turn.js`, credentials in Vercel environment variables, never in the repo; Cloudflare or
+  Metered TURN, or any TURN server), including TURN over TCP/TLS on port 443 for strict networks.
+  Without the function (local server, other static hosts) the game falls back silently.
+- Joining is patient: a guest retries for about a minute with a clear status, the host's lobby
+  says to keep the game open on screen, has a share/copy button for the code, and reconnects to
+  the signalling server when the phone comes back to the game.
+- Clear errors that say what to do; the README explains how to switch on the own relay.
+- Done when: tests for the relay config, the fallback, the retry, and every online test passes.
 
 ### [ ] Phase 2: A different teacher every class (ideas 4, 6, 7)
 - **Event deck** (`src/events.js`): each class draws 3-4 from: his embarrassing ringtone,
