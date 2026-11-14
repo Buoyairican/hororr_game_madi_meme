@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pack every sound (assets/audio/voice/*.mp3 and assets/audio/sfx/*.mp3) into one file.
 
-    python3 tools/pack_audio.py OUT_PREFIX      (writes OUT_PREFIX.bin and OUT_PREFIX.json)
+    python3 tools/pack_audio.py OUT_PREFIX      (writes OUT_PREFIX.mp3 (the mp3 files one after another) and OUT_PREFIX.json (where each one starts))
 
 The game loads the pack instead of the single files when the page sets
 window.AUDIO_PACK = 'OUT_PREFIX' (relative to the page) before src/main.js runs.
@@ -21,7 +21,7 @@ def main():
     out = sys.argv[1]
     idx, off = {}, 0
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-    with open(out + '.bin', 'wb') as b:
+    with open(out + '.mp3', 'wb') as b:
         for group in ('voice', 'sfx'):
             d = os.path.join(ROOT, 'assets', 'audio', group)
             for name in sorted(os.listdir(d)):
@@ -33,7 +33,7 @@ def main():
                 off += len(data)
     with open(out + '.json', 'w') as f:
         json.dump(idx, f, separators=(',', ':'))
-    print(f'{len(idx)} sounds, {off / 1e6:.1f} MB -> {out}.bin / {out}.json')
+    print(f'{len(idx)} sounds, {off / 1e6:.1f} MB -> {out}.mp3 / {out}.json')
 
 
 if __name__ == '__main__':
