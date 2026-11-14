@@ -2,11 +2,10 @@
 
 The game was scary once and then repetitive: you mostly sit and hold a key, the jokes are
 scripted, he does the same things every time and every run is the same. This plan fixes that in
-8 small phases. The phases run one after another automatically (no "do phase N" needed); each
-one ships on its own to `main` (Vercel) and the game stays fully playable after every phase.
-Before the next phase starts, a review by the Fable model must pass: it checks the work against
-this plan, reads the code, runs the full test suite and looks at screenshots. Whatever it finds
-gets fixed first.
+8 small phases. The phases run one after another; each one ships on its own to `main` (Vercel)
+and the game stays fully playable after every phase. Before the next phase starts, the work is
+reviewed: checked against this plan, the code read again, the full test suite run and the
+screenshots looked at. Whatever the review finds gets fixed first.
 
 ## Rules for every phase
 
@@ -26,7 +25,8 @@ gets fixed first.
 6. **Count it.** Everything a player does goes through `game.note(p, key)` and
    `game.track.event(...)` (`src/stats.js`) so the report card and scoreboard can use it.
 7. **Test, then ship.** A test for the new feature in `tests/`, then `bash tests/run.sh full`,
-   screenshots checked, the Fable review passed, then one commit per phase merged into `main`.
+   screenshots checked, the review passed, one pull request merged into `main`, the claude.ai link
+   updated.
 
 ## Controls budget (everything new, in one place)
 

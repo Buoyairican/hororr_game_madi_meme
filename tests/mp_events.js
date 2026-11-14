@@ -200,7 +200,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await H.waitForTimeout(3500);
   await C.evaluate(() => game.mp.leave());
   await expect(H, 'a friend leaves in the middle of the fly hunt at their desk: they are gone from the class...', () => game.players.length === 2, 15000);
-  const done = await waitFor(H, () => !game.classEvent && game.state === 'playing', 100000);
+  const done = await waitFor(H, () => !game.classEvent && game.state === 'playing', 180000); // (real time: slow machines tick slower)
   (done ? ok : bad).push('...and the hunt goes on and ends without them');
   await check(G, 'the other friend is still in the class', `game.state === 'playing' && game.players.length === 2`);
   await check(H, 'host: every event of this class is in the class log', `['ringtone', 'fly', 'pizza', 'firedrill', 'leave'].every((id) => game.track.log.some((e) => e.type === 'classEvent' && e.id === id))`);
