@@ -12,8 +12,16 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
   page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message + ' | ' + (e.stack || '').split('\n').slice(1, 3).join(' ')));
   await page.goto(`${ROOT}/index.html?debug=1&autostart=1&mode=${mode}&ch=${ch}${HARD ? '&diff=hard' : ''}`);
   await page.waitForFunction(() => window.game && game.state === 'playing', null, { timeout: 120000 });
-  const res = await page.evaluate(([policy, fin, secs, HARD]) => {
+  const res = await page.evaluate(async ([policy, fin, secs, HARD]) => {
     const g = window.game; const ev = [];
+    const PR = await import('/src/pranks.js');
+    // a throw at his back from your seat (the aim arc's own flight code)
+    const backThrow = () => {
+      const T = g.teacher, targets = g.prankTargets(), out = { pts: Array.from({ length: 70 }, () => g.camPos.clone()), n: 0, hit: null, at: g.camPos.clone() };
+      const sp = g.camPos.clone(), sv = g.camPos.clone(), d = T.headWorld().sub(g.camPos), y0 = Math.atan2(-d.x, -d.z);
+      for (let pitch = -0.2; pitch <= 0.8; pitch += 0.02) { PR.throwStart(g.camPos, y0, pitch, 1, 'ball', sp, sv); g.simThrow(sp, sv, 'ball', 0, g.me, targets, out); if (out.hit && out.hit.type === 'teacher' && out.hit.part === 'back') return { yaw: y0, pitch: pitch + 0.02, power: 1, kind: 'ball', curve: 0 }; }
+      return null;
+    };
     let lastSub = '', maxStrikes = 0, maxAnger = 0;
     for (let i = 0; i < Math.round(secs / 0.05) && g.state === 'playing'; i++) {
       if (g.choice) g.input.choiceKey = g.choice.labels[0].startsWith('Are you') ? fin : (g.choice.labels[0].startsWith('Four') ? 1 : 0);
@@ -37,6 +45,13 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
         if (g.vidJob && !g.vidJob.done) { g.input.keys.phone = safe; g.input.keys.talk = false; }
         if (g.canEcho() && g.echoStreak < (HARD ? 1 : 2) && Math.random() < 0.03) g.input.pressed.echo = true;
         if (g.canAsk() && g.qCount < 2 && Math.random() < 0.008) g.input.pressed.ask = true;
+        // Sam's dare (period 2): a paper ball at his back, only while it is turned
+        const T = g.teacher;
+        const away = Math.sin(T.root.rotation.y) * (g.camPos.x - T.pos.x) + Math.cos(T.root.rotation.y) * (g.camPos.z - T.pos.z) < 0;
+        if (g.objectives.some((o) => o.id === 'prankBack' && !o.done) && safe && away && g.prankOpen() && !g.prankBusy && i % 40 === 0 && g.me.foldT <= 0) {
+          const t = backThrow();
+          if (t) { g.yaw = t.yaw; g.pitch = t.pitch; g.throwFrom(g.me, t); ev.push(g.t.toFixed(0) + ' [THROW] at his back'); }
+        }
       }
       if (policy === 'echo' && g.canEcho()) g.input.pressed.echo = true;
       if (policy === 'ask' && g.canAsk()) g.input.pressed.ask = true;
@@ -56,7 +71,8 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
     return { state: g.state, end: document.getElementById('end-title').innerText, endText: document.getElementById('end-text').innerText.slice(0, 80),
       primary: document.getElementById('btn-again').innerText, t: +g.t.toFixed(0), clock: document.getElementById('clock-hud').innerText,
       strikes: g.strikes, maxStrikes, maxAnger: +maxAnger.toFixed(0), mischief: Math.floor(g.mischief), objs: g.objectives.map((o) => o.id + (o.done ? '✓' : '✗')).join(' '),
-      teacherY: +T.root.position.y.toFixed(2), glassesOnHead: T.glasses.parent === T.head, cut: g.cutscene, memes: g.stats.memes, videos: g.stats.videos, fails: g.stats.fails, events: ev };
+      teacherY: +T.root.position.y.toFixed(2), glassesOnHead: T.glasses.parent === T.head, cut: g.cutscene, memes: g.stats.memes, videos: g.stats.videos, fails: g.stats.fails,
+      throws: g.stats.throws, hitHim: g.stats.hitHim, papers: g.papers.length, events: ev };
   }, [policy, +fin, +secs, HARD]);
   console.log(JSON.stringify(res, null, 0));
   // a careful player should get through the period (on Hard one strike ends it, which is allowed)

@@ -26,10 +26,10 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
       while (g.state === 'playing' && g.t < maxT) {
         // ---- random player
         if (lazy) { if (Math.random() < 0.006) intent = Math.random() < 0.85 ? (Math.random() < 0.5 ? 'idle' : 'look') : ['sam', 'nora', 'phone'][(Math.random() * 3) | 0]; if (g.memeBusy && g.canEcho() && Math.random() < 0.004) g.input.pressed.echo = true; }
-        else if (Math.random() < 0.012) intent = ['idle', 'idle', 'idle', 'sam', 'nora', 'phone', 'phone', 'look', 'look', 'echo', 'ask', 'show'][(Math.random() * 12) | 0];
+        else if (Math.random() < 0.012) intent = ['idle', 'idle', 'idle', 'sam', 'nora', 'phone', 'phone', 'look', 'look', 'echo', 'ask', 'show', 'prank'][(Math.random() * 13) | 0];
         if (g.shows.some((s) => !s.over) && Math.random() < 0.02) intent = 'show';
         if (g.vidJob && Math.random() < 0.02) intent = 'phone';
-        g.input.keys.talk = false; g.input.keys.phone = false;
+        g.input.keys.talk = false; g.input.keys.phone = false; if (intent !== 'prank') g.input.keys.prank = false;
         const safe = (!g.watching && !g.near) || reckless;
         if (Math.random() < 0.004) reckless = Math.random() < 0.15;
         if (intent === 'sam') { g.yaw = 1.52; g.input.keys.talk = safe && Math.random() < 0.97; }
@@ -44,6 +44,14 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
         else if (intent === 'look') { if (Math.random() < 0.02) yawT = (Math.random() * 2 - 1) * 2.8; g.yaw += (yawT - g.yaw) * 0.1; g.pitch = Math.sin(g.t) * 0.3; }
         else if (intent === 'echo') { if (Math.random() < 0.05 && (g.echoStreak < 2 || reckless)) g.input.pressed.echo = true; }
         else if (intent === 'ask') { if (Math.random() < 0.03 && (g.qCount < 3 || reckless)) g.input.pressed.ask = true; }
+        else if (intent === 'prank') {
+          // aim somewhere (often at him), hold, let go; switch ball / plane now and then
+          if (Math.random() < 0.03) { const T = g.teacher, d = T.headWorld().sub(g.camPos); yawT = Math.random() < 0.6 ? Math.atan2(-d.x, -d.z) : (Math.random() * 2 - 1) * 2.8; }
+          g.yaw += (yawT - g.yaw) * 0.2; g.pitch = 0.15 + Math.sin(g.t * 0.7) * 0.2;
+          g.input.keys.prank = (safe || reckless) ? (g.t * 1.3) % 2 < 1.4 : false;
+          if (Math.random() < 0.01) g.input.pressed.swap = true;
+          if (Math.random() < 0.004) g.input.pressed.drop = true;
+        }
         else { g.yaw *= 0.97; }
         if (g.buzz && Math.random() < 0.01) g.input.keys.phone = true;
         if (g.choice) {
@@ -73,10 +81,14 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
         blackT = g.blackout > 0.9 && !g.ending ? blackT + 0.05 : 0; if (blackT > 12) issue('black', 'screen black > 12 s');
         for (const s of g.students) if (s.hollow && !s.taken && !g.cutscene && !g.eventLock && !g.fx.length && g.phase < 3) issue('hollow' + s.name, s.name + ' hollow eyes with no reason');
         if (T.glassesHeld && !g.blind && !g.cutscene && g.brainIdle) issue('glasses', 'glasses still in his hand');
+        if (T.glasses.parent !== T.head && !T.glassesHeld && !g.blind && !g.ending && g.brainIdle) issue('glassesFloor', 'glasses left on the floor');
+        if (g.blind && g.brainIdle && !T.glassesHeld && T.glasses.parent === T.head) issue('blind', 'blind with his glasses on');
+        if (g.papers.length > 16) issue('papers', 'too many papers: ' + g.papers.length);
+        if (g.laugh < 0 || g.laugh > 100 || !isFinite(g.mischief)) issue('laugh', 'laugh/mischief out of range');
       }
       if (g.state === 'playing') issue('nofinish', `did not finish by ${maxT}s: clock=${document.getElementById('clock-hud').innerText} script=${!!g.script} brainIdle=${g.brainIdle} cut=${g.cutscene} memeBusy=${g.memeBusy} objs=${g.objectives.map((o) => o.id + (o.done ? '+' : '-')).join(' ')}`);
-      const out = { mode, ch, t: +g.t.toFixed(0), end: document.getElementById('end-title').innerText, strikes: g.strikes, memes, issues };
-      g.input.keys.talk = g.input.keys.phone = false;
+      const out = { mode, ch, t: +g.t.toFixed(0), end: document.getElementById('end-title').innerText, strikes: g.strikes, memes, throws: g.stats.throws, hitHim: g.stats.hitHim, issues };
+      g.input.keys.talk = g.input.keys.phone = g.input.keys.prank = false;
       if (g.state === 'end' || g.state === 'playing') { g.state = 'title'; g.audio.stopAll(); }
       return out;
     }, [mode, ch, lazy, hard]);

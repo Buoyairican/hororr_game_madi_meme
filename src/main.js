@@ -86,6 +86,7 @@ async function boot() {
   input.sens = settings.sens;
   input.bindButton(document.getElementById('btn-talk'), 'talk');
   input.bindButton(document.getElementById('btn-phone'), 'phone');
+  input.bindButton(document.getElementById('btn-prank'), 'prank');
   input.bindTap(document.getElementById('btn-echo'), 'echo');
   input.bindTap(document.getElementById('btn-ask'), 'ask');
 

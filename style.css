@@ -233,3 +233,28 @@ body.touch .desk-only { display: none !important; }
 #mp-mode { font: inherit; background: rgba(0, 0, 0, 0.5); color: var(--ink); border: 1px solid var(--line); padding: 10px; margin: 0 0 10px; display: block; width: 100%; max-width: 360px; margin-inline: auto; }
 #mp-status { min-height: 1.4em; color: #e0a090; font-size: 14px; }
 #mp-status.ok { color: var(--dim); }
+
+/* ---------- pranks (Phase 1) ---------- */
+#laugh { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 2px; transition: opacity .4s; }
+#laugh.off { opacity: 0; }
+#laugh .lbl { color: var(--dim); }
+#laugh-bar { display: inline-block; width: 110px; height: 5px; background: rgba(255,255,255,.12); }
+#laugh-fill { display: block; height: 100%; width: 0%; background: #f0c27a; transition: width .2s; box-shadow: 0 0 6px rgba(240,194,122,.6); }
+#laugh-mult { color: #f0c27a; min-width: 30px; }
+#aim-hud { position: absolute; left: 50%; top: calc(50% + 50px); transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .15s;
+  font-size: 11px; letter-spacing: 2px; color: #e9e3cf; text-shadow: 0 0 5px #000; }
+#aim-hud.show { opacity: 1; }
+#aim-pow { width: 90px; height: 3px; margin: 4px auto 0; background: rgba(255,255,255,.15); }
+#aim-pow-fill { height: 100%; width: 0%; background: #f0c27a; }
+.tside { display: flex; align-items: flex-end; gap: 12px; }
+.tbtn.mid { width: 70px; height: 70px; font-size: 12px; }
+@media (max-height: 500px) {
+  .tbtn.mid { width: 60px; height: 60px; }
+  #laugh-bar { width: 80px; }
+}
+@media (max-height: 500px) {
+  /* five tasks must stay clear of the touch buttons */
+  #objectives { font-size: 13px; line-height: 1.25; padding: 5px 9px 5px 8px; }
+  #objectives li { padding-top: 1px; padding-bottom: 1px; }
+  #objectives::before { margin-bottom: 2px; font-size: 10px; }
+}

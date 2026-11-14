@@ -15,6 +15,9 @@ export const STAT_KEYS = [
   'caught',      // strikes you caused
   'closeCalls',  // he was about to come over... and didn't
   'notes',       // notes read
+  'throws',      // paper balls / planes thrown
+  'hits',        // ...that hit someone (or the board)
+  'hitHim',      // ...that hit him
 ];
 
 export class RunStats {
@@ -23,7 +26,7 @@ export class RunStats {
   reset() {
     this.by = new Map();        // player id -> counters
     this.log = [];              // what happened, in order: { t, who, type, ...info }
-    this.global = { objectives: 0, memes: 0, peakAnger: 0 };
+    this.global = { objectives: 0, memes: 0, peakAnger: 0, peakLaugh: 0 };
   }
 
   /** the counters for one player (made on first use) */

@@ -26,6 +26,7 @@
   <div id="hud-top">
     <div id="hud-left">
       <div id="score"><span class="lbl">MISCHIEF</span> <span id="score-val">0</span></div>
+      <div id="laugh" class="off"><span class="lbl">LAUGHS</span><span id="laugh-bar"><span id="laugh-fill"></span></span><span id="laugh-mult"></span></div>
       <ul id="objectives"></ul>
     </div>
     <div id="eye-wrap">
@@ -43,6 +44,7 @@
   </div>
   <div id="crosshair"></div>
   <div id="prompt"></div>
+  <div id="aim-hud"><div id="aim-kind"></div><div id="aim-pow"><div id="aim-pow-fill"></div></div></div>
   <div id="hint"></div>
   <div id="echo-cue"><span class="key">R</span> repeat him<div id="echo-bar"></div></div>
   <div id="call-left" class="call">psst!</div>
@@ -50,10 +52,13 @@
   <div id="phone-alert">📳 your phone is buzzing</div>
   <div id="subtitle"></div>
   <div id="toast"></div>
-  <div id="keys-legend" class="desk-only"><kbd>E</kbd> whisper · <kbd>Q</kbd> phone · <kbd>R</kbd> repeat him · <kbd>T</kbd> ask</div>
+  <div id="keys-legend" class="desk-only"><kbd>E</kbd> whisper · <kbd>Q</kbd> phone · <kbd>R</kbd> repeat him · <kbd>T</kbd> ask · <kbd>G</kbd> throw paper</div>
   <button id="btn-pause" class="touch-only" aria-label="Pause">II</button>
   <div id="touch-buttons" class="touch-only">
-    <div class="tcol"><button id="btn-ask" class="tbtn small">ASK</button><button id="btn-phone" class="tbtn">PHONE</button></div>
+    <div class="tside">
+      <div class="tcol"><button id="btn-ask" class="tbtn small">ASK</button><button id="btn-phone" class="tbtn">PHONE</button></div>
+      <div class="tcol"><button id="btn-prank" class="tbtn mid">PRANK</button></div>
+    </div>
     <div class="tcol"><button id="btn-echo" class="tbtn small">ECHO</button><button id="btn-talk" class="tbtn">TALK</button></div>
   </div>
 </div>
@@ -115,12 +120,14 @@
       <li><b>Meme videos</b> &mdash; friends send you videos and classmates hold their phone out to you. Watch them to the end, but <b>if he sees you watching a video, he takes the phone</b>.</li>
       <li><b>Repeat him</b> &mdash; right after he says something, press <kbd>R</kbd> / <b>ECHO</b>. The class laughs and he walks down the rows to find who said it. Do it three times in a row and he knows it was you.</li>
       <li><b>Ask a dumb question</b> &mdash; <kbd>T</kbd> / <b>ASK</b>. He stares at you, doesn't know the answer, and walks to his laptop to look it up. While he types, he isn't watching. Ask <b>too many</b> and you're in trouble.</li>
+      <li><b>Pranks</b> &mdash; hold <kbd>G</kbd> / <b>PRANK</b>: a dotted arc shows where your paper goes. Let go to throw (hold longer to throw harder). <kbd>X</kbd> or the mouse wheel / <b>SWAP</b> picks a paper ball or a paper plane (slower, glides farther, curves). Hit his back and he spins around (three hits and he knows it was you), hit his head and his glasses fly off, hit a kid and they might throw one back. <b>If he sees your arm up, you're caught.</b></li>
+      <li><b>LAUGHS</b> &mdash; good pranks make the class laugh: everything you do is worth more mischief, but he hears the laughing around you.</li>
       <li><b>When the chalk stops, stop talking.</b> He turns around without warning.</li>
       <li>When he wipes his glasses, he can't see you at all.</li>
       <li>If he catches you, he comes to your desk. <b>Three strikes</b> and the period is over.</li>
       <li>Sit still too long and the <b>class clowns</b> in the back start making noises. He will go and find out who did it.</li>
       <li><b>Difficulty</b>: <b>Easy</b> gives you 3 strikes. <b>Hard</b> plays the same, but you only get <b>one strike</b>, and if he actually <b>sees</b> you whispering or on your phone, he comes for you right away.</li>
-      <li><b>Play with friends</b> (Free Class): one of you hosts, the others join with the class code (up to 4). Look at a friend and hold <kbd>E</kbd> / <b>TALK</b> to whisper to them. In the meme app, look at a friend and press <kbd>R</kbd> / <b>SHOW</b> to hold your phone out to them. Strikes are shared, so keep each other quiet.</li>
+      <li><b>Play with friends</b> (Free Class): one of you hosts, the others join with the class code (up to 4). Look at a friend and hold <kbd>E</kbd> / <b>TALK</b> to whisper to them. In the meme app, look at a friend and press <kbd>R</kbd> / <b>SHOW</b> to hold your phone out to them. Throw paper at each other too. Strikes are shared, so keep each other quiet.</li>
     </ul>
     <button class="back">BACK</button>
   </div>

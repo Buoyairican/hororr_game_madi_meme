@@ -104,6 +104,31 @@
   "text": "I... will... find you.",
   "dur": 3.762
  },
+ "t_whothrew": {
+  "who": "teacher",
+  "text": "Who... threw... that.",
+  "dur": 3.605
+ },
+ "t_isaw": {
+  "who": "teacher",
+  "text": "I... saw... that.",
+  "dur": 3.37
+ },
+ "t_myglasses": {
+  "who": "teacher",
+  "text": "My... glasses.",
+  "dur": 2.351
+ },
+ "t_paper": {
+  "who": "teacher",
+  "text": "Paper... is for... writing.",
+  "dur": 4.049
+ },
+ "t_funny": {
+  "who": "teacher",
+  "text": "Is something... funny?",
+  "dur": 2.795
+ },
  "t_moment": {
   "who": "teacher",
   "text": "One... moment.",
@@ -816,6 +841,24 @@
   "whisper": true,
   "dur": 1.881
  },
+ "s_throw": {
+  "who": "sam",
+  "text": "Throw a paper ball at his back. I dare you.",
+  "whisper": true,
+  "dur": 2.377
+ },
+ "s_hit": {
+  "who": "sam",
+  "text": "Bro! Right in the back!",
+  "whisper": true,
+  "dur": 1.567
+ },
+ "s_ow": {
+  "who": "sam",
+  "text": "Ow! Hey!",
+  "whisper": true,
+  "dur": 1.019
+ },
  "n_free": {
   "who": "nora",
   "text": "Maybe we get a free period.",
@@ -1061,6 +1104,18 @@
   "text": "I can't breathe.",
   "whisper": true,
   "dur": 0.836
+ },
+ "n_hit": {
+  "who": "nora",
+  "text": "Oh my god. You actually hit him.",
+  "whisper": true,
+  "dur": 1.985
+ },
+ "n_ow": {
+  "who": "nora",
+  "text": "Ow! Seriously?",
+  "whisper": true,
+  "dur": 1.332
  },
  "s_hey": {
   "who": "sam",
@@ -1359,6 +1414,30 @@
   "text": "Sorry, sir.",
   "meme": true,
   "dur": 0.888
+ },
+ "k_ow_b": {
+  "who": "kid",
+  "text": "Ow! Hey!",
+  "meme": true,
+  "dur": 0.914
+ },
+ "k_ow_g": {
+  "who": "kid",
+  "text": "Ow! Hey!",
+  "meme": true,
+  "dur": 0.94
+ },
+ "k_takethat_b": {
+  "who": "kid",
+  "text": "Take that!",
+  "meme": true,
+  "dur": 0.522
+ },
+ "k_takethat_g": {
+  "who": "kid",
+  "text": "Take that!",
+  "meme": true,
+  "dur": 0.549
  },
  "pa_hale": {
   "who": "pa",

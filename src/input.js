@@ -3,11 +3,13 @@ export class Input {
   constructor(canvas) {
     this.canvas = canvas;
     this.dx = 0; this.dy = 0;
-    this.talk = false; this.phone = false;
-    this.keys = { talk: false, phone: false };
+    this.talk = false; this.phone = false; this.prank = false;
+    this.keys = { talk: false, phone: false, prank: false };
     this.mouse = { talk: false, phone: false };
-    this.touchBtn = { talk: false, phone: false };
-    this.pressed = { echo: false, ask: false, tap: false };   // one-shot actions (tap: E / click with the phone up)
+    this.touchBtn = { talk: false, phone: false, prank: false };
+    // one-shot actions (tap: E / click with the phone up; swap: X / wheel, ball or plane; drop: put the paper away)
+    this.pressed = { echo: false, ask: false, tap: false, swap: false, drop: false };
+    this.wheelAt = 0;
     this.choiceKey = -1;
     this.sens = 1;
     this.enabled = false;
@@ -50,6 +52,8 @@ export class Input {
       const k = e.key.toLowerCase();
       if (k === 'e' || k === ' ') { this.keys.talk = true; if (this.enabled) this.pressed.tap = true; }
       if (k === 'q' || k === 'f') this.keys.phone = true;
+      if (k === 'g' && this.enabled) this.keys.prank = true;
+      if (this.enabled && k === 'x') this.pressed.swap = true;
       if (this.enabled && k === 'r') this.pressed.echo = true;
       if (this.enabled && k === 't') this.pressed.ask = true;
       if (this.enabled && k >= '1' && k <= '3') this.choiceKey = Number(k) - 1;
@@ -60,8 +64,17 @@ export class Input {
       const k = e.key.toLowerCase();
       if (k === 'e' || k === ' ') this.keys.talk = false;
       if (k === 'q' || k === 'f') this.keys.phone = false;
+      if (k === 'g') this.keys.prank = false;
     });
-    window.addEventListener('blur', () => { this.keys.talk = this.keys.phone = this.mouse.talk = this.mouse.phone = false; });
+    window.addEventListener('blur', () => { this.keys.talk = this.keys.phone = this.keys.prank = this.mouse.talk = this.mouse.phone = false; this.pressed.drop = true; });
+    // the mouse wheel switches paper ball / paper plane
+    // (a trackpad swipe or a free-spinning wheel sends a stream of events: one gesture, one switch)
+    window.addEventListener('wheel', (e) => {
+      if (!this.enabled || Math.abs(e.deltaY) < 1) return;
+      const now = performance.now(), gap = now - this.wheelAt;
+      this.wheelAt = now;
+      if (gap > 220) this.pressed.swap = true;
+    }, { passive: true });
 
     // touch: any finger that starts on the canvas looks around
     c.addEventListener('touchstart', (e) => {
@@ -113,8 +126,8 @@ export class Input {
   }
 
   takePressed() {
-    const p = { echo: this.pressed.echo, ask: this.pressed.ask, tap: this.pressed.tap };
-    this.pressed.echo = this.pressed.ask = this.pressed.tap = false;
+    const p = { ...this.pressed };
+    for (const k in this.pressed) this.pressed[k] = false;
     return p;
   }
 
@@ -135,7 +148,9 @@ export class Input {
     if (!on) {
       this.wantLock = false;
       if (document.pointerLockElement) document.exitPointerLock();
-      this.touchBtn.talk = this.touchBtn.phone = false;
+      this.touchBtn.talk = this.touchBtn.phone = this.touchBtn.prank = false;
+      this.keys.prank = false;
+      this.pressed.drop = true; // a paper you were aiming is not thrown when you pause
       document.querySelectorAll('.tbtn').forEach((b) => b.classList.remove('active'));
     }
   }
@@ -147,6 +162,7 @@ export class Input {
     this.dx = this.dy = 0;
     this.talk = this.keys.talk || this.mouse.talk || this.touchBtn.talk;
     this.phone = this.keys.phone || this.mouse.phone || this.touchBtn.phone;
+    this.prank = this.keys.prank || this.touchBtn.prank;
     return r;
   }
 }

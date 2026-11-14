@@ -7,7 +7,8 @@ export class UI {
     for (const id of ['hud', 'score-val', 'eye', 'eye-label', 'anger', 'anger-fill', 'clock-hud', 'prompt', 'hint', 'call-left', 'call-right', 'phone-alert',
       'subtitle', 'toast', 'blackout', 'flash', 'note', 'note-text', 'title', 'loading', 'load-fill', 'load-text', 'menu', 'how', 'settings',
       'pause', 'end', 'end-title', 'end-text', 'end-stats', 'rotate', 'err', 'crosshair', 'objectives', 'strikes', 'bully', 'echo-cue', 'echo-bar',
-      'choices', 'choices-title', 'choices-list', 'choices-bar', 'card', 'card-time', 'card-title', 'card-sub', 'chapters', 'chapter-list', 'btn-again', 'btn-echo', 'mp']) this.el[id] = $(id);
+      'choices', 'choices-title', 'choices-list', 'choices-bar', 'card', 'card-time', 'card-title', 'card-sub', 'chapters', 'chapter-list', 'btn-again', 'btn-echo', 'mp',
+      'laugh', 'laugh-fill', 'laugh-mult', 'aim-hud', 'aim-kind', 'aim-pow-fill']) this.el[id] = $(id);
     this.subTimer = 0;
     this.hintTimer = 0;
     this.toastTimer = 0;
@@ -36,6 +37,23 @@ export class UI {
 
   setScore(v) { this.set('score', Math.floor(v), (x) => (this.el['score-val'].textContent = x)); }
   setClock(s) { this.set('clock', s, (x) => (this.el['clock-hud'].textContent = x)); }
+  /** the LAUGHS meter (0..100): the class laughing at your pranks multiplies your mischief */
+  setLaugh(v) {
+    const n = Math.round(v);
+    this.set('laugh', n, (x) => {
+      this.el.laugh.classList.toggle('off', x < 1);
+      this.el['laugh-fill'].style.width = x + '%';
+      this.el['laugh-mult'].textContent = x >= 5 ? '×' + (1 + x / 100).toFixed(1) : '';
+    });
+  }
+  /** aiming a paper: what you hold and how hard you will throw (null hides it) */
+  aim(name, power = 0, ready = true) {
+    const on = !!name;
+    this.set('aimOn', on, () => this.el['aim-hud'].classList.toggle('show', on));
+    if (!on) return;
+    this.set('aimKind', name + (ready ? '' : ' (folding…)'), (x) => (this.el['aim-kind'].textContent = x));
+    this.set('aimPow', Math.round(power * 20), (x) => (this.el['aim-pow-fill'].style.width = x * 5 + '%'));
+  }
   setEye(state) {
     this.set('eye', state, (st) => {
       this.el.eye.setAttribute('class', st === 'closed' ? '' : st);
@@ -139,6 +157,14 @@ export class UI {
       if (!mode) {
         if (lg) lg.innerHTML = this.legendHtml;
         if (T) T.textContent = 'TALK'; if (A) A.textContent = 'ASK'; if (E) E.textContent = 'ECHO';
+        return;
+      }
+      if (mode.startsWith('aim')) {
+        // aiming a paper: let go to throw; the other buttons switch ball / plane or put it away
+        if (lg) lg.innerHTML = 'let go of <kbd>G</kbd> to throw · <kbd>X</kbd> / wheel: ball or plane · <kbd>E</kbd> put it away';
+        if (T) T.textContent = 'DROP';
+        if (A) A.textContent = mode === 'aim:plane' ? 'PLANE' : 'BALL';
+        if (E) E.textContent = 'SWAP';
         return;
       }
       if (lg) {

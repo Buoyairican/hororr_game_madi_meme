@@ -1140,9 +1140,84 @@ def make_v4():
     save("phone_fail", np.tanh(x * 2.2), 0.97, "96k")
 
 
+def crinkle(dur, density, lo=1800, hi=6500, seed=0):
+    """paper: lots of tiny dry crackles"""
+    r = np.random.default_rng(seed)
+    x = np.zeros(int(dur * SR))
+    n = int(density * dur)
+    for _ in range(n):
+        at = r.random() * (dur - 0.02)
+        d = r.uniform(0.002, 0.012)
+        tt = t_axis(d)
+        click = biquad(r.standard_normal(len(tt)), "bp", r.uniform(lo, hi), r.uniform(0.8, 2.5)) * np.exp(-tt / (d * 0.3))
+        place(x, click * r.uniform(0.2, 1.0), at)
+    return x
+
+
+def make_v5():
+    """pranks: crumpling paper, folding a plane, the throw, the hits, the class laughing"""
+    # crumple a sheet into a ball: crackles that get denser, then a squeeze
+    d = 0.6; t = t_axis(d)
+    x = crinkle(d, 260, seed=11) * (0.35 + 0.65 * np.sin(np.pi * np.clip(t / d, 0, 1)))
+    x += biquad(noise(d), "bp", 900, 0.8) * 0.06 * np.exp(-((t - 0.45) / 0.08) ** 2)
+    save("prank_crumple", x, 0.6)
+    # fold a paper plane: three crisp creases with a slide of the fingers between them
+    d = 0.75
+    x = np.zeros(int(d * SR))
+    for k, at in enumerate((0.05, 0.3, 0.52)):
+        tt = t_axis(0.16)
+        slide = biquad(noise(0.16), "bp", 2400 + 500 * k, 1.2) * np.sin(np.pi * tt / 0.16) * 0.22
+        place(x, slide, at)
+        place(x, crinkle(0.06, 900, 2500, 7000, seed=20 + k) * 1.2, at + 0.12)
+    save("prank_fold", x, 0.55)
+    # the throw: a soft swish of air
+    d = 0.32; t = t_axis(d)
+    x = svf(noise(d), 500 + 2600 * (t / d), 1.4, "bp") * np.sin(np.pi * t / d) ** 2
+    save("prank_swish", x, 0.5)
+    # a paper ball hits a person: a soft thump with a crinkle
+    d = 0.22; t = t_axis(d)
+    x = biquad(noise(d), "lp", 700) * np.exp(-t / 0.025) * 1.4 + crinkle(d, 300, seed=31) * 0.5 * np.exp(-t / 0.06)
+    x += osc_sin(np.full(len(t), 140.0)) * np.exp(-t / 0.03) * 0.5
+    save("prank_hit", x, 0.75)
+    # a paper ball hits the chalkboard: a hollow tok
+    d = 0.5; t = t_axis(d)
+    x = osc_sin(np.full(len(t), 185.0)) * np.exp(-t / 0.06) + osc_sin(np.full(len(t), 410.0)) * np.exp(-t / 0.03) * 0.5
+    x += biquad(noise(d), "bp", 1400, 1.0) * np.exp(-t / 0.01) * 0.8 + crinkle(d, 200, seed=41) * 0.4 * np.exp(-t / 0.05)
+    save("prank_board", reverb(x, 0.25, dur=0.8, decay=0.6), 0.8)
+    # tapping a desk or the floor
+    d = 0.12; t = t_axis(d)
+    x = biquad(noise(d), "bp", 2200, 1.5) * np.exp(-t / 0.008) + crinkle(d, 200, seed=51) * 0.3
+    save("prank_tick", x, 0.4)
+    # you got hit: a cartoon "bop"
+    d = 0.35; t = t_axis(d)
+    x = osc_sin(620 * np.exp(-t / 0.12) + 180) * np.exp(-t / 0.09) + crinkle(d, 260, seed=61) * 0.35 * np.exp(-t / 0.08)
+    save("bonk", x, 0.8)
+    # the whole class laughing (kids, not a sitcom): many short "ha"s, higher voices, a big room
+    d = 3.4
+    x = np.zeros(int(d * SR))
+    r = np.random.default_rng(71)
+    for v in range(22):
+        f = r.uniform(230, 430)
+        start = r.uniform(0, 0.7)
+        n = int(r.integers(4, 11))
+        rate = r.uniform(5.0, 7.5)
+        form = r.uniform(900, 1300)
+        for k in range(n):
+            tt = t_axis(0.1)
+            ff = f * (1.1 - 0.06 * k / n) * r.uniform(0.97, 1.03)
+            h = osc_saw(np.full(len(tt), ff)) * np.sin(np.pi * tt / 0.1) ** 2
+            h = biquad(h, "bp", form, 2) * 1.2 + biquad(h, "bp", form * 2.1, 3) * 0.6 + biquad(noise(0.1), "bp", 2400, 1) * 0.2 * np.sin(np.pi * tt / 0.1)
+            place(x, h * (1 - k / (n + 3)) * r.uniform(0.5, 1.0), start + k / rate)
+    x *= np.clip(t_axis(d) / 0.05, 0, 1) * np.clip((d - t_axis(d)) / 1.6, 0, 1)
+    save("class_laugh", reverb(x, 0.35, dur=1.4, decay=0.5), 0.8)
+
+
 if __name__ == "__main__":
     import sys
     print("Synthesising sound effects ->", OUT)
+    if "v5" in sys.argv:
+        make_v5()
+        raise SystemExit(0)
     if "memes" in sys.argv:  # only a newer group
         make_memes()
         raise SystemExit(0)
@@ -1168,4 +1243,5 @@ if __name__ == "__main__":
     make_memes()
     make_v3()
     make_v4()
+    make_v5()
     print("done")

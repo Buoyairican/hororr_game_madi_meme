@@ -35,7 +35,7 @@ fixed before the next phase starts.
 | Hold your breath | hold **B** | BREATH |
 | Blame | the 1-3 choice menu you already know | the choice buttons |
 
-Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click.
+Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, X, mouse wheel.
 
 ## Phases
 
@@ -45,7 +45,7 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click.
 - `src/stats.js`: per-player counters (whispers, echoes, questions, videos, shown, fails,
   caught by reason, close calls, notes, talk / phone seconds) + an event log, reset every class.
 
-### [ ] Phase 1: Pranks you aim + the laugh meter (ideas 1, 2)
+### [x] Phase 1: Pranks you aim + the laugh meter (ideas 1, 2)
 - New `src/pranks.js`. Hold G: an arc preview from your hand; release: throw. Paper ball and
   paper plane (plane glides and curves). Hits: the board, his back, a friend, a kid's head.
 - A projectile is a small simulated object (position, velocity, gravity, drag) hitting simple
@@ -57,6 +57,11 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click.
 - Online: guests send `{t:'press', k:'throw', yaw, pitch, power}`; the host simulates;
   snapshots carry active projectiles; avatars play a throw.
 - Done when: tests for aiming, each hit type, his reactions, the meter, online throws.
+- Shipped: the aim arc uses the very same flight code as the real throw. His head: the glasses
+  fly off and he is blind until he finds them. Three hits on him within 45 s: caught. A kid he
+  sees throwing one back gets the blame ("I saw that."). Sam's dare in period 2; periods 3-4 and
+  Free Class allow pranks (period 1 does not). Touch: PRANK, then DROP / BALL-PLANE / SWAP.
+  Numbers in `PRANK` (`src/data.js`). Tests: `tests/pranks.js`, `tests/mp_prank.js`, touch.js.
 
 ### [ ] Phase 2: A different teacher every class (ideas 4, 6, 7)
 - **Event deck** (`src/events.js`): each class draws 3-4 from: his embarrassing ringtone,
