@@ -105,16 +105,21 @@ export class AudioSys {
     this.createContext();
     const vj = await fetch(this.base + 'voices.json').then((r) => r.json());
     this.voices = vj;
+    // every sound in one file instead of hundreds, when the page asks for it (window.AUDIO_PACK = 'path/to/pack':
+    // pack.json + pack.bin, made by tools/pack_audio.py; the claude.ai preview uses it). Missing: one file each.
+    const pack = await this.loadPack(typeof window !== 'undefined' ? window.AUDIO_PACK : null);
     const jobs = [
-      ...Object.keys(vj).map((k) => [k, this.base + 'voice/' + k + '.mp3']),
-      ...SFX.map((k) => [k, this.base + 'sfx/' + k + '.mp3']),
+      ...Object.keys(vj).map((k) => [k, 'voice/' + k]),
+      ...SFX.map((k) => [k, 'sfx/' + k]),
     ];
     let done = 0;
     const worker = async () => {
       while (jobs.length) {
-        const [k, url] = jobs.shift();
+        const [k, rel] = jobs.shift();
+        const url = this.base + rel + '.mp3', e = pack && pack.idx[rel];
         try {
-          const ab = await fetch(url).then((r) => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.arrayBuffer(); });
+          const ab = e ? pack.bin.slice(e[0], e[0] + e[1]) // (a copy: decoding takes the buffer over)
+            : await fetch(url).then((r) => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.arrayBuffer(); });
           this.buffers[k] = await this.decode(ab);
         } catch (e) {
           console.warn('audio load failed', k, e);
@@ -124,6 +129,18 @@ export class AudioSys {
       }
     };
     await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+  }
+
+  /** the packed sounds ({ idx: { 'voice/t_iam': [offset, length], ... }, bin }), or null */
+  async loadPack(base) {
+    if (!base || typeof base !== 'string') return null;
+    try {
+      const [idx, bin] = await Promise.all([
+        fetch(base + '.json').then((r) => (r.ok ? r.json() : null)),
+        fetch(base + '.bin').then((r) => (r.ok ? r.arrayBuffer() : null)),
+      ]);
+      return idx && bin ? { idx, bin } : null;
+    } catch (e) { console.warn('audio pack not loaded', e); return null; }
   }
 
   /** must be called from a user gesture (click / touchend) */
