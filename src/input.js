@@ -52,7 +52,7 @@ export class Input {
       const k = e.key.toLowerCase();
       if (k === 'e' || k === ' ') { this.keys.talk = true; if (this.enabled) this.pressed.tap = true; }
       if (k === 'q' || k === 'f') this.keys.phone = true;
-      if (k === 'g') this.keys.prank = true;
+      if (k === 'g' && this.enabled) this.keys.prank = true;
       if (this.enabled && k === 'x') this.pressed.swap = true;
       if (this.enabled && k === 'r') this.pressed.echo = true;
       if (this.enabled && k === 't') this.pressed.ask = true;
@@ -68,10 +68,12 @@ export class Input {
     });
     window.addEventListener('blur', () => { this.keys.talk = this.keys.phone = this.keys.prank = this.mouse.talk = this.mouse.phone = false; this.pressed.drop = true; });
     // the mouse wheel switches paper ball / paper plane
+    // (a trackpad swipe or a free-spinning wheel sends a stream of events: one gesture, one switch)
     window.addEventListener('wheel', (e) => {
       if (!this.enabled || Math.abs(e.deltaY) < 1) return;
-      const now = performance.now();
-      if (now - this.wheelAt > 160) { this.wheelAt = now; this.pressed.swap = true; }
+      const now = performance.now(), gap = now - this.wheelAt;
+      this.wheelAt = now;
+      if (gap > 220) this.pressed.swap = true;
     }, { passive: true });
 
     // touch: any finger that starts on the canvas looks around

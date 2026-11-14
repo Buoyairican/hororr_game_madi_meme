@@ -231,10 +231,13 @@ export const PrankMixin = {
     const me = this.me;
     if (me.foldT > 0) me.foldT -= dt;
     if (!inp.prank) me.prankLatch = false;
+    if (!inp.talk) me.talkLatch = false;
     const swap = pressed.swap || (me.aim && (pressed.echo || pressed.ask));
-    if (swap && !inp.phone) this.swapPaper(me);
+    if (swap && !inp.phone && (me.aim || (open && !blocked))) this.swapPaper(me);
     if (me.aim && (pressed.drop || pressed.tap || inp.phone || blocked || !open)) {
       me.aim = null; me.prankLatch = inp.prank;
+      // E / click / DROP put it away: that same press must not start a whisper
+      if (pressed.tap || pressed.drop) me.talkLatch = inp.talk;
       return null;
     }
     if (!me.aim && inp.prank && !me.prankLatch && !blocked && open && !inp.phone) {
@@ -422,6 +425,8 @@ export const PrankMixin = {
     this.papers.push(pr);
     return pr;
   },
+  /** a player left: their papers in the air no longer count for (or against) anybody */
+  forgetPapersOf(p) { for (const pr of this.papers || []) if (pr.owner === p) pr.owner = null; },
   removePaper(pr) {
     if (!pr) return;
     this.scene.remove(pr.mesh);
@@ -481,7 +486,7 @@ export const PrankMixin = {
     if (type === 'board' && !pr.board && pr.owner) {
       pr.board = true;
       this.audio.play('prank_board', { pos: pr.pos.clone(), vol: clamp(sp / 8, 0.4, 1), ref: 2, reverb: 0.2 });
-      this.hitBoard(pr.owner, pr.pos.clone());
+      if (!this.cutscene && !this.ending && this.players.includes(pr.owner)) this.hitBoard(pr.owner, pr.pos.clone());
     } else if (sp > 1.2) this.audio.play('prank_tick', { pos: pr.pos.clone(), vol: clamp(sp / 10, 0.15, 0.6), ref: 1.2, reverb: 0.1, rate: rand(0.9, 1.15) });
   },
 
@@ -492,9 +497,11 @@ export const PrankMixin = {
     pr.vel.multiplyScalar(-0.15); pr.vel.y = Math.min(pr.vel.y, 0) - 0.6;
     const at = pr.pos.clone();
     this.audio.play('prank_hit', { pos: at, vol: 0.95, ref: 1.6, reverb: 0.1 });
+    // (while he is busting somebody, or the class is over, a paper still flies but scores nothing)
+    if (this.cutscene || this.ending) return;
     const by = pr.owner;
     if (pr.npc) { if (h.type === 'player') this.bonk(h.who, pr.npc.name, at, pr.npc); return; }
-    if (!by) return;
+    if (!by || !this.players.includes(by)) return;
     if (h.type === 'teacher') this.hitTeacher(by, h.part, at);
     else if (h.type === 'kid') this.hitKid(by, h.who, at);
     else if (h.type === 'friend') this.hitFriend(by, h.who, at);
@@ -517,7 +524,8 @@ export const PrankMixin = {
   hitTeacher(p, part, at) {
     this.note(p, 'hits'); this.note(p, 'hitHim');
     this.track.event(this.t, p, 'hit', { target: 'teacher', part });
-    this.completeObjective('prank');
+    this.completeObjective('prank');                       // Free Class: "Hit him with a paper ball"
+    if (part === 'back') this.completeObjective('prankBack'); // Sam's dare: "Hit his back"
     this.mischief += PRANK.mischief[part];
     this.addLaugh(PRANK.laugh[part], at, p);
     if (p.local && part !== 'front') {
@@ -534,10 +542,14 @@ export const PrankMixin = {
     p.prankStreak++; p.lastPrankHit = this.t;
     p.heat += 12;
     const n = p.prankStreak;
-    if (this.canReactPrank()) this.interrupt(this.reactPrank(p, part, this.guessOrigin(p), n));
-    else if (n >= 3 && !this.eventLock && !this.lockBully && !this.choice) this.bust('prank', p);
-    else this.anger = Math.min(92, this.anger + PRANK.anger.busy);
+    // the third one: he knows who it was (right now, so nothing can talk him out of it)
+    if (n >= 3 && !this.eventLock && !this.lockBully && !this.choice) this.bust('prank', p);
+    else if (this.canReactPrank()) this.interrupt(this.reactPrank(p, part, this.guessOrigin(p), n));
+    else this.angerUp(PRANK.anger.busy, 92);
   },
+
+  /** a prank makes him angrier, never calmer (the cap only limits how much one hit adds) */
+  angerUp(n, cap) { this.anger = Math.max(this.anger, Math.min(cap, this.anger + n)); },
 
   hitBoard(p, at) {
     const writing = this.boardWriting() && this.present;
@@ -547,12 +559,11 @@ export const PrankMixin = {
       this.mischief += PRANK.mischief.boardWriting;
       this.addLaugh(PRANK.laugh.boardWriting, at, p);
       this.audio.play('chalk_screech', { pos: this.writePose.point.clone(), vol: 0.9, ref: 2, reverb: 0.3 });
-      this.completeObjective('prank');
       this.teacherHit(p, 'board');
     } else {
       this.mischief += PRANK.mischief.board;
       this.addLaugh(PRANK.laugh.board, at, p);
-      if (this.present) { this.anger = Math.min(92, this.anger + PRANK.anger.thud); if (this.brainIdle && this.canReactPrank()) this.interrupt(this.reactThud(at)); }
+      if (this.present) { this.angerUp(PRANK.anger.thud, 92); if (this.brainIdle && this.canReactPrank()) this.interrupt(this.reactThud(at)); }
     }
   },
 
@@ -575,7 +586,7 @@ export const PrankMixin = {
     this.timers.after(0.9, () => { if (kid.lookTarget === guess) kid.lookTarget = figured ? p.camPos : null; kid.tremble = 0; });
     this.timers.after(3.2, () => { if (kid.lookTarget === p.camPos || kid.lookTarget === guess) { kid.lookTarget = null; kid.speed = 4; } });
     if (this.present) {
-      this.anger = Math.min(92, this.anger + PRANK.anger.ow);
+      this.angerUp(PRANK.anger.ow, 92);
       if (this.brainIdle && this.canReactPrank()) this.interrupt(this.reactThud(kid.headWorld(new THREE.Vector3())));
     }
     if (figured && chance(PRANK.throwBack.kid)) this.timers.after(rand(1.4, 2.6), () => this.npcThrow(kid, p));
@@ -604,7 +615,7 @@ export const PrankMixin = {
   },
   /** you got hit: your view jolts, "bop" */
   localBonk(from) {
-    this.shake = Math.max(this.shake, 0.32);
+    this.bonkShake = 0.32;
     this.audio.play('bonk', { vol: 0.9, local: true, reverb: 0.05 });
     (this.ui.hint.local || this.ui.hint).call(this.ui, `<b>${from}</b> got you with a paper ball!`, 2.5);
   },
@@ -691,7 +702,6 @@ export const PrankMixin = {
       T.clap = null; T.setPose('rest');
       if (part === 'head') yield* this.glassesFlyOff();
       else yield* this.wait(part === 'board' ? 0.35 : 0.45);
-      if (n >= 3) { yield* this.bustedSeq('prank', p); return; }
       T.lookAt(origin, 9);
       T.facePoint(origin, 7);
       yield* this.wait(0.7);
@@ -699,7 +709,7 @@ export const PrankMixin = {
       // a slow look over that corner of the class (an arm still up: caught)
       for (const dx of [-1.1, 1.1, 0]) { T.lookAt(origin.clone().add(_a.set(dx, 0, 0)), 3); yield* this.wait(0.65); }
       if (this.laugh > 45) yield* this.say('t_funny', 0.4);
-      this.anger = Math.min(85, this.anger + (n >= 2 ? PRANK.anger.again : PRANK.anger.first) + (part === 'front' ? PRANK.anger.front : 0));
+      this.angerUp((n >= 2 ? PRANK.anger.again : PRANK.anger.first) + (part === 'front' ? PRANK.anger.front : 0), 85);
       if (n >= 2) { moved = true; this.searching = true; yield* this.searchRows(2, p); }
       T.lookAt(null, 3);
       T.leanTarget = 0; T.crouchTarget = 0;
@@ -708,7 +718,7 @@ export const PrankMixin = {
     } finally {
       this.prankBusy = false; this.searching = false;
       T.leanTarget = 0; T.crouchTarget = 0;
-      if (T.glasses.parent !== T.head && !T.glassesHeld && !this.ending) { T.wearGlasses(); this.blind = false; }
+      if (T.glasses.parent !== T.head && !T.glassesHeld) { T.wearGlasses(); this.blind = false; } // (even when the class just ended)
     }
   },
 
@@ -775,10 +785,13 @@ export const PrankMixin = {
       kid.lookTarget = null; kid.forcePitch = 0.45; kid.tremble = 0.5;
       this.track.event(this.t, null, 'kidCaught', { who: kid.name });
       yield* this.wait(1.4);
-      kid.tremble = 0;
-      this.timers.after(8, () => { if (kid.forcePitch === 0.45) kid.forcePitch = null; });
       T.lookAt(null, 3);
-    } finally { this.prankBusy = false; }
+    } finally {
+      this.prankBusy = false;
+      // (also when something cuts in) the kid stops shaking; head down a while longer
+      if (kid.tremble === 0.5) kid.tremble = 0;
+      if (kid.forcePitch === 0.45) this.timers.after(8, () => { if (kid.forcePitch === 0.45) kid.forcePitch = null; });
+    }
   },
 
   /** Sam's dare in period 2: a paper ball at his back */
@@ -786,10 +799,10 @@ export const PrankMixin = {
     const touch = this.input.touch;
     this.allowPrank = true;
     yield* this.whisper(f, 's_throw');
-    this.addObjective({ id: 'prank', text: touch ? 'Hit his back with a paper ball (hold PRANK)' : 'Hit his back with a paper ball  [hold G]' });
+    this.addObjective({ id: 'prankBack', text: touch ? 'Hit his back with a paper ball (hold PRANK)' : 'Hit his back with a paper ball  [hold G]' });
     this.ui.hint(touch ? 'Hold <b>PRANK</b> to aim a paper ball, let go to throw. Wait until his back is turned.' : 'Hold <b>G</b> to aim a paper ball, let go to throw. Wait until his back is turned.', 7);
-    yield* this.until(() => this.objDone('prank'), 60);
-    if (this.objDone('prank')) { yield* this.until(() => this.ready(), 20); yield* this.whisper(f, 's_didit'); }
+    yield* this.until(() => this.objDone('prankBack'), 60);
+    if (this.objDone('prankBack')) { yield* this.until(() => this.ready(), 20); yield* this.whisper(f, 's_didit'); }
   },
 
   // ---------------------------------------------------------------- online

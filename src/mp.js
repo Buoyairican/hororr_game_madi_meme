@@ -518,7 +518,8 @@ export class MP {
       const p = g.players.find((q) => q.id === row[0]);
       if (!p) continue;
       p.yaw = row[1]; p.pitch = row[2]; p.netTalk = !!row[3]; p.phoneUp = !!row[4]; p.netHand = !!row[5];
-      p.netAim = !!row[6]; p.netThrAt = g.t - (Number(row[7]) || 9);
+      const age = Number(row[7]);
+      p.netAim = !!row[6]; p.netThrAt = g.t - (Number.isFinite(age) && row[7] !== null ? age : 9);
     }
     // the teacher: snap when he teleports, otherwise glide there (see guestTick)
     const t = s.T, T = g.teacher;
@@ -665,7 +666,7 @@ export class MP {
       if (!blocked && pressed.ask) this.send({ t: 'press', k: 'ask' });
     }
     this.phoneUp = held;
-    this.talk = !blocked && !aiming && inp.talk && !this.phoneUp;
+    this.talk = !blocked && !aiming && inp.talk && !me.talkLatch && !this.phoneUp;
     g.phone.up = this.phoneUp;
     const aim = g.aimFriend(me);
     let pr = '';
@@ -688,7 +689,7 @@ export class MP {
     ui.setAnger(g.anger);
     ui.setLaugh(g.laugh);
     ui.setStrikes(g.strikes, g.maxStrikes);
-    ui.echoCue(this.ec >= 0 && !g.cutscene && !g.vidZoom && !this.phoneUp ? clamp(this.ec / 4, 0, 1) : -1, g.input.touch);
+    ui.echoCue(this.ec >= 0 && !g.cutscene && !g.vidZoom && !this.phoneUp && !g.me.aim ? clamp(this.ec / 4, 0, 1) : -1, g.input.touch);
     const c = clockLabel(g.clockMin);
     ui.setClock(c.text);
     g.world.clock.set(c.h, c.m, c.s);

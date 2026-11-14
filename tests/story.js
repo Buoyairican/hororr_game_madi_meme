@@ -48,7 +48,7 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
         // Sam's dare (period 2): a paper ball at his back, only while it is turned
         const T = g.teacher;
         const away = Math.sin(T.root.rotation.y) * (g.camPos.x - T.pos.x) + Math.cos(T.root.rotation.y) * (g.camPos.z - T.pos.z) < 0;
-        if (g.objectives.some((o) => o.id === 'prank' && !o.done) && safe && away && g.prankOpen() && !g.prankBusy && i % 40 === 0 && g.me.foldT <= 0) {
+        if (g.objectives.some((o) => o.id === 'prankBack' && !o.done) && safe && away && g.prankOpen() && !g.prankBusy && i % 40 === 0 && g.me.foldT <= 0) {
           const t = backThrow();
           if (t) { g.yaw = t.yaw; g.pitch = t.pitch; g.throwFrom(g.me, t); ev.push(g.t.toFixed(0) + ' [THROW] at his back'); }
         }

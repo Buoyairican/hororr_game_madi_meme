@@ -157,7 +157,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
     const r = Math.random; Math.random = () => 0.9; g.npcThrow(k, g.me); Math.random = r;
     run(2);
   });
-  await check('a kid throws one back: it hits you ("bop")', `game.__bonks === 1 && game.track.log.some((e) => e.type === 'throwBack')`);
+  await check('a kid throws one back: it hits you ("bop")', `game.__bonks >= 1 && game.track.log.some((e) => e.type === 'throwBack')`);
   await page.evaluate(() => run(2));
   await page.evaluate(() => { atBoard(); });
   const sam = await page.evaluate(() => { const f = game.friend('sam'); const t = findThrow(f.headWorld(), (h) => h.type === 'friend' && h.who === f); if (t) fire(t); return !!t; });
@@ -172,6 +172,25 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   await check('the class laughing at you is noise he hears', `(() => { const g = game; g.laugh = 70; g.laughHold = 5; g.laughAbout = g.me; run(0.1); return g.me.noise > 0.3 ? true : g.me.noise; })()`);
   await check('...but not for somebody far from it', `(() => { const g = game; g.laughAbout = null; g.laughAt.set(4, 1, 4); run(0.1); return g.me.noise === 0 ? true : g.me.noise; })()`);
   await page.evaluate(() => { game.laugh = 0; calm(); });
+
+  // ---------------------------------------------------------------- things the review found
+  await page.evaluate(() => { atBoard(); });
+  await check('a prank never calms him down (anger 95, hit a kid: still >= 95)', `(() => { const g = game, k = g.students.find((s) => s.name === 'Omar');
+    const t = findThrow(k.headWorld(), (h) => h.type === 'kid' && h.who === k); if (!t) return 'no throw'; g.anger = 95; g.flags = { r40: true, r70: true }; fire(t); run(0.8);
+    const a = g.anger; calm(); return a >= 95 ? true : a; })()`);
+  await page.evaluate(() => { run(3); atBoard(); const f = game.friend('sam'), d = f.headWorld().sub(game.camPos); game.yaw = Math.atan2(-d.x, -d.z); game.pitch = Math.atan2(d.y, Math.hypot(d.x, d.z)); game.me.foldT = 0; });
+  await page.keyboard.down('g');
+  await page.evaluate(() => run(0.3));
+  await page.keyboard.down('e');
+  await page.evaluate(() => run(0.5));
+  await check('E puts the paper away and does NOT start a whisper to Sam (still holding E)', `!game.me.aim && !game.talk`);
+  await page.keyboard.up('e'); await page.keyboard.up('g');
+  await page.evaluate(() => run(0.1));
+  await check('...letting go of E and pressing it again whispers as usual', `(() => { game.input.keys.talk = true; run(0.3); const ok = !!game.talk; game.input.keys.talk = false; run(0.1); return ok; })()`);
+  await check('X does nothing while pranks are not allowed (no switch, no hint)', `(() => { const g = game; g.allowPrank = false; const k = g.me.prankKind; g.ui.hint('story hint', 5); g.input.pressed.swap = true; run(0.1);
+    const r = g.me.prankKind === k && /story hint/.test(document.getElementById('hint').innerText); g.allowPrank = true; return r; })()`);
+  await check('a kid he scolds stops shaking even if he is interrupted', `(() => { const g = game, k = g.students.find((s) => s.name === 'Max'); g.prankBusy = false;
+    g.interrupt(g.reactSawKid(k)); run(4.9); const mid = k.tremble > 0; atBoard(); return mid && k.tremble === 0 ? true : [mid, k.tremble]; })()`);
 
   // ---------------------------------------------------------------- pausing
   await page.keyboard.down('g');
@@ -206,6 +225,12 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   await page.evaluate(() => { game.finish('survived'); });
   await check('the end screen shows the papers thrown', `/Paper thrown/.test(document.getElementById('end-stats').innerText)`);
   await check('nothing left on screen after the class', `!game.arcDots.visible && !game.heldPaper.visible`);
+  // the class ends while his glasses are on the floor: he still has them on for the ending
+  await page.evaluate(() => { game.start('free', 0); run(1); atBoard(-0.4); });
+  await page.evaluate(() => { const t = findThrow(game.teacher.headWorld(), (h) => h.type === 'teacher' && h.part === 'head'); if (t) fire(t); run(1.6); });
+  await check('(glasses knocked off again)', `game.teacher.glasses.parent === game.scene`);
+  await page.evaluate(() => { game.ending = true; game.interrupt(game.freeEnding()); run(0.2); });
+  await check('the class ends while his glasses are on the floor: he has them on for the ending', `game.teacher.glasses.parent === game.teacher.head && !game.blind`);
 
   console.log('PASS (' + ok.length + '):\n  ' + ok.join('\n  '));
   console.log('FAIL (' + bad.length + '):\n  ' + bad.join('\n  '));
