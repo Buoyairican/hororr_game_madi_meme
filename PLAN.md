@@ -107,7 +107,7 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, 
   Real NAT traversal (two phones on different networks) and a real TURN allocation can't be
   reproduced on the test machine: after deploying, test with two phones on different networks.
 
-### [ ] Phase 2: A different teacher every class (ideas 4, 6, 7)
+### [x] Phase 2: A different teacher every class (ideas 4, 6, 7)
 - **Event deck** (`src/events.js`): each class draws 3-4 from: his embarrassing ringtone,
   a fly he hunts (slaps desks), a pizza delivery at the door, a fire-drill false alarm,
   he leaves the room for 30 seconds (chaos window, footsteps when he comes back).
@@ -116,6 +116,15 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, 
   rate, glance chance) or adds one small behaviour.
 - **He learns your slang**: echoes and class-clown memes are remembered; later he uses them
   wrong (new voice lines), writes them on the board, tries to dance to phonk from a phone.
+- Shipped: one seeded class setup (`classSetup` in `src/events.js`; `game.start(mode, chapter, { seed })`,
+  `game.setup.seed`, `?seed=`) picks the events and quirks, so a daily challenge can reuse it. Free Class
+  spreads the events over the class; story periods put each one in a quiet window that keeps the period's
+  length and never lands on a scripted beat. Every event and quirk has a first-time hint, a line under his
+  eye on the HUD, voice lines and sounds, and changes his hearing / sight / anger through the numbers he
+  already uses; quirks show on the HUD only once you notice them. The slang he learns is kept in the
+  browser for the next class. Online, guests get the setup (also late) and see and hear everything; a
+  friend's desk can be slapped, a friend can swat the fly. Numbers and texts in `EVENTS`, `QUIRKS`, `SLANG`
+  (`src/data.js`). Tests: `tests/events.js`, `tests/mp_events.js`.
 
 ### [ ] Phase 3: Blame + note on his back + laser pointer (ideas 5, 1)
 - "Who did it?" opens a choice: point at a kid, stay silent, confess. Lying while you are the

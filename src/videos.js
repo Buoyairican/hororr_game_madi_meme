@@ -97,9 +97,12 @@ export const VideoMixin = {
     this.uiTo(p, 'hint', 'GAME OVER... and your phone is <b>LOUD</b>. Put it away!', 3);
     this.giggle && this.timers.after(1.2, () => this.state === 'playing' && this.giggle());
     if (!this.present || this.cutscene || this.ending) return;
+    if (this.cantHear()) return; // (the fire alarm, his own phonk: for once nobody hears it)
     this.anger = Math.min(92, this.anger + 18);
     p.heat += 20; this.focus = p;
-    if (!this.eventLock && !this.lockBully && !this.memeBusy && !this.choice && !this.echoBusy && !this.searching) this.interrupt(this.reactPhoneFail(p));
+    if (this.dozing) return; // he wakes up with a jolt (src/quirks.js: actDoze)
+    if (this.classEvent) this.fx.push(this.glareWarn(this.headOf(p, new THREE.Vector3()), 't_nophones')); // (an event goes on: he only turns his head)
+    else if (!this.eventLock && !this.lockBully && !this.memeBusy && !this.choice && !this.echoBusy && !this.searching) this.interrupt(this.reactPhoneFail(p));
   },
 
   *reactPhoneFail(p) {

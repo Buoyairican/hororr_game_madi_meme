@@ -164,6 +164,21 @@ body:not(.touch) .touch-only { display: none !important; }
 #eye.blind #eye-slash { stroke: #7cc4a0; }
 #eye.busy #eye-lid { stroke: #7cb4ff; }
 #eye.away { opacity: 0.15; }
+#eye.asleep { opacity: 1; }
+#eye.asleep #eye-lid { stroke: #b49cf0; }
+#eye.asleep #eye-pupil { transform: scaleY(0.04); fill: #b49cf0; }
+#eye.dance { opacity: 1; }
+#eye.dance #eye-lid { stroke: #ff7ad9; }
+#eye.dance #eye-pupil { transform: scaleY(0.3); fill: #ff7ad9; }
+/* what kind of teacher he is today (his quirks, once noticed) */
+#quirks { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; font-size: 13px; color: #e9e3cf; transition: opacity .4s; }
+#quirks::before { content: "TODAY HE"; font-size: 10px; letter-spacing: 3px; color: var(--dim); margin-right: 2px; }
+#quirks.off { display: none; }
+/* what is going on right now (today's event): under the clock, clear of the hints */
+#ev-now { position: absolute; top: 22px; right: 52px; font-size: 11px; letter-spacing: 1.5px; color: #ffd98a; text-align: right; white-space: nowrap; text-shadow: 0 0 4px #000, 0 0 2px #000; animation: ev-now-in .5s ease-out; }
+#ev-now.off { display: none; }
+@keyframes ev-now-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+#quirks .q { background: rgba(8, 10, 9, .55); border: 1px solid rgba(240, 194, 122, .35); border-radius: 10px; padding: 2px 8px; white-space: nowrap; text-shadow: 0 0 4px #000; }
 #strikes { font-size: 13px; letter-spacing: 4px; color: rgba(255,255,255,0.25); min-height: 14px; }
 #strikes .on { color: var(--blood-hi); text-shadow: 0 0 6px #000; }
 #bully { font-size: 10px; letter-spacing: 1.5px; color: var(--dim); text-align: center; line-height: 1.5; text-shadow: 0 0 4px #000; }
@@ -296,4 +311,9 @@ body.touch .desk-only { display: none !important; }
   #objectives { font-size: 13px; line-height: 1.25; padding: 5px 9px 5px 8px; }
   #objectives li { padding-top: 1px; padding-bottom: 1px; }
   #objectives::before { margin-bottom: 2px; font-size: 10px; }
+}
+@media (max-height: 500px) {
+  #quirks { font-size: 11px; gap: 4px; }
+  #quirks .q { padding: 1px 6px; }
+  #quirks::before { font-size: 9px; letter-spacing: 2px; }
 }

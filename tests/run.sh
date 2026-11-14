@@ -12,8 +12,8 @@ TESTS_DIR="$PWD"
 ROOT_DIR="$(cd .. && pwd)"
 mkdir -p out
 
-QUICK="features beats ui touch touch_phone pranks turn_api mp mp_video mp_prank mp_net mp_lobby"
-FULL="$QUICK story1 story2 story3 story4 hard fuzz mp_edge mp_fail mp_chaos"
+QUICK="features beats ui touch touch_phone pranks events turn_api mp mp_video mp_prank mp_net mp_lobby"
+FULL="$QUICK story1 story2 story3 story4 hard fuzz mp_events mp_edge mp_fail mp_chaos"
 case "${1:-quick}" in
   quick) NAMES="$QUICK" ;;
   full) NAMES="$FULL" ;;
@@ -22,10 +22,11 @@ esac
 
 cmd_for() {
   case "$1" in
-    story1) echo "story.js story 0 careful 0 1000" ;;
-    story2) echo "story.js story 1 careful 0 1000" ;;
-    story3) echo "story.js story 2 careful 0 1000" ;;
-    story4) echo "story.js story 3 careful 0 1000" ;;
+    # every period with a full deck of 4 events and 2 quirks (together: every event and quirk in at least one period)
+    story1) echo "story.js story 0 careful 0 1100 --events=ringtone,fly,pizza,leave --quirks=doze,deaf" ;;
+    story2) echo "story.js story 1 careful 0 1100 --events=fly,firedrill,leave,pizza --quirks=hum,laugh" ;;
+    story3) echo "story.js story 2 careful 0 1100 --events=leave,ringtone,firedrill,fly --quirks=count,clock" ;;
+    story4) echo "story.js story 3 careful 0 1100 --events=pizza,fly,firedrill,ringtone --quirks=doze,hum" ;;
     hard) echo "story.js free 0 careful 0 600 --hard" ;;
     fuzz) echo "fuzz.js 1" ;;
     mp_chaos) echo "mp_chaos.js easy,hard" ;;

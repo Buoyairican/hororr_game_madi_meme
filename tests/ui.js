@@ -51,7 +51,7 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
   await check('MAIN MENU from end screen', `game.state === 'title'`);
   await page.click('#btn-free'); await page.waitForTimeout(1500);
   await check('free class starts', `game.state === 'playing' && game.mode === 'free'`);
-  await page.evaluate(() => { const g = game; g.cutscene = false; g.lockBully = false; g.echoable = { id: 't_quiet', text: 'Quiet.', until: g.t + 5 }; });
+  await page.evaluate(() => { const g = game; g.cutscene = false; g.lockBully = false; g.quirks = new Set(); g.alarmOn = false; g.dancing = false; g.echoable = { id: 't_quiet', text: 'Quiet.', until: g.t + 5 }; }); // (no quirks: from his deaf side an echo would not count)
   await page.keyboard.press('r'); await page.waitForTimeout(400);
   await check('R repeats him', `game.echoStreak === 1 && document.getElementById('subtitle').innerText.includes('qUiEt')`);
   await page.evaluate(() => { const g = game; g.qBusy = false; g.cutscene = false; g.lockBully = false; if (g.choice) g.pickChoice(-1); });

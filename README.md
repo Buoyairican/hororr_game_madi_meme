@@ -109,6 +109,11 @@ On a local server or GitHub Pages there is no `api/turn`, so there is no relay. 
 * **When the chalk stops, stop talking.** He turns around without warning.
 * If he catches you, he comes to your desk. **Three strikes** and the period is over.
 * **The class clowns**: if you do nothing for a while (a random 30 seconds to over a minute each time; no whispering, phone, repeating or questions; just looking around doesn't count), somebody in the back does a meme noise: snoring, "bruh", an airhorn, a sad trombone, "six seven!", a goat, a whoopee cushion, crickets, a metal pipe… He stops, turns around and goes to find out who did it. He looks slang up on his laptop ("what does bruh mean"), wakes up the snorer by slapping their desk, and once the laptop even tells him who farted. In detention, the ones he catches don't look the same afterwards.
+* **A different teacher every class.** Every class draws 3 or 4 **events** and 2 **quirks** from one seed (the same seed always gives the same class; `?seed=123` picks one).
+  * **Events**: his embarrassing **ringtone** (he takes the call with his back to you and hears less), a **fly** he hunts (he only looks at the fly; it can land on your desk and he slaps it; hit it with a paper ball and he thanks you), a **pizza** at the door (his back is turned, then he eats it staring at you), a **fire alarm** that is so loud he hears nothing, and he **leaves the room** for 30 seconds (chaos counts double; watch the door window and listen for his footsteps). A hint tells you what each one means for you, and the line under his eye on the HUD says what he is doing.
+  * **Quirks**: **half deaf** on one side (whisper on his deaf side), **hates laughing** (the class laughing makes him angrier), **dozes off** (he can't see you, but a loud noise wakes him), **obsessed with the clock** (he glances back less), **counts the class** (he points at every head) and **hums** while he writes (he hears you less, then more when he stops). You find them out by playing: the HUD lists the ones you noticed ("TODAY HE").
+  * **He learns your slang**: class-clown memes and your echoes are remembered (also next class, in this browser). Later he uses them wrong in the lesson, writes them on the board, mocks your squeaky voice, and dances to phonk from his own phone.
+  * Online, every player sees and hears all of it, also a friend who joins late.
 * An optional helper HUD (Settings) shows when he is watching you and how angry he is.
 
 Tip: headphones. The audio is positional; you can hear his footsteps.
@@ -159,6 +164,10 @@ src/game.js                the teacher's brain (coroutines), story chapters, fre
                            echo / question mechanics, friends, phone, scares, endings
 src/videos.js              meme videos in class: missions, phones held out to you, the loud crash
 src/pranks.js              pranks you aim: paper balls and planes, the aim arc, hits, his reactions, the LAUGHS meter
+src/events.js              a different teacher every class: the seeded class setup and the event deck
+                           (ringtone, fly, pizza, fire alarm, he leaves the room)
+src/quirks.js              his quirks (half deaf, hates laughing, dozes off, the clock, counts the class, hums)
+src/slang.js               the slang he learns from you and uses wrong (remembered in the browser)
 src/memes.js, src/clips.js the meme clips (original cartoons drawn live) and the clip player
 src/phone.js               your phone: PAPER PLANE, the meme feed, messages
 src/stats.js               what every player did in a class (counts + event log)

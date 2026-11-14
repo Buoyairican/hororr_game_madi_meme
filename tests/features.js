@@ -15,7 +15,8 @@ const { chromium, ROOT, GL, OUT } = require('./lib');
     const page = await browser.newPage({ viewport: { width: 400, height: 225 } });
     page.on('pageerror', (e) => logs.push('PAGEERROR ' + e.message + ' ' + (e.stack || '').split('\n')[1]));
     if (setup) await setup(page);
-    await page.goto(ROOT + '/index.html?debug=1&autostart=1&' + url);
+    // (a plain teacher: no events or quirks today, so nothing random gets in the way of these checks)
+    await page.goto(ROOT + '/index.html?debug=1&autostart=1&events=none&quirks=none&' + url);
     await page.waitForFunction(() => window.game && game.state === 'playing', null, { timeout: 120000 });
     await page.evaluate(() => { game.post.render = () => {}; });
     let r;

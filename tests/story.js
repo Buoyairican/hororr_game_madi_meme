@@ -1,16 +1,18 @@
-// node story.js <mode> <chapter> <policy> <finaleChoice> <seconds> [--hard]
+// node story.js <mode> <chapter> <policy> <finaleChoice> <seconds> [--hard] [--events=a,b] [--quirks=c,d]
 // e.g. node story.js story 0 careful 0 1000   (period 1, a careful player)
+// --events / --quirks pick today's teacher (src/events.js); without them the class gets a random setup (printed)
 // policies: none (do nothing), play (normal mischief), talkspam (keep whispering), echo (echo constantly), ask (ask constantly)
 const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
 (async () => {
   const [mode, ch, policy, fin, secs] = process.argv.slice(2);
   const HARD = process.argv.includes('--hard');
+  const opt = (k) => { const a = process.argv.find((x) => x.startsWith('--' + k + '=')); return a ? '&' + k + '=' + a.split('=')[1] : ''; };
   const browser = await chromium.launch({ args: GL });
   const page = await browser.newPage({ viewport: { width: 800, height: 450 } });
   const logs = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') logs.push(m.type() + ': ' + m.text().slice(0, 200)); });
   page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message + ' | ' + (e.stack || '').split('\n').slice(1, 3).join(' ')));
-  await page.goto(`${ROOT}/index.html?debug=1&autostart=1&mode=${mode}&ch=${ch}${HARD ? '&diff=hard' : ''}`);
+  await page.goto(`${ROOT}/index.html?debug=1&autostart=1&mode=${mode}&ch=${ch}${HARD ? '&diff=hard' : ''}${opt('events')}${opt('quirks')}`);
   await page.waitForFunction(() => window.game && game.state === 'playing', null, { timeout: 120000 });
   const res = await page.evaluate(async ([policy, fin, secs, HARD]) => {
     const g = window.game; const ev = [];
@@ -22,7 +24,7 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
       for (let pitch = -0.2; pitch <= 0.8; pitch += 0.02) { PR.throwStart(g.camPos, y0, pitch, 1, 'ball', sp, sv); g.simThrow(sp, sv, 'ball', 0, g.me, targets, out); if (out.hit && out.hit.type === 'teacher' && out.hit.part === 'back') return { yaw: y0, pitch: pitch + 0.02, power: 1, kind: 'ball', curve: 0 }; }
       return null;
     };
-    let lastSub = '', maxStrikes = 0, maxAnger = 0;
+    let lastSub = '', maxStrikes = 0, maxAnger = 0, overlap = 0;
     for (let i = 0; i < Math.round(secs / 0.05) && g.state === 'playing'; i++) {
       if (g.choice) g.input.choiceKey = g.choice.labels[0].startsWith('Are you') ? fin : (g.choice.labels[0].startsWith('Four') ? 1 : 0);
       if (policy === 'play') {
@@ -63,6 +65,8 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
       if (g.shows.length !== (g.__sh || 0)) { g.__sh = g.shows.length; ev.push(g.t.toFixed(0) + ' [SHOWS] ' + g.shows.length); }
       if (!!g.vidJob !== !!g.__vj) { g.__vj = !!g.vidJob; ev.push(g.t.toFixed(0) + ' [VIDJOB] ' + !!g.vidJob); }
       if (g.memeBusy && !g.__mb) ev.push(g.t.toFixed(0) + " [MEME] " + (g.lastMemeKid && g.lastMemeKid.name)); g.__mb = g.memeBusy;
+      const ce = g.classEvent ? g.classEvent.id : null; if (ce !== g.__ce) { if (ce) ev.push(g.t.toFixed(0) + ' [EVENT] ' + ce + (g.eventLock || g.lockBully || g.cutscene ? ' (IN A STORY MOMENT!)' : '')); g.__ce = ce; }
+      if (ce && (g.eventLock || g.lockBully)) overlap++;
       maxStrikes = Math.max(maxStrikes, g.strikes); maxAnger = Math.max(maxAnger, g.anger);
       if (!isFinite(g.teacher.pos.x) || !isFinite(g.teacher.pos.z)) { ev.push('NaN teacher position!'); break; }
     }
@@ -72,13 +76,20 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
       primary: document.getElementById('btn-again').innerText, t: +g.t.toFixed(0), clock: document.getElementById('clock-hud').innerText,
       strikes: g.strikes, maxStrikes, maxAnger: +maxAnger.toFixed(0), mischief: Math.floor(g.mischief), objs: g.objectives.map((o) => o.id + (o.done ? '✓' : '✗')).join(' '),
       teacherY: +T.root.position.y.toFixed(2), glassesOnHead: T.glasses.parent === T.head, cut: g.cutscene, memes: g.stats.memes, videos: g.stats.videos, fails: g.stats.fails,
-      throws: g.stats.throws, hitHim: g.stats.hitHim, papers: g.papers.length, events: ev };
+      throws: g.stats.throws, hitHim: g.stats.hitHim, papers: g.papers.length,
+      setup: g.setupInfo(), happened: g.eventsDone.slice(), quirksSeen: g.quirkSeen.slice(), learned: g.track.global.learned.slice(), overlap, events: ev };
   }, [policy, +fin, +secs, HARD]);
   console.log(JSON.stringify(res, null, 0));
   // a careful player should get through the period (on Hard one strike ends it, which is allowed)
   const finished = res.state === 'end' && !/DETENTION/.test(res.end);
-  if (finished || (HARD && res.state === 'end')) console.log('PASS (1):\n  ' + mode + ' ' + ch + ': ' + res.end + ' at ' + res.t + 's, strikes ' + res.strikes + '\nFAIL (0):');
-  else console.log('PASS (0):\nFAIL (1):\n  ' + mode + ' ' + ch + ': ' + res.state + ' ' + res.end);
+  const ok = [], bad = [];
+  ((finished || (HARD && res.state === 'end')) ? ok : bad).push(mode + ' ' + ch + ': ' + res.state + ' ' + res.end + ' at ' + res.t + 's, strikes ' + res.strikes);
+  // today's teacher: the events the setup put in this period happened, never inside a scripted story moment
+  const forced = /--events=/.test(process.argv.join(' '));
+  if (forced && mode === 'story') ((res.setup.events.every((e) => res.happened.includes(e))) ? ok : bad).push('every event of the setup happened: ' + res.setup.events.join(',') + ' -> ' + res.happened.join(','));
+  (res.overlap === 0 ? ok : bad).push('no event during a scripted story moment (' + res.overlap + ' frames)');
+  console.log('PASS (' + ok.length + '):\n  ' + ok.join('\n  '));
+  console.log('FAIL (' + bad.length + '):\n  ' + bad.join('\n  '));
   console.log(logs.slice(0, 10).join('\n') || 'no console errors');
   await browser.close();
 })();

@@ -21,7 +21,7 @@ const SNAP_DT = 1 / 15;      // snapshots per second
 const TIMEOUT = 20;          // seconds of silence before a connection counts as gone
 const INPUT_DT = 1 / 20;     // friend input per second
 const BONES = ['root', 'spine', 'chest', 'neck', 'uarmL', 'farmL', 'handL', 'uarmR', 'farmR', 'handR', 'thighL', 'shinL', 'footL', 'thighR', 'shinR', 'footR'];
-const UI_EVENTS = new Set(['subtitle', 'hint', 'toast', 'card', 'showNote', 'clearTransient', 'setObjectives']);
+const UI_EVENTS = new Set(['subtitle', 'hint', 'toast', 'card', 'showNote', 'clearTransient', 'setObjectives', 'setQuirks']);
 const BOARD_EVENTS = new Set(['write', 'writeInstant', 'scrawl', 'erase', 'clear', 'stopJob']);
 const PROJ_EVENTS = new Set(['setOn', 'search', 'history', 'news', 'glitch', 'noSignal', 'reset']);
 
@@ -241,7 +241,8 @@ export class MP {
   }
   sendStart(id, late) {
     const g = this.g;
-    const msg = { t: 'start', mode: g.mode, ch: g.chapter, players: this.lobby, late };
+    // this class's setup (its events and his quirks) and the quirks noticed so far
+    const msg = { t: 'start', mode: g.mode, ch: g.chapter, players: this.lobby, late, setup: g.setupInfo(), quirks: g.quirkChips() };
     if (late) {
       const B = g.world.board;
       try {
@@ -252,6 +253,7 @@ export class MP {
       } catch (e) { /* no picture then */ }
       msg.projOn = this.projOn; msg.proj = this.projLast;
       msg.objs = g.objectives.map((o) => ({ text: o.text, done: o.done }));
+      msg.evHint = g.lateHint(); // (in the middle of one of today's events: what it means)
     }
     this.flush();
     this.net.send(id, msg);
@@ -305,6 +307,8 @@ export class MP {
       sh: g.shows.filter((x) => !x.over).map((x) => [x.id, x.to.id, x.npc ? 'n:' + x.npc.kind : 'p:' + x.fromP.id, x.key, x.seed, r2(x.t)]),
       // pranks: the papers, the laugh meter, whether anybody may throw right now
       pj: g.paperSnap(), lg: Math.round(g.laugh), ap: g.prankOpen() ? 1 : 0,
+      // a different teacher every class: the fly, his phone, the pizza, the alarm, asleep / humming / dancing / out of the room
+      ev: g.eventSnap(),
     };
   }
 
@@ -387,7 +391,7 @@ export class MP {
       case 'bye': if (!this.refused(ONLINE.text.closed) && CURRENT === this) this.hook('lost', ONLINE.text.closed); break;
       case 'ping': break;
       case 'toLobby':
-        g.state = 'title'; g.input.enable(false); g.audio.stopAll(); g.ui.show('hud', false); g.ui.closeChoices();
+        g.state = 'title'; g.input.enable(false); g.audio.stopAll(); g.ui.show('hud', false); g.ui.closeChoices(); g.dropEventState();
         this.clearHelds(); g.vidZoom = false; g.phone.reset();
         this.choice = null;
         this.hook('toLobby');
@@ -437,6 +441,9 @@ export class MP {
     if (m.projOn) W.projector.setOn(true);
     if (m.proj && PROJ_EVENTS.has(m.proj[0])) W.projector[m.proj[0]](...m.proj[1]);
     if (m.objs) g.ui.setObjectives(m.objs);
+    if (m.setup && typeof m.setup === 'object') { g.setup = { ...g.setup, ...m.setup }; g.quirks = new Set(g.setup.quirks || []); } // (the host's class, not the one reset() just drew)
+    g.ui.setQuirks(Array.isArray(m.quirks) ? m.quirks : []);
+    if (m.late && typeof m.evHint === 'string') g.timers.after(1.5, () => g.state === 'playing' && g.ui.hint(m.evHint, 6));
     this.hook('started');
   }
 
@@ -472,6 +479,7 @@ export class MP {
       case 'choiceClose': if (this.choice) { this.choice = null; g.ui.closeChoices(); } break;
       case 'jump': this.jump = this.guestJump(); break;
       case 'bonk': g.localBonk(typeof e.from === 'string' ? e.from.replace(/[<>&"]/g, '').slice(0, 12) : 'Someone'); break;
+      case 'slap': g.localSlap(); break;
       case 'vscare': g.localVideoScare(); if (this.helds) for (const h of this.helds.values()) h.face = g.portraitTex && g.portraitTex.image; break;
       case 'camRun': {
         const door = new THREE.Vector3(4.3, PLAYER_EYE.y, -4.7);
@@ -503,6 +511,7 @@ export class MP {
     this.choice = null;
     g.me.aim = null;
     g.hidePrankVisuals();
+    g.dropEventState();
     g.ui.end(e.title, e.text + '<br><br><i>Waiting for the host…</i>', e.stats, null);
     if (e.prog) g.saveProgress(e.prog);
     this.hook('ended');
@@ -516,6 +525,7 @@ export class MP {
     this.ec = s.ec;
     g.laugh = Number(s.lg) || 0;
     g.syncPapers(s.pj);
+    g.applyEventSnap(s.ev);
     // classmates
     const kids = g.allKids();
     s.K.forEach((row, i) => {
@@ -580,6 +590,7 @@ export class MP {
       this.guestShows(dt);
       this.guestActions(dt);
       g.tickNetPapers(dt);
+      g.eventVisuals(dt);
       g.updatePrankVisuals(dt);
       g.updateHand(dt);
       g.phone.update(dt);
@@ -718,7 +729,7 @@ export class MP {
   guestHud() {
     const g = this.g, ui = g.ui;
     ui.setScore(g.mischief);
-    ui.setEye(!g.present ? 'away' : g.blind ? 'blind' : g.typing ? 'busy' : g.watching ? 'open' : 'closed');
+    ui.setEye(!g.present ? 'away' : g.dozing ? 'asleep' : g.dancing ? 'dance' : g.blind ? 'blind' : g.typing ? 'busy' : g.watching ? 'open' : 'closed');
     ui.setAnger(g.anger);
     ui.setLaugh(g.laugh);
     ui.setStrikes(g.strikes, g.maxStrikes);
@@ -793,6 +804,7 @@ export class MP {
     this.clearHelds();
     g.clearPapers();
     g.hidePrankVisuals();
+    g.dropEventState();
     g.me.aim = null;
     for (const p of [...g.players]) if (!p.local) g.removePlayer(p.id);
     for (const h of this.handles.values()) h.stop(0.05);

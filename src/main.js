@@ -35,6 +35,18 @@ function progress() { try { return Number(localStorage.getItem('madiclass.progre
 const settings = loadSettings();
 
 const withTimeout = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+/** ?seed=123 picks the class (its events and quirks); with ?debug=1 also ?events=fly,pizza&quirks=doze,hum (or =none) */
+function setupFromQuery() {
+  const o = {};
+  if (query.get('seed')) o.seed = Number(query.get('seed')) >>> 0;
+  if (query.has('debug')) {
+    const list = (k) => (query.get(k) === 'none' ? [] : query.get(k).split(',').map((x) => x.trim()).filter(Boolean));
+    if (query.get('events')) o.events = list('events');
+    if (query.get('quirks')) o.quirks = list('quirks');
+    if (query.get('deaf')) o.deafSide = query.get('deaf');
+  }
+  return Object.keys(o).length ? o : null;
+}
 
 // the class: [row, column, model, name]. Row 1 column 1 is Kevin's empty desk.
 const KIDS = [[0, 0, 'kid_a', 'Leo'], [1, 2, 'kid_d', 'Ava'], [0, 4, 'kid_b', 'Omar'], [2, 1, 'kid_c', 'Maya'], [2, 3, 'kid_e', 'Jin'],
@@ -482,7 +494,7 @@ async function boot() {
   if (query.has('autostart')) {
     go(null);
     game.difficulty = query.get('diff') === 'hard' ? 'hard' : settings.difficulty === 'hard' ? 'hard' : 'easy';
-    game.start(query.get('mode') || 'free', Number(query.get('ch') || 0));
+    game.start(query.get('mode') || 'free', Number(query.get('ch') || 0), setupFromQuery());
   }
   else if (query.get('join')) openMp(cleanCode(query.get('join')));
 }

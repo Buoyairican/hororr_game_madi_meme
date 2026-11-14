@@ -164,6 +164,17 @@ export class Teacher {
   /** clap the chalk dust off: hands come up first, then `count` claps, one every `interval` seconds */
   startClap(count, interval, onClap) { this.clap = { left: count, interval, phase: Math.PI, delay: 0.3, onClap }; this.setPose('clap'); }
 
+  /** something small in his right hand (his phone, a slice of pizza): placed like the chalk, hidden until used */
+  holdInHand(obj) {
+    obj.position.copy(this.chalk.position).multiplyScalar(0.9);
+    obj.quaternion.copy(this.chalk.quaternion);
+    obj.visible = false;
+    this.bones.handR.add(obj);
+    return obj;
+  }
+  /** a point on his head (head space: +x is his left, +z his face), for ears and mouth */
+  headPoint(x, y, z, out = new THREE.Vector3()) { return this.head.localToWorld(out.set(x, this.headCentre + y, z)); }
+
   glassesHome(out = new THREE.Vector3()) { return this.head.localToWorld(out.copy(this.glasses.userData.home)); }
   takeGlasses() { this.glassesOn = false; this.bones.handR.attach(this.glasses); this.glassesHeld = true; }
   wearGlasses(snap = false) {
@@ -392,6 +403,54 @@ export class Teacher {
         if (d.typing) a.desired.y += Math.max(0, Math.sin(this.time * (17 + s * 3) + s)) * 0.02;
         this.local(s * 1.1, 1.3, -0.3, a.pole);
         a.aim = _v.copy(a.desired).add(_v2.set(0, -0.12, 0.2).applyAxisAngle(UP, this.facing)).clone();
+        a.k = 9;
+      } else if (P === 'phone' && key === 'R') {
+        // his phone at his right ear
+        this.headPoint(-0.15, -0.04, 0.0, a.desired);
+        a.aim = this.headPoint(-0.13, 0.32, 0.02, new THREE.Vector3());
+        this.local(-0.9, 0.5, -0.5, a.pole);
+        a.k = 9;
+      } else if (P === 'cup' && key === (d.side || 'R')) {
+        // a hand cupped behind his good ear: "What?"
+        const sx = key === 'L' ? 1 : -1;
+        this.headPoint(sx * 0.16, -0.01, -0.04, a.desired);
+        a.aim = this.headPoint(sx * 0.12, 0.05, 0.4, new THREE.Vector3());
+        this.local(s * 1.0, 0.6, -0.4, a.pole);
+        a.k = 8;
+      } else if (P === 'hold' && d.L && d.R) {
+        // carrying something in front of him (elbows down and out)
+        a.desired.copy(key === 'L' ? d.L : d.R);
+        this.local(s * 0.9, 0.5, -0.4, a.pole);
+        a.aim = this.local(s * 0.05, this.chestY - 0.2, 1.4, new THREE.Vector3());
+        a.k = 8;
+      } else if (P === 'eat' && key === 'R') {
+        // a slice up to his mouth
+        this.headPoint(-0.03, -0.11, 0.2, a.desired);
+        a.aim = this.headPoint(0.02, -0.08, 0.1, new THREE.Vector3());
+        this.local(-0.9, 0.4, -0.3, a.pole);
+        a.k = 6;
+      } else if (P === 'dance') {
+        // stiff phonk dancing: arms pumping in turn (his phone held up in his right hand)
+        const ph = this.time * Math.PI * 4 + (key === 'L' ? 0 : Math.PI);
+        if (d.phone && key === 'R') {
+          this.local(-0.16, this.shoulderY + 0.12 + Math.sin(this.time * Math.PI * 2) * 0.03, 0.42, a.desired);
+          a.aim = this.headPoint(0, 0, 0.05, new THREE.Vector3());
+        } else if (!d.still) this.local(s * (0.3 + 0.06 * Math.sin(ph * 0.5)), this.chestY + 0.06 + Math.sin(ph) * 0.2, 0.3 + 0.06 * Math.cos(ph), a.desired);
+        this.local(s * 1.1, 0.6, -0.3, a.pole);
+        a.k = 14;
+      } else if (P === 'swat' && key === 'R' && d.at) {
+        // hand up high over the fly... and down
+        a.desired.copy(d.at);
+        if (!d.down) a.desired.y += 0.5;
+        else a.desired.y += 0.03;
+        a.aim = d.down ? _v.copy(d.at).add(_v2.set(0, -0.2, 0)).clone() : _v.copy(d.at).add(_v2.set(0, 1, 0)).clone();
+        this.local(-0.9, 1.3, -0.3, a.pole);
+        a.k = d.down ? 45 : 8;
+      } else if (P === 'wrist') {
+        // checks his watch: the left wrist up in front, the right hand taps it
+        if (key === 'L') this.local(0.1, this.chestY - 0.1, 0.36, a.desired);
+        else this.local(0.0, this.chestY - 0.05 + Math.max(0, Math.sin(this.time * 6)) * 0.03, 0.38, a.desired);
+        this.local(s * 1.0, 0.6, -0.3, a.pole);
         a.k = 9;
       } else if (P === 'wipe') {
         // right hand holds the glasses at his chest, left hand rubs them
