@@ -13,6 +13,7 @@ export const SFX = [
   'm_snore', 'm_boom', 'm_fart', 'm_airhorn', 'm_trombone', 'm_scratch', 'm_crickets', 'm_dun', 'm_pipe', 'm_honk', 'm_slide', 'desk_slap',
   'v_phonk', 'v_lofi', 'v_euro', 'v_kazoo', 'v_mando', 'v_tbc', 'v_bonk', 'v_splash', 'v_pop', 'v_meow', 'v_bark', 'v_quack',
   'v_applause', 'v_laugh', 'v_explode', 'phone_flap', 'phone_point', 'phone_fail',
+  'prank_crumple', 'prank_fold', 'prank_swish', 'prank_hit', 'prank_board', 'prank_tick', 'bonk', 'class_laugh',
 ];
 
 const _v = new THREE.Vector3();

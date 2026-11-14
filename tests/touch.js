@@ -17,7 +17,7 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
   await check('touch layout detected', `document.body.classList.contains('touch')`);
   await page.tap('#btn-free'); await page.waitForTimeout(1500);
   await check('free class starts by tap', `game.state === 'playing'`);
-  await check('4 touch buttons visible', `[...document.querySelectorAll('.tbtn')].filter(b => b.offsetParent !== null).length === 4`);
+  await check('5 touch buttons visible (with PRANK)', `[...document.querySelectorAll('.tbtn')].filter(b => b.offsetParent !== null).length === 5`);
   // drag on the canvas to look around
   const y0 = await page.evaluate(() => game.yaw);
   await page.evaluate(() => {
@@ -51,6 +51,17 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
   await touch('#btn-phone', 'touchstart'); await page.waitForTimeout(600);
   await check('hold PHONE raises phone', `game.phone.up === true`);
   await touch('#btn-phone', 'touchend');
+  // pranks: hold PRANK to aim (the other buttons become DROP / BALL / SWAP), let go to throw
+  await page.evaluate(() => { const g = game; g.__uw = g.updateWatching; g.updateWatching = function () { g.__uw.call(g); for (const p of g.players) { p.watching = false; p.lookDot = -1; } };
+    g.me.foldT = 0; g.yaw = 0; g.pitch = 0.1; g.cutscene = false; g.lockBully = false; });
+  await touch('#btn-prank', 'touchstart'); await page.waitForTimeout(700);
+  await check('hold PRANK: aiming, buttons become DROP / BALL / SWAP', `!!game.me.aim && ['btn-talk', 'btn-ask', 'btn-echo'].map((id) => document.getElementById(id).textContent).join('/') === 'DROP/BALL/SWAP'`);
+  await page.screenshot({ path: shot('touch_prank.png') });
+  await touch('#btn-echo', 'touchstart'); await page.waitForTimeout(300);
+  await check('tap SWAP: a paper plane', `!!game.me.aim && game.me.aim.kind === 'plane' && document.getElementById('btn-ask').textContent === 'PLANE'`);
+  await touch('#btn-prank', 'touchend'); await page.waitForTimeout(500);
+  await check('let go of PRANK: thrown, buttons back to TALK / ASK / ECHO', `game.stats.throws === 1 && !game.me.aim && document.getElementById('btn-talk').textContent === 'TALK'`);
+  await page.evaluate(() => { game.updateWatching = game.__uw; });
   await page.tap('#btn-pause'); await page.waitForTimeout(300);
   await check('pause button', `game.state === 'paused'`);
   await page.tap('#btn-resume'); await page.waitForTimeout(300);

@@ -49,6 +49,11 @@ TEACHER = {
     "t_hmm": "Hmmmmm.",
     "t_wasityou": "Was it | you?",
     "t_ifind": "I | will | find you.",
+    "t_whothrew": "Who | threw | that.",
+    "t_isaw": "I | saw | that.",
+    "t_myglasses": "My | glasses.",
+    "t_paper": "Paper | is for | writing.",
+    "t_funny": "Is something | funny?",
     "t_moment": "One | moment.",
     "t_noquestions": "No more | questions.",
     "t_toomany": "You ask | too many | questions.",
@@ -160,6 +165,11 @@ SUBS = {
     "t_hmm": "Hmmm...",
     "t_wasityou": "Was it... you?",
     "t_ifind": "I... will... find you.",
+    "t_whothrew": "Who... threw... that.",
+    "t_isaw": "I... saw... that.",
+    "t_myglasses": "My... glasses.",
+    "t_paper": "Paper... is for... writing.",
+    "t_funny": "Is something... funny?",
     "t_moment": "One... moment.",
     "t_noquestions": "No more... questions.",
     "t_toomany": "You ask... too many... questions.",
@@ -299,6 +309,9 @@ SAM = {
     "s_lookagain": "No, look! You're missing it!",
     "s_sent": "Check your phone. I sent you something.",
     "s_told": "Told you. Best video ever.",
+    "s_throw": "Throw a paper ball at his back. I dare you.",
+    "s_hit": "Bro! Right in the back!",
+    "s_ow": "Ow! Hey!",
 }
 NORA = {
     "n_free": "Maybe we get a free period.",
@@ -343,6 +356,8 @@ NORA = {
     "n_look": "Psst! You have to see this!",
     "n_lookagain": "Look! This is the best part!",
     "n_told": "I can't breathe.",
+    "n_hit": "Oh my god. You actually hit him.",
+    "n_ow": "Ow! Seriously?",
 }
 # The school PA speaker: (text, subtitle)
 PA = {
@@ -397,6 +412,8 @@ MEMES = {
     "k_notme": ("It wasn't me!", "It wasn't me!", ""),
     "k_awake": ("Huh? I'm awake! I'm awake!", "Huh?! I'm awake! I'm awake!", ""),
     "k_sorry": ("Sorry, sir.", "Sorry, sir.", ""),
+    "k_ow": ("Ow! Hey!", "Ow! Hey!", ""),
+    "k_takethat": ("Take that!", "Take that!", ""),
 }
 KID_VOICES = {"b": ("mb-us3", 165, 62, 1.22), "g": ("mb-us1", 165, 70, 1.12)}
 

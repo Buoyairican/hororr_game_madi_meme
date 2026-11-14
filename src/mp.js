@@ -13,6 +13,8 @@ import { clockLabel } from './data.js';
 import { clamp, dampAngle, lerp } from './util.js';
 import { HeldPhone } from './memes.js';
 import { showPose, avatarShoulders, lookDot } from './videos.js';
+import { makePaperMesh } from './pranks.js';
+import { PRANK } from './data.js';
 
 const AVATAR_MODELS = ['kid_a', 'kid_c', 'kid_f', 'kid_a'];
 const SNAP_DT = 1 / 15;      // snapshots per second
@@ -66,6 +68,11 @@ class Avatar {
     const hand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), skin);
     hand.scale.set(0.8, 1.3, 0.5); hand.position.y = 0.46;
     this.arm.add(fore, hand);
+    // a paper ball in that hand (winding up to throw)
+    this.ball = makePaperMesh('ball');
+    this.ball.position.y = 0.5;
+    this.ball.visible = false;
+    this.arm.add(this.ball);
     this.arm.visible = false;
     scene.add(this.arm);
     // a glowing phone in their hands
@@ -84,8 +91,18 @@ class Avatar {
     if (st.talk) c.talking = Math.max(c.talking, 0.25);
     c.update(dt);
     this.tag.position.set(head.x, head.y + 0.34, head.z);
-    this.arm.visible = !!st.hand;
-    if (st.hand) this.arm.position.set(head.x + 0.19, head.y - 0.22, head.z + 0.03);
+    // the arm: wound back holding a paper (aiming), swinging forward (just threw), or straight up (a question)
+    const thr = st.thr ?? 9;
+    const throwing = !st.aim && thr < 0.35;
+    this.arm.visible = !!(st.hand || st.aim || throwing);
+    this.ball.visible = !!st.aim;
+    if (st.aim || throwing) {
+      this.arm.position.set(head.x + 0.2, head.y - 0.3, head.z + 0.05);
+      this.arm.rotation.x = st.aim ? 0.95 : 0.95 - 2.3 * Math.min(1, thr / 0.25);
+    } else if (st.hand) {
+      this.arm.position.set(head.x + 0.19, head.y - 0.22, head.z + 0.03);
+      this.arm.rotation.x = 0;
+    }
     this.phone.visible = !!st.phone;
     if (st.phone) this.phone.position.set(head.x, head.y - 0.36, head.z - 0.26);
   }
@@ -169,9 +186,11 @@ export class MP {
       // their phone: a video playing (and loud right now), the clip they could show, the phone they look at
       p.in.pv = !!m.pv; p.in.pl = !!m.pl;
       p.in.ck = Number.isInteger(m.ck) ? m.ck : -1; p.in.cs = Number(m.cs) | 0; p.in.lk = Number(m.lk) | 0;
+      p.in.aim = !!m.am; // holding a paper up, ready to throw
     } else if (m.t === 'press') {
       if (m.k === 'echo' || m.k === 'ask' || m.k === 'show') p.in[m.k] = true;
       else if (m.k === 'fail' && !(p.failT > 0.5)) g.phoneFail(p);
+      else if (m.k === 'throw') g.throwFrom(p, { yaw: m.y, pitch: m.p, power: m.pw, kind: m.kd === 1 ? 'plane' : 'ball', curve: m.cv });
     }
     else if (m.t === 'pick') g.pickChoice(Number(m.i), p);
   }
@@ -240,7 +259,7 @@ export class MP {
   hostTick(dt) {
     const g = this.g;
     this.checkSilent();
-    for (const p of g.players) if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: !!p.talk, phone: p.phoneUp, hand: p.handT > 0 });
+    for (const p of g.players) if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: !!p.talk, phone: p.phoneUp, hand: p.handT > 0, aim: p.aiming, thr: g.t - p.lastThrow });
     if (!this.live()) { this.q = []; return; }
     this.snapT -= dt;
     if (this.snapT <= 0) { this.snapT = SNAP_DT; this.q.push(this.makeSnap()); }
@@ -266,13 +285,15 @@ export class MP {
     const w = [r2(W.master), r2(W.gloomTarget), r2(W.gloom), W.showSilhouette ? 1 : 0, W.laptop.openTarget, W.laptop.glowTarget, W.door.openTarget, g.doorFace.visible ? 1 : 0,
       W.lights.banks.map((x) => [r2(Math.max(0, x.flicker)), x.dead ? 1 : 0]), [...va(bk.position), r3(bk.rotation.x), r3(bk.rotation.y), r3(bk.rotation.z)]];
     const fx = [r2(g.blackoutTarget), r2(g.blackout), r2(g.shake), r2(g.glitch), r2(g.scareFear), r2(g.redFlash)];
-    const P = g.players.map((p) => [p.id, r3(p.yaw), r3(p.pitch), p.talk ? 1 : 0, p.phoneUp ? 1 : 0, p.handT > 0 ? 1 : 0]);
+    const P = g.players.map((p) => [p.id, r3(p.yaw), r3(p.pitch), p.talk ? 1 : 0, p.phoneUp ? 1 : 0, p.handT > 0 ? 1 : 0, p.aiming ? 1 : 0, r2(Math.min(9, g.t - p.lastThrow))]);
     return {
       t: 's', T: tt, b, K, w, fx, P,
       ck: r2(g.clockMin), ph: g.phase, a: Math.round(g.anger), s: g.strikes, ms: g.maxStrikes, m: Math.floor(g.mischief),
       pr: g.present ? 1 : 0, bl: g.blind ? 1 : 0, ty: g.typing ? 1 : 0, cu: g.cutscene ? 1 : 0, em: g.emergency,
       ec: g.canEcho() ? r2(g.echoable.until - g.t) : -1,
       sh: g.shows.filter((x) => !x.over).map((x) => [x.id, x.to.id, x.npc ? 'n:' + x.npc.kind : 'p:' + x.fromP.id, x.key, x.seed, r2(x.t)]),
+      // pranks: the papers, the laugh meter, whether anybody may throw right now
+      pj: g.paperSnap(), lg: Math.round(g.laugh), ap: g.prankOpen() ? 1 : 0,
     };
   }
 
@@ -417,6 +438,7 @@ export class MP {
         break;
       case 'choiceClose': if (this.choice) { this.choice = null; g.ui.closeChoices(); } break;
       case 'jump': this.jump = this.guestJump(); break;
+      case 'bonk': g.localBonk(typeof e.from === 'string' ? e.from.replace(/[<>&"]/g, '').slice(0, 12) : 'Someone'); break;
       case 'vscare': g.localVideoScare(); if (this.helds) for (const h of this.helds.values()) h.face = g.portraitTex && g.portraitTex.image; break;
       case 'camRun': {
         const door = new THREE.Vector3(4.3, PLAYER_EYE.y, -4.7);
@@ -446,6 +468,8 @@ export class MP {
     g.ui.clearTransient();
     g.ui.closeChoices();
     this.choice = null;
+    g.me.aim = null;
+    g.hidePrankVisuals();
     g.ui.end(e.title, e.text + '<br><br><i>Waiting for the host…</i>', e.stats, null);
     if (e.prog) g.saveProgress(e.prog);
     this.hook('ended');
@@ -457,6 +481,8 @@ export class MP {
     g.clockMin = s.ck; g.phase = s.ph; g.anger = s.a; g.strikes = s.s; g.maxStrikes = s.ms; g.mischief = s.m;
     g.present = !!s.pr; g.blind = !!s.bl; g.typing = !!s.ty; g.cutscene = !!s.cu; g.emergency = s.em;
     this.ec = s.ec;
+    g.laugh = Number(s.lg) || 0;
+    g.syncPapers(s.pj);
     // classmates
     const kids = g.allKids();
     s.K.forEach((row, i) => {
@@ -492,6 +518,7 @@ export class MP {
       const p = g.players.find((q) => q.id === row[0]);
       if (!p) continue;
       p.yaw = row[1]; p.pitch = row[2]; p.netTalk = !!row[3]; p.phoneUp = !!row[4]; p.netHand = !!row[5];
+      p.netAim = !!row[6]; p.netThrAt = g.t - (Number(row[7]) || 9);
     }
     // the teacher: snap when he teleports, otherwise glide there (see guestTick)
     const t = s.T, T = g.teacher;
@@ -514,10 +541,12 @@ export class MP {
       const att = g.present ? T.headWorld(_v).clone() : null;
       for (const c of g.allKids()) { c.attend = att; c.update(dt); }
       g.world.board.update(dt);
-      for (const p of g.players) if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: p.netTalk, phone: p.phoneUp, hand: p.netHand });
+      for (const p of g.players) if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: p.netTalk, phone: p.phoneUp, hand: p.netHand, aim: p.netAim, thr: g.t - (p.netThrAt ?? -99) });
       g.updateWatching();
       this.guestShows(dt);
       this.guestActions(dt);
+      g.tickNetPapers(dt);
+      g.updatePrankVisuals(dt);
       g.updateHand(dt);
       g.phone.update(dt);
       this.guestHud();
@@ -527,7 +556,7 @@ export class MP {
         const ph = g.phone;
         this.send({ t: 'in', y: r3(g.yaw), p: r3(g.pitch), talk: this.talk ? 1 : 0, ph: this.phoneUp ? 1 : 0,
           pv: this.phoneUp && ph.playing ? 1 : 0, pl: this.phoneUp && ph.loud ? 1 : 0,
-          ck: typeof ph.feed.key === 'number' ? ph.feed.key : -1, cs: ph.feed.seed | 0, lk: this.lookShow || 0 });
+          ck: typeof ph.feed.key === 'number' ? ph.feed.key : -1, cs: ph.feed.seed | 0, lk: this.lookShow || 0, am: g.me.aim ? 1 : 0 });
       }
     }
     if (this.jump && this.jump.next().done) {
@@ -614,8 +643,16 @@ export class MP {
     if (ui.noteOpen && (inp.talk || inp.phone || pressed.echo || pressed.ask)) { ui.closeNote(); g.noteLatch = true; blocked = true; }
     if (g.noteLatch && !inp.talk && !inp.phone) g.noteLatch = false;
     blocked = blocked || ui.noteOpen || g.noteLatch || !!this.choice || g.cutscene;
-    const held = !blocked && inp.phone;
-    if (held) {
+    // pranks: aim here, the host throws it (and everything after)
+    const req = g.localPrank(dt, inp, pressed, blocked, g.prankOpen());
+    if (req) {
+      this.send({ t: 'press', k: 'throw', y: r3(req.yaw), p: r3(req.pitch), pw: r2(req.power), kd: req.kind === 'plane' ? 1 : 0, cv: r2(req.curve) });
+      me.foldT = PRANK.fold[req.kind];
+    }
+    const aiming = !!me.aim;
+    const held = !blocked && !aiming && inp.phone;
+    if (aiming) { /* the other keys work the paper */ }
+    else if (held) {
       // the phone's buttons: tap (fly / next video), switch app, show the friend you look at
       if (pressed.tap) g.phone.tap();
       if (pressed.ask) g.phone.switchApp();
@@ -628,14 +665,15 @@ export class MP {
       if (!blocked && pressed.ask) this.send({ t: 'press', k: 'ask' });
     }
     this.phoneUp = held;
-    this.talk = !blocked && inp.talk && !this.phoneUp;
+    this.talk = !blocked && !aiming && inp.talk && !this.phoneUp;
     g.phone.up = this.phoneUp;
     const aim = g.aimFriend(me);
     let pr = '';
-    if (held) { if (g.phone.mode === 'memes' && aim && !aim.kind) pr = inp.touch ? `tap SHOW · show ${aim.name} this video` : `[R] · show ${aim.name} this video`; }
+    if (aiming) pr = g.aimLabel;
+    else if (held) { if (g.phone.mode === 'memes' && aim && !aim.kind) pr = inp.touch ? `tap SHOW · show ${aim.name} this video` : `[R] · show ${aim.name} this video`; }
     else if (aim && !this.talk) pr = inp.touch ? `hold TALK · whisper to ${aim.name}` : `hold [E] · whisper to ${aim.name}`;
     ui.prompt(g.vidZoom ? '' : pr);
-    ui.phoneControls(held ? g.phone.mode : null, inp.touch);
+    ui.phoneControls(aiming ? 'aim:' + me.aim.kind : held ? g.phone.mode : null, inp.touch);
     if (this.choice) {
       const k = inp.takeChoice();
       if (k >= 0 && k < this.choice.n) this.pick(k);
@@ -648,6 +686,7 @@ export class MP {
     ui.setScore(g.mischief);
     ui.setEye(!g.present ? 'away' : g.blind ? 'blind' : g.typing ? 'busy' : g.watching ? 'open' : 'closed');
     ui.setAnger(g.anger);
+    ui.setLaugh(g.laugh);
     ui.setStrikes(g.strikes, g.maxStrikes);
     ui.echoCue(this.ec >= 0 && !g.cutscene && !g.vidZoom && !this.phoneUp ? clamp(this.ec / 4, 0, 1) : -1, g.input.touch);
     const c = clockLabel(g.clockMin);
@@ -705,6 +744,9 @@ export class MP {
     for (const av of this.avatars.values()) av.dispose();
     this.avatars.clear();
     this.clearHelds();
+    g.clearPapers();
+    g.hidePrankVisuals();
+    g.me.aim = null;
     for (const p of [...g.players]) if (!p.local) g.removePlayer(p.id);
     for (const h of this.handles.values()) h.stop(0.05);
     this.handles.clear();

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run the browser tests.  Usage:
-#   bash tests/run.sh quick          features, story beats, menus, touch, 2-player online, videos online (~7 min)
+#   bash tests/run.sh quick          features, story beats, menus, touch, pranks, 2-player online, videos + pranks online (~8 min)
 #   bash tests/run.sh full           quick + all 4 story periods, Hard, random input, connection edge cases, 3-player chaos (~10 min)
 #   bash tests/run.sh features ui    just those
 # Logs: tests/out/<name>.log   Screenshots: tests/out/*.png
@@ -10,7 +10,7 @@ TESTS_DIR="$PWD"
 ROOT_DIR="$(cd .. && pwd)"
 mkdir -p out
 
-QUICK="features beats ui touch touch_phone mp mp_video"
+QUICK="features beats ui touch touch_phone pranks mp mp_video mp_prank"
 FULL="$QUICK story1 story2 story3 story4 hard fuzz mp_edge mp_chaos"
 case "${1:-quick}" in
   quick) NAMES="$QUICK" ;;

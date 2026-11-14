@@ -246,11 +246,11 @@ export class Teacher {
     this.faceMat.emissiveIntensity = this.faceGlow;
     this.eyeMat.emissiveIntensity = this.eyeGlow;
     this.lensMat.emissiveIntensity = this.lensGlow;
-    if (!this.glassesHeld) {
+    if (this.glassesHeld) {
+      this.glasses.position.lerp(_v.copy(this.chalk.position).multiplyScalar(0.7), 1 - Math.exp(-10 * dt));
+    } else if (this.glasses.parent === this.head) { // (on the floor or a desk, they stay where they are)
       this.glasses.position.lerp(this.glasses.userData.home, 1 - Math.exp(-12 * dt));
       this.glasses.quaternion.slerp(_q.identity(), 1 - Math.exp(-12 * dt));
-    } else {
-      this.glasses.position.lerp(_v.copy(this.chalk.position).multiplyScalar(0.7), 1 - Math.exp(-10 * dt));
     }
     root.updateMatrixWorld(true);
     this.updateFeet(dt);

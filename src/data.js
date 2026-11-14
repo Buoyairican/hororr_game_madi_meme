@@ -94,6 +94,23 @@ export const MEMES = [
   { id: 'slide', sfx: 'm_slide', cap: '<i>*slide whistle*</i>', react: 'check' },
   { id: 'huh', voice: 'm_huh', react: 'check' },
 ];
+// ---------------- pranks (src/pranks.js): every number in one place
+export const PRANK = {
+  fold: { ball: 0.8, plane: 1.5 },                 // seconds to make the next one after a throw
+  speed: { ball: [4.5, 11.5], plane: [4.0, 8.5] },  // metres per second at the lowest / highest power
+  charge: 0.75,                                     // power gained per second while you hold G
+  // how much the class laughs, and the mischief you get, for each kind of hit
+  laugh: { head: 50, back: 38, front: 22, board: 8, boardWriting: 28, kid: 20, friend: 15, player: 22, npc: 18 },
+  mischief: { head: 40, back: 30, front: 15, board: 5, boardWriting: 20, kid: 12, friend: 10, player: 10, throw: 2 },
+  anger: { first: 8, again: 16, front: 6, ow: 4, thud: 3, busy: 10 },  // what a hit does to him
+  throwBack: { kid: 0.4, friend: 0.3 },             // chance that whoever you hit throws one back at you
+  laughHold: 1.6, laughDecay: 7,                    // the meter stays up this long, then drops this fast per second
+  laughNear: 2.6, laughNoise: 0.55,                 // laughter is noise for the players this close to it
+  streakReset: 45,                                  // seconds until he forgets the last hit (three hits: he knows)
+  seenLimit: 0.3, exposeAfter: 0.7,                 // he looks right at your raised arm this long: caught
+};
+export const PRANK_NAMES = { ball: 'PAPER BALL', plane: 'PAPER PLANE' };
+
 export const HISTORY = ['how to be a teacher', 'what is 2 + 2', 'how often do people blink', 'how long can a class last', 'mr hale room 13 found?'];
 
 export const CHAPTERS = [
