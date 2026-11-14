@@ -26,7 +26,9 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
     };
     let lastSub = '', maxStrikes = 0, maxAnger = 0, overlap = 0;
     for (let i = 0; i < Math.round(secs / 0.05) && g.state === 'playing'; i++) {
-      if (g.choice) g.input.choiceKey = g.choice.labels[0].startsWith('Are you') ? fin : (g.choice.labels[0].startsWith('Four') ? 1 : 0);
+      // ("Who did it?": a careful player says nothing when he looks sure it was them, and points at a kid when he isn't)
+      if (g.choice) g.input.choiceKey = g.choice.labels[0].startsWith('Are you') ? fin : g.choice.labels[0].startsWith('Four') ? 1
+        : /looks sure/.test(document.getElementById('choices-title').textContent) ? 1 : 0;
       if (policy === 'play') {
         if (g.canEcho() && Math.random() < 0.03 && g.echoStreak < 2) g.input.pressed.echo = true;
         if (g.canAsk() && g.qCount < 2 && Math.random() < 0.01) g.input.pressed.ask = true;

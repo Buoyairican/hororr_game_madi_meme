@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Synthesise all sound effects used by the game (no samples, no licences).
 
-    python3 tools/gen_sfx.py          (needs numpy + ffmpeg; add v3, v4, v5, v6, v7 or memes for one group)
+    python3 tools/gen_sfx.py          (needs numpy + ffmpeg; add v3, v4, v5, v6, v7, p3 or memes for one group)
 
 Writes assets/audio/sfx/*.mp3. Every sound is built from noise, oscillators,
 filters and a synthetic room impulse response, so it can be tweaked freely.
@@ -1440,10 +1440,70 @@ def make_v7():
     x = biquad(x, "hp", 160)
     loop_save("class_chatter", reverb(x, 0.4, dur=1.2, decay=0.5)[: int(d * SR)], 0.6, peak=0.6, bitrate="64k")
 
+def make_p3():
+    """Phase 3 (src/blame.js): the KICK ME note (stuck on, torn off), the laser pointer (click, him pawing
+    at the dot), the class going "ooooh" when somebody gets the blame.
+    Uses its own random numbers, so building only this group gives the same files."""
+    r = np.random.default_rng(303)
+
+    def nz(d):
+        return r.standard_normal(int(d * SR))
+
+    # the note goes on his back: a flat hand on a jacket (soft thud), paper and tape under it
+    d = 0.3; t = t_axis(d)
+    x = biquad(nz(d), "lp", 520) * np.exp(-t / 0.022) * 1.3 + osc_sin(np.full(len(t), 110.0)) * np.exp(-t / 0.03) * 0.5
+    x += crinkle(d, 240, 2200, 6000, seed=304) * 0.45 * np.exp(-t / 0.07)
+    save("bl_stick", x, 0.6)
+
+    # he tears it off: tape letting go (a rising rasp), then the paper crackles in his hand
+    d = 0.6; t = t_axis(d)
+    rasp = svf(nz(d), 900 + 4200 * np.clip(t / 0.22, 0, 1), 2.2, "bp") * np.clip(t / 0.02, 0, 1) * np.exp(-np.clip(t - 0.2, 0, None) / 0.03)
+    x = rasp * 0.9 + crinkle(d, 420, 1800, 7000, seed=305) * (0.25 + 0.75 * np.clip((t - 0.18) / 0.1, 0, 1)) * np.exp(-np.clip(t - 0.3, 0, None) / 0.12)
+    save("bl_rip", x, 0.7)
+
+    # the laser pointer's button: a tiny plastic click (down, up)
+    d = 0.14
+    x = np.zeros(int(d * SR))
+    for k, (at, f) in enumerate(((0.0, 3400.0), (0.06, 2600.0))):
+        tt = t_axis(0.03)
+        click = (osc_sin(np.full(len(tt), f)) * 0.7 + biquad(nz(0.03), "bp", f * 1.6, 2.0) * 0.6) * np.exp(-tt / 0.004)
+        place(x, click * (1.0 - 0.35 * k), at)
+    save("bl_click", x, 0.45)
+
+    # he paws at the red dot: an open hand swatting a desk / the wall, a swish of sleeve before it
+    d = 0.3; t = t_axis(d)
+    swish = svf(nz(d), 700 + 1800 * np.clip(t / 0.09, 0, 1), 1.2, "bp") * np.sin(np.pi * np.clip(t / 0.1, 0, 1)) ** 2 * 0.35
+    pat = np.zeros(len(t))
+    tt = t_axis(0.2)
+    place(pat, (biquad(nz(0.2), "lp", 900) * np.exp(-tt / 0.02) * 1.2 + osc_sin(np.full(len(tt), 165.0)) * np.exp(-tt / 0.035) * 0.8
+                + biquad(nz(0.2), "bp", 2600, 1.2) * np.exp(-tt / 0.006) * 0.5), 0.09)
+    save("bl_paw", swish + pat, 0.7)
+
+    # the whole class: "ooooOOOOooh" (somebody just got the blame): kids' voices sliding up and back down
+    d = 2.1; t = t_axis(d)
+    x = np.zeros(len(t))
+    for v in range(18):
+        f0 = r.uniform(210, 400)
+        start = r.uniform(0, 0.25)
+        dur = r.uniform(1.2, 1.6)
+        tt = t_axis(dur)
+        k = tt / dur
+        f = f0 * (0.92 + 0.34 * np.sin(np.pi * np.clip(k * 1.15, 0, 1)) ** 2) * (1 + 0.012 * np.sin(2 * np.pi * r.uniform(4.5, 6.5) * tt))
+        src = osc_saw(f) * 0.8 + nz(dur) * 0.05
+        form = r.uniform(0.94, 1.08)
+        voice = biquad(src, "bp", 420 * form, 4.0) * 1.0 + biquad(src, "bp", 820 * form, 5.0) * 0.7 + biquad(src, "bp", 2500 * form, 4.0) * 0.12
+        voice *= np.sin(np.pi * np.clip(k, 0, 1)) ** 0.7 * np.clip(tt / 0.08, 0, 1)
+        place(x, voice * r.uniform(0.5, 1.0), start)
+    save("bl_ooh", fade(reverb(x, 0.35, dur=1.4, decay=0.5)[: int(2.7 * SR)], 0.005, 0.3), 0.75)
+
+
 
 if __name__ == "__main__":
     import sys
     print("Synthesising sound effects ->", OUT)
+    if "p3" in sys.argv:  # Phase 3: blame, the note on his back, the laser pointer
+        make_p3()
+        raise SystemExit(0)
     if "v7" in sys.argv:
         make_v7()
         raise SystemExit(0)
@@ -1481,4 +1541,5 @@ if __name__ == "__main__":
     make_v5()
     make_v6()
     make_v7()
+    make_p3()
     print("done")

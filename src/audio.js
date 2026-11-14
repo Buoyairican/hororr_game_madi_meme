@@ -16,6 +16,7 @@ export const SFX = [
   'prank_crumple', 'prank_fold', 'prank_swish', 'prank_hit', 'prank_board', 'prank_tick', 'bonk', 'class_laugh',
   'net_join', 'net_try', 'net_fail',
   'madi_ring', 'phone_voice', 'phone_static', 'fly_buzz', 'fly_splat', 'door_knock', 'pizza_box', 'munch', 'fire_alarm', 'madi_hum', 'snort', 'class_chatter',
+  'bl_stick', 'bl_rip', 'bl_click', 'bl_paw', 'bl_ooh',
 ];
 
 const _v = new THREE.Vector3();

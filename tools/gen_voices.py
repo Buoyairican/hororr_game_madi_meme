@@ -565,6 +565,66 @@ SHOUTS = {
     "n_hey": ("mb-us1", 175, 75, "Hey! Answer me!"),
 }
 
+# ---------------- Phase 3 (src/blame.js): "Who did it?", the KICK ME note on his back, the laser pointer.
+# Its own block: the lines are added to the tables above.
+TEACHER.update({
+    "t_bl_ask": "You. | Who | did it?",
+    "t_bl_lie": "You | lie.",
+    "t_bl_honest": "Honest. | Do not | do it again.",
+    "t_bl_again": "Again?",
+    "t_bl_no": "No. | I do not | believe you.",
+    "t_bl_watch": "I am | watching | you.",
+    "t_bl_back": "What | is on | my back?",
+    "t_bl_kickme": "Kick | me.",
+    "t_lz_what": "What | is | that?",
+    "t_lz_dot": "The red | dot.",
+    "t_lz_come": "Come | here.",
+    "t_lz_gone": "Where | did it | go?",
+    "t_lz_eyes": "My | eyes.",
+    "t_lz_trick": "A | trick.",
+    "t_lz_give": "Give me | the light.",
+})
+SUBS.update({
+    "t_bl_ask": "You... Who... did it?",
+    "t_bl_lie": "You... lie.",
+    "t_bl_honest": "Honest... Do not... do it again.",
+    "t_bl_again": "Again?",
+    "t_bl_no": "No... I do not... believe you.",
+    "t_bl_watch": "I am... watching... you.",
+    "t_bl_back": "What... is on... my back?",
+    "t_bl_kickme": "\u201cKick... me.\u201d",
+    "t_lz_what": "What... is... that?",
+    "t_lz_dot": "The red... dot.",
+    "t_lz_come": "Come... here.",
+    "t_lz_gone": "Where... did it... go?",
+    "t_lz_eyes": "My... eyes.",
+    "t_lz_trick": "A... trick.",
+    "t_lz_give": "Give me... the light.",
+})
+SAM.update({
+    "s_bl_give": "Psst. Take these. A note for his back. And a laser pointer.",
+    "s_bl_what": "Bro! Me? Seriously?",
+    "s_bl_note": "It's on his back. Don't laugh. Don't laugh.",
+    "s_bl_cat": "He's chasing it. Like a cat.",
+})
+NORA.update({
+    "n_bl_give": "Here. A note for his back. And my laser pointer.",
+    "n_bl_what": "Me? Wow. Thanks a lot.",
+    "n_bl_note": "Kick me. Oh my god.",
+    "n_bl_eyes": "Not in his eyes! He'll find you.",
+})
+ALOUD.update({
+    "p_bl_them": ("mb-us3", 160, 58, 1.17, "you", "It was them!"),
+    "p_bl_me": ("mb-us3", 145, 52, 1.17, "you", "It was me."),
+})
+MEMES.update({
+    "k_bl_tell": ("Sir! Sir! Look!", "Sir! Sir! Look!", ""),
+    "k_bl_them": ("It was them!", "It was them!", ""),
+    "k_bl_back": ("Sir! There is something on your back!", "Sir! There's something on your back!", ""),
+    "k_bl_me": ("Okay. It was me.", "Okay... it was me.", ""),
+    "k_bl_what": ("What? Me?", "What?! Me?!", ""),
+})
+
 # Voices inside the meme clips on the phones: (espeak voice, speed, pitch, rubberband pitch, text)
 CLIPV = {
     "v_br_pencil": ("it", 125, 30, 0.86, "Matitino Gommarino!"),
