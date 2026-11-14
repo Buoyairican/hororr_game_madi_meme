@@ -14,7 +14,7 @@ import { clamp, dampAngle, lerp } from './util.js';
 import { HeldPhone } from './memes.js';
 import { showPose, avatarShoulders, lookDot } from './videos.js';
 import { makePaperMesh } from './pranks.js';
-import { PRANK } from './data.js';
+import { PRANK, ONLINE } from './data.js';
 
 const AVATAR_MODELS = ['kid_a', 'kid_c', 'kid_f', 'kid_a'];
 const SNAP_DT = 1 / 15;      // snapshots per second
@@ -110,7 +110,7 @@ class Avatar {
 }
 
 export class MP {
-  /** hooks: { lobby(), lost(msg), started(), ended(), toLobby() } — set by main.js */
+  /** hooks: { lobby(), lost(msg), started(), ended(), toLobby(), joining(kind, tries, code), netNote(kind) } — set by main.js */
   constructor(game, hooks = {}) {
     this.g = game;
     this.hooks = hooks;
@@ -135,9 +135,11 @@ export class MP {
   hook(name, ...a) { const f = this.hooks[name]; if (f) f(...a); }
 
   // =============================================================== HOST
-  async host(name) {
+  async host(name, wantCode) {
     this.name = cleanName(name) || 'Host';
+    if (wantCode) this.net.wantCode = wantCode; // tests: a known code
     this.code = await this.net.host();
+    this.checkGone();
     this.role = 'host'; this.myId = 'host';
     CURRENT = this;
     const g = this.g;
@@ -147,6 +149,10 @@ export class MP {
     installProxies(g);
     this.net.on.msg = (id, m) => this.onHostMsg(id, m);
     this.net.on.leave = (id) => this.dropGuest(id);
+    // what the host's lobby tells: someone connecting, someone who could not get in, the game server dropping and coming back
+    this.net.on.trying = () => this.hook('netNote', 'trying');
+    this.net.on.failed = (id) => { if (!this.lobby.some((x) => x.id === id)) this.hook('netNote', 'failed'); };
+    this.net.on.server = (state) => this.hook('netNote', state);
     this.pinger = setInterval(() => this.net.broadcast({ t: 'ping' }), 2000); // "still here" even while the menu is open
     this.hook('lobby');
     return this.code;
@@ -157,7 +163,7 @@ export class MP {
     if (!m || typeof m !== 'object') return;
     if (m.t === 'hello') {
       if (this.lobby.some((x) => x.id === id)) return;
-      if (this.lobby.length >= SEATS.length) { this.net.send(id, { t: 'full' }); setTimeout(() => this.net.kick(id), 400); return; }
+      if (this.lobby.length >= SEATS.length) { this.net.send(id, { t: 'full' }); setTimeout(() => this.net.kick(id), 400); this.hook('netNote', 'full'); return; }
       const used = new Set(this.lobby.map((x) => x.seat));
       let seat = 1;
       while (used.has(seat)) seat++;
@@ -172,6 +178,7 @@ export class MP {
       if (g.state === 'playing') {
         this.sendStart(id, true); // joined in the middle of class
         g.ui.toast(`${name} joined the class`, 2.5);
+        g.track.event(g.t, p, 'join', { late: true });
       }
       this.hook('lobby');
       return;
@@ -202,6 +209,8 @@ export class MP {
     this.lobby = this.lobby.filter((x) => x.id !== id);
     const av = this.avatars.get(id);
     if (av) { av.dispose(); this.avatars.delete(id); }
+    const p = g.players.find((x) => x.id === id);
+    if (p && g.state === 'playing') g.track.event(g.t, p, 'leave');
     g.removePlayer(id);
     if (who && g.state === 'playing') g.ui.toast(`${who.name} left the class`, 2.5);
     this.sendLobby();
@@ -323,7 +332,8 @@ export class MP {
   // =============================================================== GUEST
   async join(code, name) {
     this.name = cleanName(name) || 'Friend';
-    await this.net.join(code);
+    await this.net.join(code, (kind, tries) => this.hook('joining', kind, tries, code));
+    this.checkGone();
     this.role = 'guest'; this.code = code;
     CURRENT = this;
     const g = this.g;
@@ -532,7 +542,7 @@ export class MP {
   /** every frame on a friend's screen */
   guestTick(dt) {
     const g = this.g, T = g.teacher;
-    if (g.state === 'playing' && this.heard && performance.now() - this.heard > TIMEOUT * 1000) { this.hook('lost', 'Lost the connection to the host.'); return; }
+    if (g.state === 'playing' && this.heard && performance.now() - this.heard > TIMEOUT * 1000) { this.hook('lost', ONLINE.text.lost); return; }
     g.t += dt;
     g.updateLook(dt);
     g.timers.update(dt);
@@ -735,8 +745,20 @@ export class MP {
   }
 
   // =============================================================== BOTH
+  /** the page is back on screen after `awayMs` (a phone freezes a page in the background):
+   *  the host makes sure friends can still reach the class. Returns what it did. */
+  wake(awayMs) { return this.role === 'host' ? this.net.wake(awayMs) : 'none'; }
+
+  /** the player left (BACK / CANCEL) while the connection was still opening: don't take over the game */
+  checkGone() {
+    if (!this.gone) return;
+    this.net.close();
+    throw Object.assign(new Error('cancelled'), { cancelled: true });
+  }
+
   leave() {
     const g = this.g;
+    this.gone = true;
     clearInterval(this.pinger);
     if (this.role === 'host') { this.flush(); this.net.broadcast({ t: 'bye' }); }
     else if (this.role === 'guest') this.send({ t: 'bye' });

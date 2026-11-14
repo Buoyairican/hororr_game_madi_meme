@@ -128,6 +128,7 @@
       <li>Sit still too long and the <b>class clowns</b> in the back start making noises. He will go and find out who did it.</li>
       <li><b>Difficulty</b>: <b>Easy</b> gives you 3 strikes. <b>Hard</b> plays the same, but you only get <b>one strike</b>, and if he actually <b>sees</b> you whispering or on your phone, he comes for you right away.</li>
       <li><b>Play with friends</b> (Free Class): one of you hosts, the others join with the class code (up to 4). Look at a friend and hold <kbd>E</kbd> / <b>TALK</b> to whisper to them. In the meme app, look at a friend and press <kbd>R</kbd> / <b>SHOW</b> to hold your phone out to them. Throw paper at each other too. Strikes are shared, so keep each other quiet.</li>
+      <li><b>Hosting?</b> Keep the game open on your screen until your friends are in: on a phone, a game in the background can't let anybody in. Send the code with <b>SHARE CODE</b> (you stay in the game) or <b>COPY INVITE LINK</b>. Joining takes up to a minute on slow networks; the game keeps trying by itself.</li>
     </ul>
     <button class="back">BACK</button>
   </div>
@@ -146,7 +147,8 @@
     </div>
     <div id="mp-room" class="hidden">
       <div class="mp-code-box">Class code <b id="mp-code-show">-----</b></div>
-      <button id="btn-copy" class="small-btn">COPY INVITE LINK</button>
+      <div class="mp-share"><button id="btn-share" class="small-btn hidden">SHARE CODE</button><button id="btn-copy" class="small-btn">COPY INVITE LINK</button></div>
+      <p id="mp-keep" class="mp-keep hidden"></p>
       <ul id="mp-players"></ul>
       <div id="mp-host-ctl" class="hidden">
         <div class="dim">Online play is Free Class (8:30 to 12:30).</div>
@@ -156,7 +158,8 @@
       </div>
       <p id="mp-wait" class="dim hidden">Waiting for the host to start the class&hellip;</p>
     </div>
-    <p id="mp-status"></p>
+    <p id="mp-status" aria-live="polite"></p>
+    <p id="mp-madi"></p>
     <button id="btn-mp-leave">BACK</button>
   </div>
 </div>

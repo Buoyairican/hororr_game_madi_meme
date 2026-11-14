@@ -6,6 +6,7 @@ import { clamp, lerp, damp, rand, pick, chance, wrapAngle, Bag, Timers } from '.
 import { PLAYER_EYE, BOARD_Z, ROWS, COLS } from './world.js';
 import { VideoMixin } from './videos.js';
 import { PrankMixin } from './pranks.js';
+import { LobbyMixin } from './lobby.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
@@ -247,6 +248,7 @@ export class Game {
     this.pitch = 0.08 + Math.sin(this.titleT * 0.21) * 0.03;
     this.applyCamera(dt);
     T.lookAt(this.camPos, 3);
+    T.talk = this.lobbyTalk(); // he talks from the door while friends join (src/lobby.js)
     T.update(dt, { twitchy: true });
     const att = T.headWorld(v3).clone();
     for (const c of this.allKids()) { c.attend = att; c.update(dt); }
@@ -3259,7 +3261,7 @@ export class Game {
   }
 }
 
-Object.assign(Game.prototype, VideoMixin, PrankMixin);
+Object.assign(Game.prototype, VideoMixin, PrankMixin, LobbyMixin);
 
 /** is the clip on a phone held out to you at a loud moment? */
 function clipLoud(sh) {

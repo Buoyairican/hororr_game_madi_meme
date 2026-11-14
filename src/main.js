@@ -11,7 +11,7 @@ import { Phone } from './phone.js';
 import { loadUserVideos } from './memes.js';
 import { Game } from './game.js';
 import { preloadModels, instantiate } from './models.js';
-import { CHAPTERS } from './data.js';
+import { CHAPTERS, ONLINE } from './data.js';
 import { MP, cleanName } from './mp.js';
 import { cleanCode } from './net.js';
 
@@ -199,10 +199,14 @@ async function boot() {
   $('btn-pause-settings').onclick = () => { backTo = 'pause'; go('settings'); };
   $('btn-restart').onclick = () => { if (audio.ctx) audio.ctx.resume(); go(null); game.start(game.mode, game.chapter); };
   $('btn-again').onclick = () => { go(null); if (!game.endPrimary()) toTitle(); };
-  document.addEventListener('visibilitychange', () => { if (document.hidden && !game.mp) pause(); });
-
   // ---------------- multiplayer ----------------
   let mp = null;
+  let joining = null;          // the class you are trying to get into (JOIN turns into CANCEL meanwhile)
+  let lastCode = '';           // the code you joined last (it stays in the box if you get dropped)
+  let seen = null;             // who was in the lobby last time (null: not in a lobby yet)
+  const TX = ONLINE.text;
+  const fill = (t, o = {}) => t.replace(/\{(\w+)\}/g, (_, k) => (o[k] ?? ''));
+  const canShare = () => !!navigator.share && isTouch;
   const SEAT_NAMES = ['front row, middle', 'second row, left', 'second row, right', 'second row, behind Nora'];
   const showEl = (id, on) => $(id).classList.toggle('hidden', !on);
   const mpStatus = (t, ok) => { $('mp-status').textContent = t || ''; $('mp-status').classList.toggle('ok', !!ok); };
@@ -235,6 +239,8 @@ async function boot() {
     showEl('mp-pick', false); showEl('mp-room', true);
     const host = mp.role === 'host';
     showEl('mp-host-ctl', host); showEl('mp-wait', !host);
+    showEl('mp-keep', host); $('mp-keep').textContent = TX.keep;
+    showEl('btn-share', canShare());
     renderLobby();
     if (!host) $('mp-wait').textContent = `Waiting for the host to start Free Class (${mp.difficulty === 'hard' ? 'HARD' : 'Easy'})…`;
     $('btn-mp-leave').textContent = host ? 'CLOSE THE CLASS' : 'LEAVE';
@@ -247,11 +253,41 @@ async function boot() {
     if (code) $('mp-code').value = code;
     if (mp) roomView(); else { showEl('mp-pick', true); showEl('mp-room', false); mpStatus(''); }
   };
+  const inLobby = () => game.state === 'title' && !$('mp').classList.contains('hidden');
+  /** who came and went since last time: a sound, a line from him, a status line (only in the lobby) */
+  const lobbyDiff = () => {
+    if (!mp) { seen = null; return; }
+    const now = new Map(mp.lobby.map((x) => [x.id, x.name]));
+    if (!seen) { if (mp.role === 'guest' && mp.myId) game.lobbyEvent('in'); } // you sat down in a friend's class
+    else if (inLobby()) {
+      for (const [id, name] of now) if (!seen.has(id) && id !== mp.myId) { game.lobbyEvent('joined', { full: now.size >= 4 }); mpStatus(fill(TX.joined, { name }), true); }
+      for (const [id, name] of seen) if (!now.has(id) && id !== mp.myId) { game.lobbyEvent('left'); mpStatus(fill(TX.left, { name }), true); }
+    }
+    seen = now;
+  };
   const hooks = {
-    lobby: () => { renderLobby(); if (mp && mp.role === 'guest') $('mp-wait').textContent = `Waiting for the host to start Free Class (${mp.difficulty === 'hard' ? 'HARD' : 'Easy'})…`; },
-    lost: (msg) => { if (mp) { mp.leave(); mp = null; } labels(); toTitle(); openMp(); mpStatus(msg); },
+    lobby: () => { renderLobby(); lobbyDiff(); if (mp && mp.role === 'guest') $('mp-wait').textContent = `Waiting for the host to start Free Class (${mp.difficulty === 'hard' ? 'HARD' : 'Easy'})…`; },
+    lost: (msg) => {
+      const guest = mp && mp.role === 'guest';
+      if (mp) { mp.leave(); mp = null; }
+      seen = null;
+      labels(); toTitle(); openMp(guest ? lastCode : undefined); mpStatus(msg);
+      game.lobbyEvent('lost');
+    },
     started: () => { go(null); ui.show('rotate', false); },
     toLobby: () => { toTitle(); openMp(); mpStatus('The host is picking the next class…', true); },
+    // a friend trying to get in: what is happening right now ("connecting… try 2")
+    joining: (kind, n, code) => {
+      if (kind === 'server') { mpStatus(TX.server, true); return; }
+      mpStatus(kind === 'missing' ? fill(TX.missing, { code, n }) : n > 1 ? fill(TX.retry, { n }) : TX.connect, true);
+      game.lobbyEvent('try');
+    },
+    // the host's lobby: someone connecting / could not get in, the game server dropped / came back
+    netNote: (kind) => {
+      if (!mp || mp.role !== 'host' || !inLobby()) return;
+      const t = { trying: TX.trying, failed: TX.failed, full: TX.full, lost: TX.serverLost, back: TX.serverBack, taken: TX.taken }[kind];
+      if (t) mpStatus(t, kind !== 'failed' && kind !== 'taken');
+    },
   };
   const quitGame = () => {
     if (mp && mp.role === 'host') { mp.backToLobby(); toTitle(); openMp(); return; }
@@ -263,46 +299,93 @@ async function boot() {
   $('btn-mp').onclick = () => { audio.unlock(); openMp(); };
   $('btn-host').onclick = async () => {
     audio.unlock();
+    if (mp || joining) return;
     const name = mpName();
     mpStatus('Opening your class…', true);
     $('btn-host').disabled = true;
+    const me = mp = new MP(game, hooks);
+    seen = null;
     try {
-      mp = new MP(game, hooks);
-      await mp.host(name);
-      mpStatus('Send the code (or the invite link) to your friends.', true);
+      await me.host(name, query.has('debug') ? cleanCode(query.get('hostcode') || '') : '');
+      if (mp !== me) return; // left while it opened
+      mpStatus(TX.hostOpen, true);
       roomView();
       showDifficulty();
     } catch (e) {
-      if (mp) mp.leave();
-      mp = null;
-      mpStatus('Could not open a class: ' + ((e && (e.message || e.type)) || e));
-    }
-    $('btn-host').disabled = false;
+      if (mp === me) { mp.leave(); mp = null; }
+      if (!(e && e.cancelled)) mpStatus('Could not open a class: ' + ((e && (e.message || e.type)) || e));
+    } finally { $('btn-host').disabled = false; }
+  };
+  // JOIN: keeps trying for about a minute (the status line says what is happening); press again to stop
+  const setJoining = (on) => { $('btn-join').textContent = on ? 'CANCEL' : 'JOIN'; $('btn-join').classList.toggle('cancel', on); $('btn-host').disabled = on; };
+  const stopJoining = () => {
+    const j = joining;
+    joining = null;
+    setJoining(false);
+    if (j && mp === j) { mp.leave(); mp = null; }
   };
   $('btn-join').onclick = async () => {
     audio.unlock();
+    if (joining) { stopJoining(); mpStatus(TX.stopped, true); return; }
+    if (mp) return;
     const code = cleanCode($('mp-code').value);
     if (code.length !== 5) { mpStatus('Type the 5-letter class code.'); return; }
     const name = mpName();
-    mpStatus('Joining…', true);
-    $('btn-join').disabled = true;
+    lastCode = code;
+    const me = mp = joining = new MP(game, hooks);
+    seen = null;
+    setJoining(true);
+    mpStatus(TX.server, true);
     try {
-      mp = new MP(game, hooks);
-      await mp.join(code, name);
+      await me.join(code, name);
+      if (joining !== me) return; // stopped at the last moment
+      joining = null; setJoining(false);
       roomView();
-      mpStatus('You are in. Wait for the host to start the class.', true);
+      mpStatus(TX.inClass, true);
     } catch (e) {
-      if (mp) mp.leave();
-      mp = null;
-      mpStatus((e && e.message) || 'Could not join that class.');
+      if (joining === me) { joining = null; setJoining(false); }
+      if (mp === me) { mp.leave(); mp = null; }
+      if (!(e && e.cancelled)) {
+        mpStatus((e && e.message) || 'Could not join that class.');
+        $('mp-status').scrollIntoView({ block: 'nearest' }); // small phone screens: the steps are below the JOIN row
+        game.lobbyEvent('fail');
+      }
     }
-    $('btn-join').disabled = false;
   };
-  $('mp-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn-join').click(); });
-  $('btn-copy').onclick = async () => {
-    if (!mp) return;
-    const url = location.origin + location.pathname + '?join=' + mp.code;
-    try { await navigator.clipboard.writeText(url); mpStatus('Invite link copied. Paste it to your friends.', true); } catch (e) { mpStatus(url, true); }
+  $('mp-code').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !joining) $('btn-join').click(); });
+  // sending the code: SHARE opens the phone's share sheet on top of the game (the host stays in the
+  // game, so friends can get in); COPY INVITE LINK copies the link (with fallbacks)
+  const inviteUrl = () => location.origin + location.pathname + '?join=' + mp.code;
+  const copyText = async (text) => {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* not allowed here: the old way */ }
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+      document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    } catch (e) { return false; }
+  };
+  const copyInvite = async () => {
+    if (!mp || !mp.code) return;
+    const url = inviteUrl();
+    if (await copyText(url)) { mpStatus(TX.copied, true); audio.play('page', { local: true, vol: 0.6 }); }
+    else mpStatus(fill(TX.copyFailed, { url }), true);
+  };
+  $('btn-copy').onclick = () => { audio.unlock(); copyInvite(); };
+  $('btn-share').onclick = async () => {
+    audio.unlock();
+    if (!mp || !mp.code) return;
+    if (!navigator.share) { copyInvite(); return; }
+    try {
+      await navigator.share({ title: TX.shareTitle, text: fill(TX.shareText, { code: mp.code }), url: inviteUrl() });
+      mpStatus(TX.shared, true);
+      audio.play('page', { local: true, vol: 0.6 });
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // closed the share sheet
+      copyInvite();
+    }
   };
   $('btn-mp-go').onclick = () => {
     if (!mp || mp.role !== 'host') return;
@@ -321,7 +404,21 @@ async function boot() {
   for (const [id, v] of [['btn-easy', 'easy'], ['btn-hard', 'hard'], ['mp-easy', 'easy'], ['mp-hard', 'hard']]) $(id).onclick = () => setDifficulty(v);
   showDifficulty();
 
-  $('btn-mp-leave').onclick = () => { if (mp) { mp.leave(); mp = null; } labels(); go('title'); };
+  $('btn-mp-leave').onclick = () => { if (joining) stopJoining(); if (mp) { mp.leave(); mp = null; } seen = null; labels(); go('title'); };
+  // back from another app: a phone froze the game meanwhile. The host makes sure friends can still
+  // get in (same code), and in the lobby Mr. Madi reminds them to stay.
+  let hiddenAt = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { hiddenAt = performance.now(); if (!game.mp) pause(); return; }
+    const away = hiddenAt ? performance.now() - hiddenAt : 0;
+    hiddenAt = 0;
+    if (!mp || mp.role !== 'host') return;
+    const r = mp.wake(away);
+    if (!inLobby()) return;
+    if (r === 'reopen' || r === 'reconnect') mpStatus(TX.serverLost, true);
+    else if (away >= ONLINE.awayLine) mpStatus(TX.back, true);
+    if (away >= ONLINE.awayLine) game.lobbyEvent('away');
+  });
   addEventListener('pagehide', () => { if (mp) mp.leave(); }); // say goodbye when the tab closes
 
   // ---------------- settings ----------------

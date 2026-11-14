@@ -65,7 +65,7 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, 
   Free Class allow pranks (period 1 does not). Touch: PRANK, then DROP / BALL-PLANE / SWAP.
   Numbers in `PRANK` (`src/data.js`). Tests: `tests/pranks.js`, `tests/mp_prank.js`, touch.js.
 
-### [ ] Online fix: friends can always join
+### [x] Online fix: friends can always join
 - The bug: `src/net.js` passed its own `iceServers` (STUN only) to PeerJS, which threw away
   PeerJS's default TURN relays. Without a relay, two phones on different networks (mobile data,
   strict Wi-Fi, carrier NAT) often cannot reach each other: "could not connect to the host".
@@ -79,6 +79,20 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, 
   the signalling server when the phone comes back to the game.
 - Clear errors that say what to do; the README explains how to switch on the own relay.
 - Done when: tests for the relay config, the fallback, the retry, and every online test passes.
+- Shipped: `src/net.js` lists Google STUN + PeerJS's TURN relays + the own relay from `api/turn.js`
+  (Cloudflare, Metered or any TURN server, from Vercel environment variables; it answers
+  `{"iceServers":[]}` when nothing is set up or a provider fails). Both sides ask it, wait 3 s at most
+  and fall back silently. A friend tries for 60 s of time on screen ("Connecting to the class… try 2"),
+  "no class with that code" only after ~10 s; JOIN turns into CANCEL. The host keeps a secret token so
+  it can take its code back: it reconnects (1, 2, 4, 8 s) when the signalling link drops, renews it when
+  the phone comes back after 10 s away, and reopens the same code if the Peer died. Host lobby: the
+  keep-open tip, SHARE CODE (the phone's share sheet) + COPY INVITE LINK, "Someone is connecting…",
+  "could not connect", "the class is full". A failed connection logs a diagnosis (ICE state, host /
+  srflx / relay addresses, TURN errors). Lobby sounds (`net_join`, `net_try`, `net_fail`) and Mr. Madi at
+  the door: "Sit... down.", "Do not... leave... my class.", "Nobody... is... coming." (`src/lobby.js`,
+  `ONLINE` in `src/data.js`). Late joins and leaving are in the class log (`track.event`). README:
+  "Friends can't join?". Tests: `tests/turn_api.js`, `tests/mp_net.js`, `mp_edge`. Real NAT traversal
+  (two phones on different networks) can't be reproduced on the test machine.
 
 ### [ ] Phase 2: A different teacher every class (ideas 4, 6, 7)
 - **Event deck** (`src/events.js`): each class draws 3-4 from: his embarrassing ringtone,

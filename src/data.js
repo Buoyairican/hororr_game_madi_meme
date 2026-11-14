@@ -111,6 +111,61 @@ export const PRANK = {
 };
 export const PRANK_NAMES = { ball: 'PAPER BALL', plane: 'PAPER PLANE' };
 
+// Playing online: how patient joining is, what the lobby says, and what you hear there
+// (src/net.js, src/lobby.js, the lobby in src/main.js). Times are in milliseconds.
+export const ONLINE = {
+  turnUrl: 'api/turn',       // your own relay servers, if set up (api/turn.js on Vercel; see the README)
+  turnTimeout: 3000,         // wait this long for them, then go on with the built-in ones
+  turnCache: 30 * 60000,     // reuse the answer this long (its credentials last a day)
+  joinFor: 60000,            // a friend keeps trying to connect this long (time with the game on screen)
+  tryFor: 15000,             // one try waits this long for the host to answer
+  retryGap: 1500,            // pause between tries
+  missingFor: 10000,         // "no class with that code" only after this long: the host may be coming back
+  serverFor: 20000,          // the game server can't be reached at all: give up after this long
+  openFor: 15000,            // one try to reach the game server
+  hostTrying: 30000,         // host: a friend's connection that isn't open after this long has failed
+  refreshAfter: 10000,       // host back after this long in another app: renew the link to the game server
+  awayLine: 4000,            // host back in the lobby after this long away: Mr. Madi tells you to stay
+  text: {
+    server: 'Reaching the game server…',
+    connect: 'Connecting to the class…',
+    retry: 'Connecting to the class… try {n}',
+    missing: 'Looking for class {code}… try {n}',
+    noClass: 'No class with that code.\nCheck the code. The host must keep the game open on the screen.',
+    blocked: 'Could not connect to the host.\n1. The host keeps the game open on the screen.\n2. Press JOIN again.\n3. Still not working? One of you uses mobile data instead of Wi-Fi.',
+    noServer: 'Could not reach the game server. Check your internet, then press JOIN again.',
+    noHostServer: 'Could not reach the game server. Check your internet, then try again.',
+    stopped: 'Stopped. Press JOIN to try again.',
+    inClass: 'You are in. Wait for the host to start the class.',
+    lost: 'Lost the connection to the host. Press JOIN to go back in.',
+    hostOpen: 'Send the code to your friends. Keep the game open until they are in.',
+    keep: 'Keep the game open on your screen while friends join. If you switch to another app, they can\'t get in. SHARE sends the code without leaving the game.',
+    shareTitle: 'MADI CLASS',
+    shareText: 'Come to my class in MADI CLASS. Code: {code}',
+    shared: 'Sent! Stay here until your friends are in.',
+    copied: 'Invite link copied. Paste it to your friends, then come right back.',
+    copyFailed: 'Send your friends this link: {url}',
+    trying: 'Someone is connecting…',
+    joined: '{name} is in.',
+    left: '{name} left.',
+    failed: 'Someone tried to join but could not connect. Ask them to press JOIN again.',
+    full: 'Someone tried to join, but the class is full (4 players).',
+    serverLost: 'Lost the game server. Reconnecting… (keep the game open)',
+    serverBack: 'Your class is open again. Friends can join.',
+    taken: 'Your class code was lost. Close the class and host a new one.',
+    back: 'Welcome back. Your class is still open. Stay here while friends join.',
+  },
+  // what you hear in the lobby: a sound, and sometimes Mr. Madi (at the door) says something
+  lobby: {
+    joined: { sfx: 'net_join', line: 't_sitdown', fullLine: 't_everyone', gap: 6 },  // a friend sat down (4 of 4: "now everyone is here")
+    in: { sfx: 'net_join', line: 't_sitdown', gap: 6 },                                // you got into a class
+    left: { sfx: 'chair_scrape', vol: 0.45 },
+    try: { sfx: 'net_try', vol: 0.55 },                                                // every try to connect
+    fail: { sfx: 'net_fail', line: 't_nocome', gap: 20 },                              // you could not get in
+    away: { line: 't_dontleave', gap: 45 },                                            // the host came back from another app
+  },
+};
+
 export const HISTORY = ['how to be a teacher', 'what is 2 + 2', 'how often do people blink', 'how long can a class last', 'mr hale room 13 found?'];
 
 export const CHAPTERS = [

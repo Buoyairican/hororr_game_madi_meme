@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Run the browser tests.  Usage:
-#   bash tests/run.sh quick          features, story beats, menus, touch, pranks, 2-player online, videos + pranks online (~8 min)
-#   bash tests/run.sh full           quick + all 4 story periods, Hard, random input, connection edge cases, 3-player chaos (~10 min)
+#   bash tests/run.sh quick          features, story beats, menus, touch, pranks, the relay function, 2-player online,
+#                                    videos + pranks online, joining (relays, retries, the host's lobby) (~10 min)
+#   bash tests/run.sh full           quick + all 4 story periods, Hard, random input, connection edge cases, 3-player chaos (~15 min)
 #   bash tests/run.sh features ui    just those
 # Logs: tests/out/<name>.log   Screenshots: tests/out/*.png
 set -u
@@ -10,7 +11,7 @@ TESTS_DIR="$PWD"
 ROOT_DIR="$(cd .. && pwd)"
 mkdir -p out
 
-QUICK="features beats ui touch touch_phone pranks mp mp_video mp_prank"
+QUICK="features beats ui touch touch_phone pranks turn_api mp mp_video mp_prank mp_net"
 FULL="$QUICK story1 story2 story3 story4 hard fuzz mp_edge mp_chaos"
 case "${1:-quick}" in
   quick) NAMES="$QUICK" ;;
@@ -31,10 +32,10 @@ cmd_for() {
   esac
 }
 
-# the game, served from the repo
+# the game, served from the repo (plus api/turn, answered like Vercel does with no relay set up)
 STARTED=()
 if ! curl -s -o /dev/null "http://localhost:8765/index.html"; then
-  (cd "$ROOT_DIR" && exec python3 -m http.server 8765 >/dev/null 2>&1) &
+  (cd "$ROOT_DIR" && exec python3 tests/serve.py 8765 >/dev/null 2>&1) &
   STARTED+=($!)
   for _ in $(seq 1 30); do curl -s -o /dev/null "http://localhost:8765/index.html" && break; sleep 0.3; done
 fi

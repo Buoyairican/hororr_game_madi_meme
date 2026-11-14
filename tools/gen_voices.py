@@ -142,6 +142,8 @@ TEACHER = {
     "t_nohale": "There is | no | Mister Hale.",
     "t_readnote": "He is not | a real | teacher.",
     "t_dark": "Do not | be afraid | of the dark.",
+    "t_dontleave": "Do not | leave | my class.",
+    "t_nocome": "Nobody | is | coming.",
 }
 SUBS = {
     "t_iam": "I am... your... teacher.",
@@ -258,6 +260,8 @@ SUBS = {
     "t_nohale": "There is... no... Mister Hale.",
     "t_readnote": "\u201cHe is not... a real... teacher.\u201d",
     "t_dark": "Do not... be afraid... of the dark.",
+    "t_dontleave": "Do not... leave... my class.",
+    "t_nocome": "Nobody... is... coming.",
 }
 TEACHER_WHISPER = {
     "tw_turn": ("Turn | around.", "Turn... around."),

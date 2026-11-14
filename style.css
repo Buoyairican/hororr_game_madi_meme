@@ -231,8 +231,18 @@ body.touch .desk-only { display: none !important; }
 #mp-players li .seat { color: var(--dim); font-size: 13px; }
 #mp-players li.empty { opacity: 0.35; }
 #mp-mode { font: inherit; background: rgba(0, 0, 0, 0.5); color: var(--ink); border: 1px solid var(--line); padding: 10px; margin: 0 0 10px; display: block; width: 100%; max-width: 360px; margin-inline: auto; }
-#mp-status { min-height: 1.4em; color: #e0a090; font-size: 14px; }
+#mp-status { min-height: 1.4em; color: #e0a090; font-size: 14px; white-space: pre-line; line-height: 1.45; }
 #mp-status.ok { color: var(--dim); }
+#mp-code-show { -webkit-user-select: text; user-select: text; }
+#mp .mp-share { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+#mp .mp-share button { min-width: 0; margin: 2px 0; }
+#mp #btn-share { border-color: rgba(214, 58, 42, 0.6); }
+#mp .mp-keep { max-width: 400px; margin: 10px auto 0; font-size: 13px; line-height: 1.45; color: #cfc5a8;
+  border-left: 2px solid var(--blood-hi); padding: 4px 10px; text-align: left; background: rgba(0, 0, 0, 0.25); }
+#mp-madi { min-height: 1.3em; margin: 4px 0 0; font-size: 14px; font-style: italic; color: var(--blood-hi); opacity: 0; transition: opacity .4s; }
+#mp-madi.on { opacity: 1; }
+#mp-madi .who { font-style: normal; font-size: 11px; letter-spacing: 2px; color: var(--dim); margin-right: 4px; }
+#btn-join.cancel { border-color: var(--blood-hi); color: #f0c8b8; }
 
 /* ---------- pranks (Phase 1) ---------- */
 #laugh { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 2px; transition: opacity .4s; }

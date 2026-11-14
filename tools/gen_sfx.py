@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Synthesise all sound effects used by the game (no samples, no licences).
 
-    python3 tools/gen_sfx.py          (needs numpy + ffmpeg)
+    python3 tools/gen_sfx.py          (needs numpy + ffmpeg; add v3, v4, v5, v6 or memes for one group)
 
 Writes assets/audio/sfx/*.mp3. Every sound is built from noise, oscillators,
 filters and a synthetic room impulse response, so it can be tweaked freely.
@@ -1212,9 +1212,57 @@ def make_v5():
     save("class_laugh", reverb(x, 0.35, dur=1.4, decay=0.5), 0.8)
 
 
+def make_v6():
+    """playing online: a friend sits down in the lobby, every try to connect, could not get in.
+    Uses its own random numbers, so building only this group gives the same files."""
+    r = np.random.default_rng(91)
+
+    def nz(d):
+        return r.standard_normal(int(d * SR))
+
+    def wow(x, depth=0.003):
+        tt = np.arange(len(x)) / SR
+        warp = tt + depth * np.sin(2 * np.pi * 0.5 * tt) + depth * 0.4 * np.sin(2 * np.pi * 2.3 * tt)
+        return np.interp(warp * SR, np.arange(len(x)), x)
+
+    # a friend sat down: two soft knocks on a wooden desk, then two notes from the title's music box
+    d = 1.7
+    x = np.zeros(int(d * SR))
+    for k, at in enumerate((0.0, 0.11)):
+        tt = t_axis(0.14)
+        knock = biquad(nz(0.14), "bp", 420 + 70 * k, 3.0) * np.exp(-tt / 0.016) + osc_sin(np.full(len(tt), 150.0 + 25 * k)) * np.exp(-tt / 0.03) * 0.7
+        place(x, knock * (1.0 - 0.3 * k), at)
+    place(x, music_box_note(1318.5, 1.3) * 0.5, 0.27)    # E6
+    place(x, music_box_note(1760.0, 1.2) * 0.42, 0.45)   # A6: a fourth up, "here"
+    save("net_join", reverb(wow(x), 0.3, dur=1.4, decay=0.5), 0.6)
+
+    # every try to connect: a small ping and its echo, like calling into an empty hallway
+    d = 1.0
+    tt = t_axis(d)
+    ping = osc_sin(np.full(len(tt), 1046.5)) * np.exp(-tt / 0.07) + 0.3 * osc_sin(np.full(len(tt), 2101.0)) * np.exp(-tt / 0.025)
+    ping[: int(0.004 * SR)] *= np.linspace(0, 1, int(0.004 * SR))
+    x = ping.copy()
+    place(x, ping * 0.32, 0.19)
+    place(x, ping * 0.12, 0.38)
+    save("net_try", reverb(biquad(x, "lp", 5000), 0.3, dur=1.0, decay=0.5), 0.4)
+
+    # could not get in: two music-box notes falling out of tune, a low hum under them
+    d = 2.4
+    x = np.zeros(int(d * SR))
+    place(x, music_box_note(659.25 * 1.006, 1.6) * 0.5, 0.0)    # E5, a little sharp
+    place(x, music_box_note(587.33 * 0.982, 1.9) * 0.5, 0.34)   # D5, flat: wrong
+    tt = t_axis(d)
+    hum = (osc_sin(np.full(len(tt), 73.4)) + 0.45 * osc_sin(np.full(len(tt), 147.9))) * np.sin(np.pi * tt / d) ** 2 * 0.22
+    x += biquad(hum + nz(d) * 0.01, "lp", 420)
+    save("net_fail", reverb(wow(x, 0.006), 0.4, dur=1.8, decay=0.7), 0.55)
+
+
 if __name__ == "__main__":
     import sys
     print("Synthesising sound effects ->", OUT)
+    if "v6" in sys.argv:
+        make_v6()
+        raise SystemExit(0)
     if "v5" in sys.argv:
         make_v5()
         raise SystemExit(0)
@@ -1244,4 +1292,5 @@ if __name__ == "__main__":
     make_v3()
     make_v4()
     make_v5()
+    make_v6()
     print("done")

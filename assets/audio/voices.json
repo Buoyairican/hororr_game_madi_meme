@@ -559,6 +559,16 @@
   "text": "Do not... be afraid... of the dark.",
   "dur": 4.336
  },
+ "t_dontleave": {
+  "who": "teacher",
+  "text": "Do not... leave... my class.",
+  "dur": 4.049
+ },
+ "t_nocome": {
+  "who": "teacher",
+  "text": "Nobody... is... coming.",
+  "dur": 3.683
+ },
  "tw_turn": {
   "who": "teacher",
   "text": "Turn... around.",
