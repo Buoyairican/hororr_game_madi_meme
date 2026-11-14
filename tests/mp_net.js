@@ -114,7 +114,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const hostIce = await iceOf(H);
   pass(same(hostIce, [...BUILTIN, ...SERVED_CLEAN]), 'host: Google STUN + PeerJS TURN + the api/turn relay (junk entries dropped): ' + hostIce.map((s) => s.urls[0]).join(', '));
   pass(H.turnCalls === 1, 'host asked api/turn once (' + H.turnCalls + ')');
-  pass(await H.evaluate(() => !document.getElementById('mp-keep').classList.contains('hidden') && /Keep the game open on your screen/.test(document.getElementById('mp-keep').innerText)),
+  pass(await H.evaluate(() => !document.getElementById('mp-keep').classList.contains('hidden') && /Keep the game open on this screen/.test(document.getElementById("mp-keep").innerText) && !/SHARE/.test(document.getElementById("mp-keep").innerText)),
     'host lobby says to keep the game open on screen: "' + (await H.evaluate(() => document.getElementById('mp-keep').innerText)).slice(0, 60) + '…"');
   pass(await H.evaluate(() => document.getElementById('btn-share').classList.contains('hidden') && !document.getElementById('btn-copy').classList.contains('hidden')), 'desktop: COPY INVITE LINK (no share sheet)');
   const G = await mk('G', { turn: served });
@@ -154,12 +154,26 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   pass(healed && (await H.evaluate(() => window.statusLog)).some((t) => /Lost the game server/.test(t)), 'game server link drops: "Lost the game server. Reconnecting…", then "Your class is open again."');
   pass(await H.evaluate(() => !game.mp.net.peer.disconnected && game.players.length === 3), 'reconnected with the same code; both friends are still in');
 
+  // ...and when the link comes back slowly (a phone network): still opening when the host first looks
+  await H.waitForTimeout(500);
+  await H.evaluate(() => {
+    window.statusLog = [];
+    const s = game.mp.net.peer.socket, start = s.start.bind(s);
+    s.start = (...a) => { s.start = start; setTimeout(() => start(...a), 4000); }; // the next link opens 4 s late
+    game.mp.net.peer.disconnect();
+  });
+  const slow = await waitFor(H, () => (window.statusLog || []).some((t) => /open again/.test(t)), 25000);
+  pass(slow && (await H.evaluate(() => window.statusLog)).some((t) => /Lost the game server/.test(t)) && /open again/.test(await status(H)),
+    'the link takes 4 s to come back: the lobby ends on "Your class is open again." (not stuck on "Reconnecting…"): ' + (await H.evaluate(() => window.statusLog)).join(' | '));
+  pass(await H.evaluate(() => !game.mp.net.lostShown && game.mp.net.healN === 0), 'and a later drop would be shown again (the "lost" note is reset)');
+
   // the host's Peer dies completely: it opens the same code again (friends drop and can come back in)
   await H.evaluate(() => { window.statusLog = []; window.peerB = game.mp.net.peer; game.mp.net.peer.destroy(); });
   await setHidden(H, true); await setHidden(H, false); // and the phone comes back to the game
   const reopened = await waitFor(H, () => game.mp.net.peer && game.mp.net.peer !== window.peerB && !game.mp.net.peer.destroyed && (window.statusLog || []).some((t) => /open again/.test(t)), 20000);
   pass(reopened && await H.evaluate((c) => game.mp.code === c && game.mp.net.peer.id === 'madiclass-v1-' + c, code), 'Peer destroyed: a new one takes the same class code back');
   pass(await waitFor(G, () => /closed the class|Lost the connection/.test(document.getElementById('mp-status').innerText) && document.getElementById('mp-code').value.length === 5, 20000), 'the dropped friend is told, and the code stays in the box');
+  pass((await lobbyLog(G)).some((e) => e.kind === 'lost' && e.sfx === 'door_slam'), 'and hears the door slam (back on the join screen)');
   await G.evaluate(() => { window.statusLog = []; });
   await G.click('#btn-join');
   pass(await joined(G), 'the friend presses JOIN again and is back in the same class');

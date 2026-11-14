@@ -136,30 +136,38 @@
 
 <!-- ============ MULTIPLAYER LOBBY ============ -->
 <div id="mp" class="screen hidden">
-  <div class="panel center">
+  <div class="panel center" id="mp-panel">
     <h2>PLAY WITH FRIENDS</h2>
-    <p class="dim">Up to 4 players in the same class. One of you hosts, the others join with the class code.</p>
+    <p class="dim mp-intro">Up to 4 players in the same class. One of you hosts, the others join with the class code.</p>
     <label class="mp-name">Your name <input id="mp-name" maxlength="12" autocomplete="off" spellcheck="false"></label>
     <div id="mp-pick">
       <button id="btn-host" class="big">HOST A CLASS</button>
       <div class="mp-or">or join a friend</div>
       <div class="mp-join"><input id="mp-code" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false"><button id="btn-join">JOIN</button></div>
+      <div id="mp-news-pick">
+        <!-- what is happening (status) and what Mr. Madi says; main.js moves this block into the room view's
+             right column while you are in a class, so the host sees it without scrolling -->
+        <div id="mp-news"><p id="mp-status" aria-live="polite"></p><p id="mp-madi"></p></div>
+      </div>
     </div>
     <div id="mp-room" class="hidden">
-      <div class="mp-code-box">Class code <b id="mp-code-show">-----</b></div>
-      <div class="mp-share"><button id="btn-share" class="small-btn hidden">SHARE CODE</button><button id="btn-copy" class="small-btn">COPY INVITE LINK</button></div>
-      <p id="mp-keep" class="mp-keep hidden"></p>
-      <ul id="mp-players"></ul>
-      <div id="mp-host-ctl" class="hidden">
-        <div class="dim">Online play is Free Class (8:30 to 12:30).</div>
-        <div class="diff-row"><button id="mp-easy">EASY</button><button id="mp-hard">HARD</button></div>
-        <div id="mp-diff-note" class="dim"></div>
-        <button id="btn-mp-go" class="big">START FREE CLASS</button>
+      <div class="mp-col">
+        <div class="mp-code-box">Class code <b id="mp-code-show">-----</b></div>
+        <div class="mp-share"><button id="btn-share" class="small-btn hidden">SHARE CODE</button><button id="btn-copy" class="small-btn">COPY INVITE LINK</button></div>
+        <p id="mp-keep" class="mp-keep hidden"></p>
       </div>
-      <p id="mp-wait" class="dim hidden">Waiting for the host to start the class&hellip;</p>
+      <div class="mp-col">
+        <div id="mp-news-room"></div>
+        <ul id="mp-players"></ul>
+        <div id="mp-host-ctl" class="hidden">
+          <div class="dim mp-free">Online play is Free Class (8:30 to 12:30).</div>
+          <div class="diff-row"><button id="mp-easy">EASY</button><button id="mp-hard">HARD</button></div>
+          <div id="mp-diff-note" class="dim"></div>
+          <button id="btn-mp-go" class="big">START FREE CLASS</button>
+        </div>
+        <p id="mp-wait" class="dim hidden">Waiting for the host to start the class&hellip;</p>
+      </div>
     </div>
-    <p id="mp-status" aria-live="polite"></p>
-    <p id="mp-madi"></p>
     <button id="btn-mp-leave">BACK</button>
   </div>
 </div>

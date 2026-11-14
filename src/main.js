@@ -209,7 +209,22 @@ async function boot() {
   const canShare = () => !!navigator.share && isTouch;
   const SEAT_NAMES = ['front row, middle', 'second row, left', 'second row, right', 'second row, behind Nora'];
   const showEl = (id, on) => $(id).classList.toggle('hidden', !on);
-  const mpStatus = (t, ok) => { $('mp-status').textContent = t || ''; $('mp-status').classList.toggle('ok', !!ok); };
+  // the status line (what is happening right now) is always brought into view when it changes:
+  // on a small phone the panel scrolls, and a host must see "Bo is in." without looking for it
+  const mpStatus = (t, ok) => {
+    const el = $('mp-status');
+    el.textContent = t || ''; el.classList.toggle('ok', !!ok);
+    if (!t) return;
+    const r = el.getBoundingClientRect(), pr = $('mp-panel').getBoundingClientRect();
+    if (r.height && (r.top < pr.top || r.bottom > pr.bottom)) el.scrollIntoView({ block: 'nearest' });
+  };
+  // the room view (in a class) and the pick view (host / join) share the status block and the BACK
+  // button: in the room they sit in the columns, so the code, the status and the players fit one screen
+  const placeRoom = (room) => {
+    $('mp-panel').classList.toggle('room', room);
+    $(room ? 'mp-news-room' : 'mp-news-pick').appendChild($('mp-news'));
+    (room ? $('mp-room').querySelector('.mp-col') : $('mp-panel')).appendChild($('btn-mp-leave'));
+  };
   const savedName = () => { try { return localStorage.getItem('madiclass.name') || ''; } catch (e) { return ''; } };
   const mpName = () => {
     const n = cleanName($('mp-name').value) || 'Player';
@@ -237,9 +252,10 @@ async function boot() {
   };
   const roomView = () => {
     showEl('mp-pick', false); showEl('mp-room', true);
+    placeRoom(true);
     const host = mp.role === 'host';
     showEl('mp-host-ctl', host); showEl('mp-wait', !host);
-    showEl('mp-keep', host); $('mp-keep').textContent = TX.keep;
+    showEl('mp-keep', host); $('mp-keep').textContent = canShare() ? TX.keepShare : TX.keep; // only name SHARE CODE when it is there
     showEl('btn-share', canShare());
     renderLobby();
     if (!host) $('mp-wait').textContent = `Waiting for the host to start Free Class (${mp.difficulty === 'hard' ? 'HARD' : 'Easy'})…`;
@@ -251,7 +267,7 @@ async function boot() {
     go('mp');
     if (!$('mp-name').value) $('mp-name').value = savedName();
     if (code) $('mp-code').value = code;
-    if (mp) roomView(); else { showEl('mp-pick', true); showEl('mp-room', false); mpStatus(''); }
+    if (mp) roomView(); else { showEl('mp-pick', true); showEl('mp-room', false); placeRoom(false); mpStatus(''); }
   };
   const inLobby = () => game.state === 'title' && !$('mp').classList.contains('hidden');
   /** who came and went since last time: a sound, a line from him, a status line (only in the lobby) */
@@ -285,8 +301,8 @@ async function boot() {
     // the host's lobby: someone connecting / could not get in, the game server dropped / came back
     netNote: (kind) => {
       if (!mp || mp.role !== 'host' || !inLobby()) return;
-      const t = { trying: TX.trying, failed: TX.failed, full: TX.full, lost: TX.serverLost, back: TX.serverBack, taken: TX.taken }[kind];
-      if (t) mpStatus(t, kind !== 'failed' && kind !== 'taken');
+      const t = { trying: TX.trying, failed: TX.failed, failedNoRelay: TX.failedNoRelay, full: TX.full, lost: TX.serverLost, back: TX.serverBack, taken: TX.taken }[kind];
+      if (t) mpStatus(t, !/^failed|taken/.test(kind));
     },
   };
   const quitGame = () => {
@@ -347,7 +363,6 @@ async function boot() {
       if (mp === me) { mp.leave(); mp = null; }
       if (!(e && e.cancelled)) {
         mpStatus((e && e.message) || 'Could not join that class.');
-        $('mp-status').scrollIntoView({ block: 'nearest' }); // small phone screens: the steps are below the JOIN row
         game.lobbyEvent('fail');
       }
     }
@@ -406,16 +421,18 @@ async function boot() {
 
   $('btn-mp-leave').onclick = () => { if (joining) stopJoining(); if (mp) { mp.leave(); mp = null; } seen = null; labels(); go('title'); };
   // back from another app: a phone froze the game meanwhile. The host makes sure friends can still
-  // get in (same code), and in the lobby Mr. Madi reminds them to stay.
+  // get in (same code), and in the lobby Mr. Madi reminds them to stay. The time away is measured on
+  // the wall clock: a phone's performance.now() can stop while it is locked or asleep.
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { hiddenAt = performance.now(); if (!game.mp) pause(); return; }
-    const away = hiddenAt ? performance.now() - hiddenAt : 0;
+    if (document.hidden) { hiddenAt = Date.now(); if (!game.mp) pause(); return; }
+    const away = hiddenAt ? Math.max(0, Date.now() - hiddenAt) : 0;
     hiddenAt = 0;
     if (!mp || mp.role !== 'host') return;
     const r = mp.wake(away);
     if (!inLobby()) return;
-    if (r === 'reopen' || r === 'reconnect') mpStatus(TX.serverLost, true);
+    if (r === 'taken') mpStatus(TX.taken);
+    else if (r === 'reopen' || r === 'reconnect') mpStatus(TX.serverLost, true);
     else if (away >= ONLINE.awayLine) mpStatus(TX.back, true);
     if (away >= ONLINE.awayLine) game.lobbyEvent('away');
   });

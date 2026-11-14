@@ -1,9 +1,10 @@
 // GET /api/turn: extra relay servers (TURN) for playing online, as {"iceServers": [...]}.
 //
 // Two phones on different networks (mobile data, strict Wi-Fi, carrier NAT) often cannot reach
-// each other directly. A TURN server relays the game between them. The game already uses
-// PeerJS's free public relays; this Vercel function adds your own relay when you set one up in
-// Vercel -> Settings -> Environment Variables (never put keys in the repo):
+// each other directly. A TURN server relays the game between them. This function is the game's
+// only working relay: PeerJS's free relays are still in the game's list, but they are offline
+// (November 2026: their names don't resolve). Set one up in Vercel -> Settings -> Environment
+// Variables (never put keys in the repo):
 //   Cloudflare Realtime TURN:  CF_TURN_KEY_ID + CF_TURN_API_TOKEN
 //   Metered:                   METERED_DOMAIN (yourapp.metered.live) + METERED_API_KEY
 //   any TURN server:           TURN_URLS (comma separated) + TURN_USERNAME + TURN_CREDENTIAL

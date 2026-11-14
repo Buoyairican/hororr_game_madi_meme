@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Run the browser tests.  Usage:
 #   bash tests/run.sh quick          features, story beats, menus, touch, pranks, the relay function, 2-player online,
-#                                    videos + pranks online, joining (relays, retries, the host's lobby) (~10 min)
-#   bash tests/run.sh full           quick + all 4 story periods, Hard, random input, connection edge cases, 3-player chaos (~15 min)
+#                                    videos + pranks online, joining (relays, retries, the host's lobby), the lobby on phones (~10 min)
+#   bash tests/run.sh full           quick + all 4 story periods, Hard, random input, connection edge cases,
+#                                    failed joins (no relay, timeouts, a taken code), 3-player chaos (~17 min)
 #   bash tests/run.sh features ui    just those
 # Logs: tests/out/<name>.log   Screenshots: tests/out/*.png
 set -u
@@ -11,8 +12,8 @@ TESTS_DIR="$PWD"
 ROOT_DIR="$(cd .. && pwd)"
 mkdir -p out
 
-QUICK="features beats ui touch touch_phone pranks turn_api mp mp_video mp_prank mp_net"
-FULL="$QUICK story1 story2 story3 story4 hard fuzz mp_edge mp_chaos"
+QUICK="features beats ui touch touch_phone pranks turn_api mp mp_video mp_prank mp_net mp_lobby"
+FULL="$QUICK story1 story2 story3 story4 hard fuzz mp_edge mp_fail mp_chaos"
 case "${1:-quick}" in
   quick) NAMES="$QUICK" ;;
   full) NAMES="$FULL" ;;

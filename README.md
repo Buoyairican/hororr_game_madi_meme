@@ -31,21 +31,24 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 3. Friends press **PLAY WITH FRIENDS**, type the code and **JOIN**, or just open the invite link. The game keeps trying for about a minute and says what it is doing ("Connecting to the class… try 2"). **CANCEL** stops it.
 4. The host picks Easy or Hard and presses **START FREE CLASS**. Friends who join later drop straight into the running class.
 
-In the lobby Mr. Madi waits at the door. He tells every friend to sit down, and he doesn't like it when the host leaves.
+In the lobby Mr. Madi waits at the door. He tells every friend to sit down, he doesn't like it when the host leaves, and the door slams when a class closes on you.
 
 Everyone sits at their own desk and sees the others as students with name tags. Look at a friend and hold **E** to whisper to them (only they see it). Hold your phone in the meme app, look at a friend and press **R**: you shout "Bro! Look at this!" and hold your phone out to them; they look at it to watch. Throw paper at him, at the class or at each other: everyone sees the paper fly, your arm winding up, and the laugh meter. Repeating him, dumb questions, the phone and whispering all work for everyone, and he goes after whoever is making the most noise: he walks to *their* desk. Strikes are shared by the whole class (Easy: 3, plus 1 for every friend; Hard: one strike for everybody).
 
-How it works: the host's browser runs the game and streams it to the friends over WebRTC (peer to peer). [PeerJS](https://peerjs.com)'s free public server does the handshake. To find a way between two networks the game uses Google's STUN servers, PeerJS's free TURN relays, and your own relay if you set one up (see **Friends can't join?** below). Nothing to install and no game server; it works from any static host such as Vercel. If the host's link to the handshake server drops, or the host's phone comes back to the game, it reconnects by itself and keeps the same class code.
+How it works: the host's browser runs the game and streams it to the friends over WebRTC (peer to peer). [PeerJS](https://peerjs.com)'s free public server does the handshake. To find a way between two networks the game uses Google's STUN servers and **your own relay** (a TURN server, free for a small game). **Switch it on**, or friends on mobile data and strict Wi-Fi often can't join: see **Friends can't join?** below. Nothing to install and no game server; it works from any static host such as Vercel. If the host's link to the handshake server drops, or the host's phone comes back to the game, it reconnects by itself and keeps the same class code.
 
 ## Friends can't join?
 
-**Why it happens.** Two phones on different networks (mobile data, school Wi-Fi, another country) often can't talk to each other directly. Then the game needs a *relay* in the middle (a TURN server). Before, the game had no relay at all, so these friends saw "could not connect to the host". It was not Vercel.
+**Why it happens.** Two phones on different networks (mobile data, school Wi-Fi, another country) often can't talk to each other directly. Then the game needs a *relay* in the middle (a TURN server). The game had no working relay, so these friends saw "could not connect to the host". It was not Vercel.
 
-**What the game does now:**
-- It uses PeerJS's free public relays. They are free, but sometimes slow or busy.
-- It can also use **your own relay**. Set it up once (below). It is free for a small game.
+**Switch on your own relay. This is the real fix.** Without it, friends on mobile data or strict Wi-Fi will often still not get in.
+- PeerJS's free relays are still in the game's list, but they are offline. (In November 2026 their addresses `eu-0.turn.peerjs.com` and `us-0.turn.peerjs.com` do not exist.) Don't count on them.
+- Your own relay is free for a small game. You set it up once (below). It takes about 10 minutes.
+
+**What the game does:**
+- The host and every friend ask your relay for fresh passwords (`api/turn`).
 - A friend keeps trying for about one minute.
-- If it still fails, the message says what to do, and the browser console (F12) shows why.
+- If it fails, the message says why. **"This game has no relay server"** means: switch on your own relay. The browser console (F12) shows the details.
 
 **Try this first:**
 1. Host: keep the game open on your screen. Don't switch apps. Send the code with **SHARE CODE**.
@@ -72,9 +75,12 @@ How it works: the host's browser runs the game and streams it to the friends ove
 - Add `TURN_URLS` (comma separated, for example `turn:turn.example.com:3478,turns:turn.example.com:443?transport=tcp`), `TURN_USERNAME` and `TURN_CREDENTIAL`. Redeploy.
 - Add a `turns:` address on port **443**. Strict networks (school, office) often allow only that.
 
-**Check it:** open `https://<your-game>.vercel.app/api/turn` in a browser. You should see `turn:` addresses. `{"iceServers":[]}` means no relay is set up yet, or a key is wrong (Vercel → your project → **Logs** shows the error). The game works either way: without your relay it uses the free ones.
+**Check it:**
+1. Open `https://<your-game>.vercel.app/api/turn` in a browser. You should see `turn:` addresses. `{"iceServers":[]}` means no relay is set up yet, or a key is wrong (Vercel → your project → **Logs** shows the error).
+2. Host a class on a computer and open the console (F12). It says `own relay from api/turn: yes`.
+3. Test with two phones on different networks: the host on Wi-Fi, the friend on mobile data. The friend should get in.
 
-On a local server or GitHub Pages there is no `api/turn`. The game then uses the free relays only. That is fine.
+On a local server or GitHub Pages there is no `api/turn`, so there is no relay. Players on the same Wi-Fi can still play together.
 
 ## How to play
 
@@ -127,7 +133,7 @@ The game is plain static files with no build step, so Vercel can host it as-is:
 3. Framework Preset: **Other**. Leave the build command and output directory empty.
 4. Press **Deploy**. You get a link like `https://hororr-game-madi-meme.vercel.app` that anyone can open on a PC or phone.
 
-Every push to `main` redeploys automatically. The `api/` folder has one small optional function (`api/turn.js`); Vercel runs it by itself. It gives online games your own relay, see **Friends can't join?**.
+Every push to `main` redeploys automatically. The `api/` folder has one small function (`api/turn.js`); Vercel runs it by itself. It gives online games your own relay. **Set it up** (see **Friends can't join?**), or friends on mobile data often can't join.
 
 ## Put it online (GitHub Pages)
 
@@ -169,7 +175,7 @@ src/mp.js                  multiplayer: lobby, streaming the class to friends, f
 src/net.js                 WebRTC connections (PeerJS): host / join by class code, relay servers (STUN / TURN),
                            patient joining, the host reconnecting with the same code, connection diagnosis
 src/lobby.js               the online lobby: its sounds, and Mr. Madi at the door while friends join
-api/turn.js                optional Vercel function: your own TURN relay for online play (keys in Vercel, see above)
+api/turn.js                Vercel function: your own TURN relay for online play (keys in Vercel, see above; switch it on)
 src/audio.js               Web Audio engine: 3D HRTF sound, reverb, live ambience
 src/post.js                retro post-processing (grain, aberration, glitch, blackout)
 assets/models/             rigged characters (built by tools/build_characters.py, bundled in models.json)
@@ -185,7 +191,7 @@ vendor/                    three.js r170 (+ GLTFLoader), PeerJS 1.5.5
 
 ### Tests
 
-`bash tests/run.sh quick` (about 10 minutes) or `bash tests/run.sh full` (about 15 minutes) plays the game in
+`bash tests/run.sh quick` (about 10 minutes) or `bash tests/run.sh full` (about 17 minutes) plays the game in
 headless Chromium and prints PASS / FAIL per test. See `tests/README.md`.
 
 ### Regenerating the assets

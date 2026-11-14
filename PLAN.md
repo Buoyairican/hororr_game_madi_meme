@@ -70,7 +70,7 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, 
   PeerJS's default TURN relays. Without a relay, two phones on different networks (mobile data,
   strict Wi-Fi, carrier NAT) often cannot reach each other: "could not connect to the host".
   Vercel is not the cause.
-- Relays: keep PeerJS's free TURN servers, plus an optional own relay from a tiny Vercel function
+- Relays: keep PeerJS's free TURN servers (they turned out to be offline, see Shipped), plus an own relay from a tiny Vercel function
   (`api/turn.js`, credentials in Vercel environment variables, never in the repo; Cloudflare or
   Metered TURN, or any TURN server), including TURN over TCP/TLS on port 443 for strict networks.
   Without the function (local server, other static hosts) the game falls back silently.
@@ -82,17 +82,30 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, 
 - Shipped: `src/net.js` lists Google STUN + PeerJS's TURN relays + the own relay from `api/turn.js`
   (Cloudflare, Metered or any TURN server, from Vercel environment variables; it answers
   `{"iceServers":[]}` when nothing is set up or a provider fails). Both sides ask it, wait 3 s at most
-  and fall back silently. A friend tries for 60 s of time on screen ("Connecting to the class… try 2"),
-  "no class with that code" only after ~10 s; JOIN turns into CANCEL. The host keeps a secret token so
-  it can take its code back: it reconnects (1, 2, 4, 8 s) when the signalling link drops, renews it when
-  the phone comes back after 10 s away, and reopens the same code if the Peer died. Host lobby: the
-  keep-open tip, SHARE CODE (the phone's share sheet) + COPY INVITE LINK, "Someone is connecting…",
-  "could not connect", "the class is full". A failed connection logs a diagnosis (ICE state, host /
-  srflx / relay addresses, TURN errors). Lobby sounds (`net_join`, `net_try`, `net_fail`) and Mr. Madi at
-  the door: "Sit... down.", "Do not... leave... my class.", "Nobody... is... coming." (`src/lobby.js`,
-  `ONLINE` in `src/data.js`). Late joins and leaving are in the class log (`track.event`). README:
-  "Friends can't join?". Tests: `tests/turn_api.js`, `tests/mp_net.js`, `mp_edge`. Real NAT traversal
-  (two phones on different networks) can't be reproduced on the test machine.
+  and fall back silently; a slow first answer is asked again in the background and used for the next
+  connections. **The own relay must be switched on in Vercel for the fix to work**: PeerJS's free
+  relays turned out to be offline (November 2026: `eu-0` / `us-0.turn.peerjs.com` have no DNS records),
+  so without it there is still no relay. A friend tries for 60 s of time on screen (5 minutes on the
+  clock at most) ("Connecting to the class… try 2"), "no class with that code" only after ~10 s;
+  JOIN turns into CANCEL; a friend is in only when the host says welcome (a full class never shows
+  "You are in"). The host keeps a secret token so it can take its code back: it reconnects (1, 2, 4,
+  8 s) when the signalling link drops (also when it comes back slowly), renews it when the phone comes
+  back after 10 s away (wall clock), and reopens the same code if the Peer died; a code another
+  browser took is reported once, then it stops trying. Host lobby: the keep-open tip (it names SHARE
+  CODE only when the button is there), SHARE CODE (the phone's share sheet) + COPY INVITE LINK,
+  "Someone is connecting…", "could not connect" (only for friends who never got in, never from a
+  closed class), "the class is full". In a class the lobby shows the code, the status line, the
+  players and START on one screen (two columns on landscape phones and computers; a new note scrolls
+  into view on tiny screens). A failed connection logs a diagnosis (ICE state, host / srflx / relay
+  addresses, relay names that don't resolve, TURN errors); when the host answered but no relay was
+  found, the friend reads "this game has no relay server" (or "the relay server did not answer") and
+  the host gets the matching note. Lobby sounds (`net_join`, `net_try`, `net_fail`, the door slam when
+  a class closes on you) and Mr. Madi at the door: "Sit... down.", "Do not... leave... my class.",
+  "Nobody... is... coming." (`src/lobby.js`, `ONLINE` in `src/data.js`). Late joins and leaving are in
+  the class log (`track.event`). README: "Friends can't join?" (switch on the own relay, how to check
+  it). Tests: `tests/turn_api.js`, `tests/mp_net.js`, `tests/mp_lobby.js`, `tests/mp_fail.js`, `mp_edge`.
+  Real NAT traversal (two phones on different networks) and a real TURN allocation can't be
+  reproduced on the test machine: after deploying, test with two phones on different networks.
 
 ### [ ] Phase 2: A different teacher every class (ideas 4, 6, 7)
 - **Event deck** (`src/events.js`): each class draws 3-4 from: his embarrassing ringtone,

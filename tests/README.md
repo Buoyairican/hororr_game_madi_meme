@@ -5,7 +5,7 @@ game's debug hook (`?debug=1` puts the game on `window.game`) and tick it faster
 
 ```bash
 bash tests/run.sh quick     # ~10 min: the checks to run after every change
-bash tests/run.sh full      # ~15 min: quick + every story period, Hard, random input, online edge cases and chaos
+bash tests/run.sh full      # ~17 min: quick + every story period, Hard, random input, online edge cases, failed joins and chaos
 bash tests/run.sh ui mp     # only some of them
 ```
 
@@ -31,9 +31,11 @@ own-video check makes a tiny test clip with it).
 | `mp` | 2 players: lobby, sync, whispering, echo, questions, busts, jumpscare, late join |
 | `mp_video` | 2 players: phone crash heard by the host, showing each other videos, caught watching |
 | `mp_prank` | 2 players: the guest aims and throws (host simulates it, both see the paper, the arm, the laugh meter), the host hits the guest, the guest caught with their arm up |
-| `mp_edge` | wrong / short codes (it looks for the code about 10 s first), a 5th player turned away (the host's lobby says so), a friend leaving and rejoining mid-class, bad messages, the host closing the tab |
+| `mp_edge` | wrong / short codes (it looks for the code about 10 s first), a 5th player turned away (never shown "You are in" first; the host's lobby says so), a friend leaving and rejoining mid-class, bad messages, the host closing the tab |
 | `turn_api` | the relay function `api/turn.js` with a fake `fetch` (no browser): Cloudflare (both answer shapes, port 53 dropped), Metered, a static TURN server, nothing set up, provider errors, junk and timeouts, no secrets in the log, HEAD / POST |
-| `mp_net` | joining: the relay list (Google STUN + PeerJS TURN + `api/turn`, faked with `page.route`, never a real TURN server) on host and friend; falling back when `api/turn` is missing / broken / slow; the host showing up a few seconds late; a host whose game doesn't answer (the tries, the final message, the console diagnosis) and comes back; CANCEL; the host's lobby (keep-open tip, SHARE / COPY on a phone, sounds and his lines, back from another app); the link to the game server dropping or the Peer dying and coming back with the same code |
+| `mp_net` | joining: the relay list (Google STUN + PeerJS TURN + `api/turn`, faked with `page.route`, never a real TURN server) on host and friend; falling back when `api/turn` is missing / broken / slow; the host showing up a few seconds late; a host whose game doesn't answer (the tries, the final message, the console diagnosis) and comes back; CANCEL; the host's lobby (keep-open tip, SHARE / COPY on a phone, sounds and his lines, back from another app); the link to the game server dropping (also coming back slowly) or the Peer dying and coming back with the same code; the door slam for a friend sent back to the join screen |
+| `mp_lobby` | the online lobby on phones and computers (844x390, 667x375, 390x844, 568x320, 960x540, 1280x720, 800x450): the code, SHARE / COPY, the status line, the player list and START on screen without scrolling; a new note scrolls into view; the keep-open tip names SHARE CODE only when it is there; the CODE box and JOIN fit a portrait phone |
+| `mp_fail` | when joining fails: a network that needs a relay (simulated with a relay-only browser) with no relay ("this game has no relay server", for the friend and the host) or an own relay that can't be reached; `api/turn` too slow the first time (asked again, used later); closing the class and hosting again (no stale note); a friend's Peer dying between tries (no false note); a game server that never answers; a hidden tab (a limit on the clock); time away on the wall clock; the class code taken by another browser (one message, no endless retries) |
 | `mp_chaos` | host + 2 friends, random input, one drops and rejoins, Easy and Hard |
 
 `tools/clipsheet.js` renders every meme clip at a few moments into `tests/out/clips_*.png`.

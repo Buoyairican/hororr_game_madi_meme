@@ -118,12 +118,15 @@ export const ONLINE = {
   turnTimeout: 3000,         // wait this long for them, then go on with the built-in ones
   turnCache: 30 * 60000,     // reuse the answer this long (its credentials last a day)
   joinFor: 60000,            // a friend keeps trying to connect this long (time with the game on screen)
+  joinWall: 5 * 60000,       // ...and never longer than this on the clock (a hidden tab on a computer)
   tryFor: 15000,             // one try waits this long for the host to answer
   retryGap: 1500,            // pause between tries
   missingFor: 10000,         // "no class with that code" only after this long: the host may be coming back
   serverFor: 20000,          // the game server can't be reached at all: give up after this long
   openFor: 15000,            // one try to reach the game server
   hostTrying: 30000,         // host: a friend's connection that isn't open after this long has failed
+  welcomeFor: 15000,         // a friend is in when the host says "welcome" (or "full"): wait this long for it
+  takenTries: 3,             // host: the game server says "that code belongs to someone else" this often: give up on it
   refreshAfter: 10000,       // host back after this long in another app: renew the link to the game server
   awayLine: 4000,            // host back in the lobby after this long away: Mr. Madi tells you to stay
   text: {
@@ -133,13 +136,19 @@ export const ONLINE = {
     missing: 'Looking for class {code}… try {n}',
     noClass: 'No class with that code.\nCheck the code. The host must keep the game open on the screen.',
     blocked: 'Could not connect to the host.\n1. The host keeps the game open on the screen.\n2. Press JOIN again.\n3. Still not working? One of you uses mobile data instead of Wi-Fi.',
+    // the host answered, but the two networks need a relay (a TURN server) and there is none / it did not answer
+    noRelay: 'Could not connect to the host.\nYour networks can\'t reach each other, and this game has no relay server.\n1. One of you uses mobile data instead of Wi-Fi. Press JOIN again.\n2. Game owner: switch on a relay (README, "Friends can\'t join?").',
+    relayDown: 'Could not connect to the host.\nThe relay server did not answer on your network.\n1. Press JOIN again.\n2. Still not working? One of you uses mobile data instead of Wi-Fi.',
     noServer: 'Could not reach the game server. Check your internet, then press JOIN again.',
     noHostServer: 'Could not reach the game server. Check your internet, then try again.',
     stopped: 'Stopped. Press JOIN to try again.',
     inClass: 'You are in. Wait for the host to start the class.',
     lost: 'Lost the connection to the host. Press JOIN to go back in.',
+    closed: 'The host closed the class.',
+    classFull: 'That class is full (4 players max).',
     hostOpen: 'Send the code to your friends. Keep the game open until they are in.',
-    keep: 'Keep the game open on your screen while friends join. If you switch to another app, they can\'t get in. SHARE sends the code without leaving the game.',
+    keep: 'Keep the game open on this screen until your friends are in. In another app, they can\'t get in.',
+    keepShare: 'Keep the game open on this screen until your friends are in. In another app, they can\'t get in. SHARE CODE sends it and you stay here.',
     shareTitle: 'MADI CLASS',
     shareText: 'Come to my class in MADI CLASS. Code: {code}',
     shared: 'Sent! Stay here until your friends are in.',
@@ -149,6 +158,7 @@ export const ONLINE = {
     joined: '{name} is in.',
     left: '{name} left.',
     failed: 'Someone tried to join but could not connect. Ask them to press JOIN again.',
+    failedNoRelay: 'Someone tried to join but could not connect. This game has no relay server, so friends on some networks can\'t get in (owner: README, "Friends can\'t join?").',
     full: 'Someone tried to join, but the class is full (4 players).',
     serverLost: 'Lost the game server. Reconnecting… (keep the game open)',
     serverBack: 'Your class is open again. Friends can join.',
@@ -163,6 +173,7 @@ export const ONLINE = {
     try: { sfx: 'net_try', vol: 0.55 },                                                // every try to connect
     fail: { sfx: 'net_fail', line: 't_nocome', gap: 20 },                              // you could not get in
     away: { line: 't_dontleave', gap: 45 },                                            // the host came back from another app
+    lost: { sfx: 'door_slam', vol: 0.5 },                                              // sent back to the join screen (the class closed, the link died)
   },
 };
 

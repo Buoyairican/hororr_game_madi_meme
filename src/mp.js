@@ -132,7 +132,8 @@ export class MP {
   }
 
   live() { return CURRENT === this && this.role === 'host' && this.g.state !== 'title' && this.net.conns.size > 0; }
-  hook(name, ...a) { const f = this.hooks[name]; if (f) f(...a); }
+  /** tell main.js (never after this class was left: an old class must not talk over a new one) */
+  hook(name, ...a) { if (this.gone) return; const f = this.hooks[name]; if (f) f(...a); }
 
   // =============================================================== HOST
   async host(name, wantCode) {
@@ -151,7 +152,8 @@ export class MP {
     this.net.on.leave = (id) => this.dropGuest(id);
     // what the host's lobby tells: someone connecting, someone who could not get in, the game server dropping and coming back
     this.net.on.trying = () => this.hook('netNote', 'trying');
-    this.net.on.failed = (id) => { if (!this.lobby.some((x) => x.id === id)) this.hook('netNote', 'failed'); };
+    // (net.js already checks that this friend didn't get in on another try; with no relay at all it says so)
+    this.net.on.failed = (id, d) => { if (!this.lobby.some((x) => x.id === id)) this.hook('netNote', d && d.noRelay ? 'failedNoRelay' : 'failed'); };
     this.net.on.server = (state) => this.hook('netNote', state);
     this.pinger = setInterval(() => this.net.broadcast({ t: 'ping' }), 2000); // "still here" even while the menu is open
     this.hook('lobby');
@@ -339,10 +341,30 @@ export class MP {
     const g = this.g;
     g.mp = this; g.role = 'guest';
     this.net.on.msg = (id, m) => this.onGuestMsg(m);
-    this.net.on.lost = () => { if (CURRENT === this) this.hook('lost', 'The host closed the class.'); };
+    this.net.on.lost = () => { if (!this.refused(ONLINE.text.closed) && CURRENT === this) this.hook('lost', ONLINE.text.closed); };
     this.net.send('host', { t: 'hello', name: this.name });
     this.heard = performance.now();
     this.pinger = setInterval(() => this.send({ t: 'ping' }), 2000);
+    // you are in when the host says "welcome"; a full class says "full" instead
+    await new Promise((res, rej) => {
+      this.waiting = { res, rej, timer: setTimeout(() => this.refused(ONLINE.text.blocked), ONLINE.welcomeFor) };
+    });
+  }
+
+  /** the host said welcome: join() is done */
+  welcomed() {
+    const w = this.waiting;
+    if (!w) return;
+    this.waiting = null; clearTimeout(w.timer); w.res();
+  }
+
+  /** still waiting for the host's welcome: join() fails with these words (true), else false */
+  refused(text, extra) {
+    const w = this.waiting;
+    if (!w) return false;
+    this.waiting = null; clearTimeout(w.timer);
+    w.rej(Object.assign(new Error(text), extra));
+    return true;
   }
 
   send(m) { this.net.send('host', m); }
@@ -356,12 +378,13 @@ export class MP {
         this.myId = m.id;
         g.me.id = m.id; g.me.name = m.name || this.name; this.name = g.me.name;
         g.seatPlayer(g.me, m.seat);
+        this.welcomed();
         break;
-      case 'full': if (CURRENT === this) this.hook('lost', 'That class is full (4 players max).'); break;
+      case 'full': if (!this.refused(ONLINE.text.classFull) && CURRENT === this) this.hook('lost', ONLINE.text.classFull); break;
       case 'lobby': this.lobby = m.players || []; this.difficulty = m.diff === 'hard' ? 'hard' : 'easy'; this.syncPlayers(); this.hook('lobby'); break;
       case 'start': this.startGuest(m); break;
       case 'b': for (const e of m.e) this.apply(e); break;
-      case 'bye': if (CURRENT === this) this.hook('lost', 'The host closed the class.'); break;
+      case 'bye': if (!this.refused(ONLINE.text.closed) && CURRENT === this) this.hook('lost', ONLINE.text.closed); break;
       case 'ping': break;
       case 'toLobby':
         g.state = 'title'; g.input.enable(false); g.audio.stopAll(); g.ui.show('hud', false); g.ui.closeChoices();
@@ -758,6 +781,7 @@ export class MP {
 
   leave() {
     const g = this.g;
+    this.refused('cancelled', { cancelled: true });
     this.gone = true;
     clearInterval(this.pinger);
     if (this.role === 'host') { this.flush(); this.net.broadcast({ t: 'bye' }); }
