@@ -106,7 +106,7 @@ export class AudioSys {
     const vj = await fetch(this.base + 'voices.json').then((r) => r.json());
     this.voices = vj;
     // every sound in one file instead of hundreds, when the page asks for it (window.AUDIO_PACK = 'path/to/pack':
-    // pack.json + pack.bin, made by tools/pack_audio.py; the claude.ai preview uses it). Missing: one file each.
+    // pack.json + pack.mp3 (the mp3s one after another), made by tools/pack_audio.py; the claude.ai preview uses it). Missing: one file each.
     const pack = await this.loadPack(typeof window !== 'undefined' ? window.AUDIO_PACK : null);
     const jobs = [
       ...Object.keys(vj).map((k) => [k, 'voice/' + k]),
@@ -137,7 +137,7 @@ export class AudioSys {
     try {
       const [idx, bin] = await Promise.all([
         fetch(base + '.json').then((r) => (r.ok ? r.json() : null)),
-        fetch(base + '.bin').then((r) => (r.ok ? r.arrayBuffer() : null)),
+        fetch(base + '.mp3').then((r) => (r.ok ? r.arrayBuffer() : null)),
       ]);
       return idx && bin ? { idx, bin } : null;
     } catch (e) { console.warn('audio pack not loaded', e); return null; }

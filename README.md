@@ -218,7 +218,7 @@ python3 tools/make_face_texture.py   # face texture + eye glow
 python3 tools/build_characters.py    # all characters (downloads the CC0 MakeHuman base mesh once)
 python3 tools/gen_voices.py          # voice lines that are missing (--all rebuilds every line)
 python3 tools/gen_sfx.py             # all sound effects (add 'memes', 'v4', 'v5', 'v6', 'v7' or 'p3' to build only one group)
-python3 tools/pack_audio.py OUT      # every sound in one file (OUT.bin + OUT.json), for hosts that limit the number of
+python3 tools/pack_audio.py OUT      # every sound in one file (OUT.mp3 + OUT.json), for hosts that limit the number of
                                      # files (the claude.ai preview); the page then sets window.AUDIO_PACK = 'OUT'
 ```
 
