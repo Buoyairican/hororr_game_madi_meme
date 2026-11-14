@@ -71,7 +71,10 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   await page.mouse.move(320, 180);
   await page.mouse.wheel(0, 120);
   await page.evaluate(() => run(0.1));
-  await check('the mouse wheel switches back to the ball', `game.me.aim.kind === 'ball'`);
+  // (from period 3 on, and in Free Class, the laser pointer and the KICK ME note come after the plane: tests/blame.js)
+  await check('the mouse wheel switches to the next one (the laser pointer, in Free Class)', `game.me.aim.kind === 'laser'`);
+  for (let i = 0; i < 2; i++) { await page.keyboard.press('x'); await page.evaluate(() => run(0.05)); }
+  await check('...and round again to the paper ball', `game.me.aim.kind === 'ball'`);
   await page.keyboard.press('e');
   await page.evaluate(() => run(0.1));
   await check('E puts it away without throwing', `!game.me.aim && game.papers.length === 0 && game.stats.throws === 0`);

@@ -112,7 +112,49 @@ export const PRANK = {
   streakReset: 45,                                  // seconds until he forgets the last hit (three hits: he knows)
   seenLimit: 0.3, exposeAfter: 0.7,                 // he looks right at your raised arm this long: caught
 };
-export const PRANK_NAMES = { ball: 'PAPER BALL', plane: 'PAPER PLANE' };
+export const PRANK_NAMES = { ball: 'PAPER BALL', plane: 'PAPER PLANE', laser: 'LASER POINTER', note: 'KICK ME NOTE' };
+
+// ---------------- Phase 3 (src/blame.js): "Who did it?", the KICK ME note, the laser pointer
+// "Who did it?": he comes to your desk and asks. How sure he is that it was you (0..1) decides
+// whether a lie works: below lieLimit he believes you. The choice says which side you are on.
+export const BLAME = {
+  lieLimit: 0.5,
+  sure: { base: 0.1, heat: 0.008, echo: 0.3, echoWithin: 20, streak: 0.05, lie: 0.25, evidence: { prank: 0.1, echo: 0.05, note: 0.2, laser: 0.35 } },
+  answerTime: 7,                    // seconds to answer (no answer: you said nothing)
+  silentAnger: 10, watchFor: 25,    // "I am watching you.": he glares at you when you make a sound
+  watchGlareGap: 6,
+  confessCalm: 0.5,                 // the first confession: his anger is halved (the second one: "Again?" and a strike)
+  blameMischief: 30, blameLaugh: 25,
+  revenge: { after: [20, 45], lasts: 90, takeIt: 0.25 }, // a blamed kid tells on you later (or just takes the blame)
+  friendGoat: 0.3,                  // "Point at...": now and then Sam or Nora instead of the nearest classmate
+};
+// the KICK ME note: stick it on his back while he walks past your desk
+export const NOTE = {
+  reach: 1.3,             // metres from your eyes to him
+  behind: -0.2,           // ...and you must be behind him (his facing · the way to you below this)
+  perClass: 2,            // notes per player per class
+  stickMischief: 60,
+  laugh: 24, laughMischief: 35, laughGap: 5, // every time he turns his back on the class
+  foundAfter: [35, 50],   // then a kid tells him (or after foundLaughs laughs)
+  foundLaughs: 4,
+  anger: 14,              // when he reads it
+};
+// the laser pointer: hold it on (G with the laser picked); he chases the red dot like a cat
+export const LASER = {
+  range: 14,
+  notice: 0.7,            // the dot in front of him this long: he sees it
+  cone: 0.5,              // ...in front of him: cos of the angle from where he faces
+  seeDist: 9,
+  paw: 0.7,               // he paws at it when it is this close (flat metres from him)
+  chaseMax: 14, pawsMax: 4, // then he gets it: "A trick." and he follows the beam back
+  lostAfter: 1.2,         // the dot gone this long: "Where did it go?"
+  eyes: 0.15,             // in his eyes this long: "My eyes." and he looks right at you
+  findHold: 1.4,          // how long he stares down the beam (still on: caught, like an arm up)
+  cooldown: 18,           // after a chase he ignores the dot this long
+  laugh: 16, pawMischief: 25, chaseMischief: 5, // per paw / per second of chasing
+  onHim: { laugh: 7, mischief: 8, gap: 3 }, // the dot on his back or his belly: the class giggles
+  anger: { trick: 14, eyes: 18 },
+};
 
 // ---------------- a different teacher every class (src/events.js, src/quirks.js, src/slang.js)
 // One seeded setup per class (classSetup in src/events.js) draws the events and his quirks: the same

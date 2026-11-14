@@ -61,8 +61,12 @@ export class UI {
     const on = !!name;
     this.set('aimOn', on, () => this.el['aim-hud'].classList.toggle('show', on));
     if (!on) return;
-    this.set('aimKind', name + (ready ? '' : ' (folding…)'), (x) => (this.el['aim-kind'].textContent = x));
-    this.set('aimPow', Math.round(power * 20), (x) => (this.el['aim-pow-fill'].style.width = x * 5 + '%'));
+    // (the laser pointer and the KICK ME note have no power: power null hides the bar; not ready = out of reach)
+    const bar = power !== null;
+    this.set('aimBar', bar, () => this.el['aim-hud'].classList.toggle('nobar', !bar));
+    this.set('aimKind', name + (ready ? '' : bar ? ' (folding…)' : ''), (x) => (this.el['aim-kind'].textContent = x));
+    this.set('aimReady', !!ready, (x) => this.el['aim-hud'].classList.toggle('dim', !x));
+    if (bar) this.set('aimPow', Math.round(power * 20), (x) => (this.el['aim-pow-fill'].style.width = x * 5 + '%'));
   }
   setEye(state) {
     this.set('eye', state, (st) => {
@@ -183,9 +187,13 @@ export class UI {
       }
       if (mode.startsWith('aim')) {
         // aiming a paper: let go to throw; the other buttons switch ball / plane or put it away
-        if (lg) lg.innerHTML = 'let go of <kbd>G</kbd> to throw · <kbd>X</kbd> / wheel: ball or plane · <kbd>E</kbd> put it away';
+        const kind = mode.slice(4);
+        if (lg) {
+          lg.innerHTML = (kind === 'laser' ? 'let go of <kbd>G</kbd>: laser off' : kind === 'note' ? 'let go of <kbd>G</kbd> behind him: stick it on' : 'let go of <kbd>G</kbd> to throw')
+            + ' · <kbd>X</kbd> / wheel: switch · <kbd>E</kbd> put it away';
+        }
         if (T) T.textContent = 'DROP';
-        if (A) A.textContent = mode === 'aim:plane' ? 'PLANE' : 'BALL';
+        if (A) A.textContent = { plane: 'PLANE', laser: 'LASER', note: 'NOTE' }[kind] || 'BALL';
         if (E) E.textContent = 'SWAP';
         return;
       }

@@ -36,8 +36,10 @@ screenshots looked at. Whatever the review finds gets fixed first.
 | Leave your seat | **C**, then **WASD** to crawl, **C** at your desk to sit | SEAT + joystick |
 | Hold your breath | hold **B** | BREATH |
 | Blame | the 1-3 choice menu you already know | the choice buttons |
+| Laser pointer, KICK ME note | **X** / wheel picks them after the paper, hold **G** to use | SWAP, hold PRANK |
 
-Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, X, mouse wheel.
+Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, X, mouse wheel (X / wheel / G also
+work the laser pointer and the KICK ME note).
 
 ## Phases
 
@@ -126,12 +128,33 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, 
   friend's desk can be slapped, a friend can swat the fly. Numbers and texts in `EVENTS`, `QUIRKS`, `SLANG`
   (`src/data.js`). Tests: `tests/events.js`, `tests/mp_events.js`.
 
-### [ ] Phase 3: Blame + note on his back + laser pointer (ideas 5, 1)
+### [x] Phase 3: Blame + note on his back + laser pointer (ideas 5, 1)
 - "Who did it?" opens a choice: point at a kid, stay silent, confess. Lying while you are the
   obvious suspect (heat, last echo) can get you caught; a blamed kid gets revenge later.
 - "Kick me" note: stick it on his back when he walks past your desk; every time he turns
   away the class laughs (laugh meter).
 - Laser pointer: hold to show a red dot; he follows it like a cat; in his face, he finds you.
+- Shipped (`src/blame.js`, numbers in `BLAME`, `NOTE`, `LASER` in `src/data.js`): the laser and the note are two more
+  things to hold up after the paper ball and plane (X / wheel / SWAP, then hold G / PRANK), so no new keys. Sam
+  gives them to you in period 3 (with two tasks) and you keep them in period 4; Free Class has them from the start
+  (a hint and a task at 76 s). **Laser**: a red dot where you look (a real ray: walls, floor, desks, board, him,
+  kids). He notices it in front of him after 0.7 s ("What is that?"), walks after it along the aisles and paws at
+  it (laughs, mischief); the dot gone: "Where did it go?". After 4 paws or 14 s: "A trick." and he looks straight
+  down the beam; in his eyes: "My eyes." and the same. Still on when he looks right at you = caught (the arm-up
+  rule, reason `laser`); off in time, he comes and asks who did it. While he chases the dot the arm-up rule is off
+  (he only has eyes for it). A dot on his back makes the class giggle. **KICK ME**: two per player per class; in
+  reach when he is within 1.3 m and you are behind him (he walks down the aisle past a player's desk: a new idle
+  walk while somebody still has a note). The class laughs every time he turns his back to them; a kid tells him
+  after 35-50 s or 4 laughs; he tears it off, reads it ("Kick... me.") and asks. **"Who did it?"**: after the note,
+  the laser, or a second hit on his back or a second echo (the row search stops at your desk), from period 3 on. How sure he is =
+  your heat, a fresh echo, hits, earlier lies and the evidence; the choice title says whether he looks sure. A lie
+  works below 0.5 (the kid says "What? Me?" and remembers: 20-45 s later, when you are up to something, "Sir! Sir!
+  Look!" and he turns right to you; or the kid just takes the blame); a lie he sees through, or a kid you blamed
+  before saying "It was them!", is a strike (`lie`). Say nothing: "I am watching you." (25 s of glares when you make
+  a sound). Confess: anger halved the first time, "Again?" and a strike (`confess`) the second. Online: the friends'
+  dots, the note on his back and in his hand, the arm with the pointer or the note, the choice on the friend's
+  screen. Sounds: `bl_stick`, `bl_rip`, `bl_click`, `bl_paw`, `bl_ooh`; 35 voice lines. Tests: `tests/blame.js`,
+  `tests/mp_blame.js`.
 
 ### [ ] Phase 4: Leave your seat (idea 3, the biggest phase)
 - C: slip out of your seat, crawl with WASD along the aisles (the same aisle graph he walks),

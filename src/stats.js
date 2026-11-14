@@ -22,6 +22,13 @@ export const STAT_KEYS = [
   'taught',      // words he learned from you (your echoes, phonk from your phone)
   'woke',        // times you woke him up when he dozed off
   'chaos',       // seconds of mischief while he could not catch you (out of the room, asleep, on the phone, dancing, blind, typing)
+  'kickme',      // KICK ME notes you stuck on his back
+  'noteLaughs',  // times the class laughed at the note on his back
+  'paws',        // times he pawed at your laser dot
+  'chase',       // seconds he chased your laser dot
+  'blamed',      // kids you blamed (and he believed you)
+  'confessed',   // times you confessed
+  'lies',        // lies he saw through
 ];
 
 export class RunStats {

@@ -17,7 +17,7 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 |---|---|---|
 | 8:30 AM | Roll Call | Footsteps in the hallway, a face in the door window. He walks in, writes his name and claps the chalk off his hands. Roll call: Kevin is absent. Nora passes you a note. Kevin's empty chair slides back by itself. Sam sends you a meme video: watch all of it without him seeing. Sam dares you to repeat what he says. The storm gets worse. |
 | 9:30 AM | The Lesson | "Open your books." Nobody has books. Ask him dumb questions: he walks to his laptop to look them up, and the projector shows the whole class what he searches for. He wipes Mr. Hale's glasses. Sam dares you to hit his back with a paper ball. The school speaker calls for Mr. Hale, and he tears it off the wall. Sam's note has to reach Nora without him seeing it (if he catches you, he reads it out loud). Nora holds her phone out: "Psst! You have to see this!" Then the projector shows his search history. |
-| 10:30 AM | Pop Quiz | He quizzes you to your face, asks how many students are in the class, and Kevin is back for a moment. Then he walks between the desks and stops right behind your chair. Sam needs to show you a video right now. The power goes out: every flash of lightning shows him a little closer. Don't make a sound. |
+| 10:30 AM | Pop Quiz | He quizzes you to your face, asks how many students are in the class, and Kevin is back for a moment. Sam slips you a laser pointer and a KICK ME note. Then he walks between the desks (past your desk: stick it on) and stops right behind your chair. Sam needs to show you a video right now. The power goes out: every flash of lightning shows him a little closer. Don't make a sound. |
 | 11:30 AM | Detention | Nora has a plan. The clock runs backwards. Mr. Hale texts you. "There is no lunch." The speaker he tore out comes back on: *the school is closed today, there is nobody in the building.* Somebody sends you a video of this classroom, filmed from the back... At the last bell, ask him something he can't look up. Three different endings. |
 
 **Free Class**: the whole morning in one go (about 5 minutes), getting darker and stranger every hour.
@@ -97,6 +97,8 @@ On a local server or GitHub Pages there is no `api/turn`, so there is no relay. 
 | Throw a paper ball / plane | hold **G** to aim, let go to throw | hold **PRANK**, let go |
 | …ball or plane | **X** or the mouse wheel | **SWAP** |
 | …put it away without throwing | **E** (or pull out your phone) | **DROP** |
+| Laser pointer / KICK ME note (period 3 on, Free Class) | **X** picks them too; hold **G** to use | **SWAP**, hold **PRANK** |
+| "Who did it?": point at a kid / say nothing / confess | **1–3** | the choice buttons |
 | Pause | **Esc** | **II** button |
 
 * **Repeat him**: right after he speaks, your squeaky impression makes the class laugh. He doesn't know who said it, so he walks down the rows and leans over the desks, looking at everyone, then goes back. Do it three times in a row and he knows it was you.
@@ -105,6 +107,9 @@ On a local server or GitHub Pages there is no `api/turn`, so there is no relay. 
 * **Dumb questions**: he stares at you, he doesn't know, he goes to his laptop. While he types he isn't watching you. Ask too many and you're in trouble.
 * **Pranks**: hold **G** and a dotted arc shows where your paper goes and what it will hit; hold longer to throw harder, let go to throw. A **paper ball** flies fast and straight; a **paper plane** is slower, glides much farther and curves to one side (every one is folded a little differently). Hit **his back** and he spins around to find who did it (hit him three times and he knows it was you). Hit **his head** and his glasses fly off: he can't see until he finds them on the floor. Hit the **board while he writes** and the chalk screeches. Hit a **kid** and they yell "Ow!" and might throw one back at you; Sam and Nora laugh (or throw back). **If he sees your arm up, you're caught.**
 * **LAUGHS meter**: good pranks make the class laugh. While they laugh, everything you do is worth more mischief (up to ×2), but laughing is noise, and he hears it around whoever it's about. It calms down by itself.
+* **The laser pointer** (from period 3, and in Free Class): hold it on and a red dot sits where you look. When he sees the dot in front of him he **chases it like a cat**, pawing at it on the floor, the desks, the board; the class loses it. Keep it moving. After a while (or if you put it **in his eyes**) he gets it and looks straight down the beam: if it's still on when he looks at you, you're caught. A dot on his back just makes the class giggle.
+* **KICK ME notes** (two per class): hold one out while he walks **past your desk with his back to you** and let go to stick it on. Every time he turns his back on the class, they laugh. Sooner or later a kid tells him.
+* **"Who did it?"**: when he finds the note, gets the laser in his eyes, or his search after a second hit (or a second echo) reaches your desk, he asks you. **Point at a kid** (now and then he offers Sam or Nora): it works unless he's sure it was you (the choice says how sure he looks: your noise, a fresh echo, earlier lies), and the kid remembers it and may tell on you later. **Say nothing**: he watches you for a while. **Confess**: he forgives you once (and calms down); the second time, "Again?" and a strike.
 * **When he wipes his glasses**, he can't see you.
 * **When the chalk stops, stop talking.** He turns around without warning.
 * If he catches you, he comes to your desk. **Three strikes** and the period is over.
@@ -164,6 +169,7 @@ src/game.js                the teacher's brain (coroutines), story chapters, fre
                            echo / question mechanics, friends, phone, scares, endings
 src/videos.js              meme videos in class: missions, phones held out to you, the loud crash
 src/pranks.js              pranks you aim: paper balls and planes, the aim arc, hits, his reactions, the LAUGHS meter
+src/blame.js               the laser pointer (he chases the dot), KICK ME notes, "Who did it?" (lie, say nothing, confess)
 src/events.js              a different teacher every class: the seeded class setup and the event deck
                            (ringtone, fly, pizza, fire alarm, he leaves the room)
 src/quirks.js              his quirks (half deaf, hates laughing, dozes off, the clock, counts the class, hums)
@@ -189,8 +195,8 @@ src/audio.js               Web Audio engine: 3D HRTF sound, reverb, live ambienc
 src/post.js                retro post-processing (grain, aberration, glitch, blackout)
 assets/models/             rigged characters (built by tools/build_characters.py, bundled in models.json)
 assets/textures/           teacher face texture + glow mask (from the reference photo)
-assets/audio/voice/        285 spoken lines
-assets/audio/sfx/          94 sound effects and music loops
+assets/audio/voice/        402 spoken lines
+assets/audio/sfx/          111 sound effects and music loops
 assets/videos/             your own .mp4 memes (optional, see assets/videos/README.md)
 tools/                     scripts that generate all of the assets above + preview pages
 tests/                     browser tests and their runner (bash tests/run.sh quick|full)
@@ -211,7 +217,7 @@ pip install numpy pillow pyfqmr
 python3 tools/make_face_texture.py   # face texture + eye glow
 python3 tools/build_characters.py    # all characters (downloads the CC0 MakeHuman base mesh once)
 python3 tools/gen_voices.py          # voice lines that are missing (--all rebuilds every line)
-python3 tools/gen_sfx.py             # all sound effects (add 'memes', 'v4' or 'v5' to build only one group)
+python3 tools/gen_sfx.py             # all sound effects (add 'memes', 'v4', 'v5', 'v6', 'v7' or 'p3' to build only one group)
 ```
 
 ## Credits and licences

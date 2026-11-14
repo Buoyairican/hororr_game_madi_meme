@@ -21,7 +21,7 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
       g.start(mode, ch);
       const ROWS = [-2.05, -0.35, 1.35, 3.05], COLS = [-3.0, -1.5, 0, 1.5, 3.0];
       let reckless = false, intent = 'idle', yawT = 0, choiceDelay = -1, noteT = 0;
-      let cutT = 0, memeT = 0, lockT = 0, choiceT = 0, blackT = 0, lastSub = '', subs = [], memes = 0, wasMeme = false;
+      let cutT = 0, memeT = 0, lockT = 0, choiceT = 0, blackT = 0, blameT = 0, catT = 0, lastSub = '', subs = [], memes = 0, wasMeme = false;
       const maxT = 1100;
       while (g.state === 'playing' && g.t < maxT) {
         // ---- random player
@@ -45,7 +45,7 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
         else if (intent === 'echo') { if (Math.random() < 0.05 && (g.echoStreak < 2 || reckless)) g.input.pressed.echo = true; }
         else if (intent === 'ask') { if (Math.random() < 0.03 && (g.qCount < 3 || reckless)) g.input.pressed.ask = true; }
         else if (intent === 'prank') {
-          // aim somewhere (often at him), hold, let go; switch ball / plane now and then
+          // aim somewhere (often at him), hold, let go; switch ball / plane / laser / KICK ME now and then
           if (Math.random() < 0.03) { const T = g.teacher, d = T.headWorld().sub(g.camPos); yawT = Math.random() < 0.6 ? Math.atan2(-d.x, -d.z) : (Math.random() * 2 - 1) * 2.8; }
           g.yaw += (yawT - g.yaw) * 0.2; g.pitch = 0.15 + Math.sin(g.t * 0.7) * 0.2;
           g.input.keys.prank = (safe || reckless) ? (g.t * 1.3) % 2 < 1.4 : false;
@@ -85,6 +85,12 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
         if (g.blind && g.brainIdle && !T.glassesHeld && T.glasses.parent === T.head) issue('blind', 'blind with his glasses on');
         if (g.papers.length > 16) issue('papers', 'too many papers: ' + g.papers.length);
         if (g.laugh < 0 || g.laugh > 100 || !isFinite(g.mischief)) issue('laugh', 'laugh/mischief out of range');
+        // Phase 3: the red dot, the KICK ME note, "Who did it?"
+        blameT = g.blameBusy ? blameT + 0.05 : 0; if (blameT > 60) issue('blame', 'blameBusy stuck > 60 s');
+        catT = g.cat ? catT + 0.05 : 0; if (catT > 45) issue('cat', 'he chased the dot > 45 s');
+        if (g.handNote.visible && g.brainIdle) issue('handnote', 'the KICK ME note left in his hand');
+        if (g.me.laserOn && !g.me.aiming) issue('laser', 'laser on with nothing held up');
+        if (g.me.notesLeft < 0) issue('notes', 'notes left < 0');
       }
       if (g.state === 'playing') issue('nofinish', `did not finish by ${maxT}s: clock=${document.getElementById('clock-hud').innerText} script=${!!g.script} brainIdle=${g.brainIdle} cut=${g.cutscene} memeBusy=${g.memeBusy} objs=${g.objectives.map((o) => o.id + (o.done ? '+' : '-')).join(' ')}`);
       const out = { mode, ch, t: +g.t.toFixed(0), end: document.getElementById('end-title').innerText, strikes: g.strikes, memes, throws: g.stats.throws, hitHim: g.stats.hitHim, issues };

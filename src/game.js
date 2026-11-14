@@ -3,18 +3,19 @@
 // friends, phone, scares, strikes and endings.
 import * as THREE from 'three';
 import { clamp, lerp, damp, rand, pick, chance, wrapAngle, Bag, Timers } from './util.js';
-import { PLAYER_EYE, BOARD_Z, ROWS, COLS } from './world.js';
+import { PLAYER_EYE, BOARD_Z, ROWS, COLS, ROOM } from './world.js';
 import { VideoMixin } from './videos.js';
 import { PrankMixin } from './pranks.js';
 import { LobbyMixin } from './lobby.js';
 import { EventMixin } from './events.js';
 import { QuirkMixin } from './quirks.js';
 import { SlangMixin } from './slang.js';
+import { BlameMixin } from './blame.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
   FREE_LENGTH, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
-  QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, PRANK, QUIRKS, EVENTS, SLANG, mock, clockLabel,
+  QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, PRANK, QUIRKS, EVENTS, SLANG, NOTE, mock, clockLabel,
 } from './data.js';
 
 const CALM = 0.85;           // he walks slowly unless he is angry
@@ -35,6 +36,11 @@ const region = (z) => (z <= -2.75 ? 0 : z >= 3.95 ? 2 : 1); // 0 front, 1 among 
 const nearestAisle = (x) => AISLES.reduce((b, a) => (Math.abs(a - x) < Math.abs(b - x) ? a : b), AISLES[0]);
 
 const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3(), v4 = new THREE.Vector3();
+// what he says when he catches you, by what you did (noise: one of three)
+const BUST_LINE = {
+  echo: 't_iknow', questions: 't_toomany', note: 't_readnote', video: 't_nophones', prank: 't_paper',
+  lie: 't_bl_lie', confess: 't_iknow', laser: 't_lz_give', kickme: 't_bl_watch',
+};
 
 function wpick(list) {
   let tot = 0;
@@ -91,6 +97,7 @@ export class Game {
     this.setupVideos();
     this.setupPranks();
     this.setupEvents();
+    this.setupBlame();
     this.reset('free', 0);
   }
 
@@ -116,7 +123,9 @@ export class Game {
     Object.assign(p, { talk: null, whisperSnd: null, noise: 0, heat: 0, watching: false, near: false, dist: 9, phoneUp: false,
       echoStreak: 0, lastEcho: -99, qCount: 0, qLast: -99, qBusy: false, choice: null, handT: 0, talkLatch: false,
       // pranks: the paper you are aiming, folding the next one, how long he has seen your arm up, hits on him in a row
-      aim: null, aiming: false, foldT: 0, exposeT: 0, prankSeenT: 0, prankStreak: 0, lastPrankHit: -99, lastThrow: -99, crumpleT: 0, bonkT: 0, prankLatch: false });
+      aim: null, aiming: false, foldT: 0, exposeT: 0, prankSeenT: 0, prankStreak: 0, lastPrankHit: -99, lastThrow: -99, crumpleT: 0, bonkT: 0, prankLatch: false,
+      // the laser pointer, the KICK ME notes, "Who did it?" (src/blame.js)
+      tool: null, laserOn: false, laserHit: null, laserT: 0, eyesT: 0, lastEyes: -99, notesLeft: NOTE.perClass, watchedT: 0, lastGlare: -99, confessions: 0, lies: 0 });
     p.prankKind = p.prankKind || 'ball';
   }
   removePlayer(id) {
@@ -163,7 +172,7 @@ export class Game {
     this.nextCall = 18; this.nextBuzz = 30; this.nextScare = 36; this.nextWipe = 50;
     this.scareDone = {}; this.lastScare = {};
     this.notesGiven = 0;
-    this.stats = { caught: 0, talk: 0, phone: 0, echoes: 0, questions: 0, memes: 0, videos: 0, fails: 0, throws: 0, hits: 0, hitHim: 0 };
+    this.stats = { caught: 0, talk: 0, phone: 0, echoes: 0, questions: 0, memes: 0, videos: 0, fails: 0, throws: 0, hits: 0, hitHim: 0, kickme: 0, paws: 0, blamed: 0 };
     this.track.reset(); this.closeArm = null;
     this.talk = null; this.buzz = null; this.phoneUpTime = 0; this.phoneScares = 0; this.noteLatch = false;
     this.noise = 0; this.watching = false; this.near = false; this.blind = false; this.typing = false;
@@ -214,6 +223,7 @@ export class Game {
     if (this.kevin) { this.kevin.setGone(true); this.kevin.setHollow(true); this.kevin.lookTarget = null; }
     this.resetVideos();
     this.resetPranks();
+    this.resetBlame();
     // a different teacher every class: this class's events and quirks, from one seeded setup
     this.setup = this.makeSetup(mode, chapter);
     this.track.global.seed = this.setup.seed;
@@ -308,6 +318,8 @@ export class Game {
     }
     this.updatePranks(dt);
     this.updatePrankVisuals(dt);
+    this.updateBlame(dt);
+    this.blameVisuals(dt);
     this.updateEvents(dt);
     this.updateQuirks(dt);
     this.updateSlang(dt);
@@ -448,8 +460,9 @@ export class Game {
     blocked = blocked || ui.noteOpen || this.noteLatch || !!this.choice;
     // pranks: hold G to aim a paper, let go to throw (while aiming, the other keys work the paper)
     const throwReq = this.localPrank(dt, inp, pressed, blocked, this.prankOpen());
-    if (throwReq) this.throwFrom(me, throwReq);
+    if (throwReq) { if (throwReq.note) this.stickNote(me); else this.throwFrom(me, throwReq); }
     const aiming = me.aiming = !!me.aim;
+    me.tool = aiming ? me.aim.kind : null;
     if (aiming || (!blocked && inp.phone)) { /* with the phone up, R and T are phone buttons */ }
     else if (!blocked && pressed.echo && !this.canEcho(me) && this.allowEcho && !this.lockBully) ui.hint('Repeat him right after he says something.', 2.5);
     if (!aiming && !blocked && !inp.phone && pressed.ask && !this.canAsk(me) && this.allowAsk && me.qBusy) ui.hint('Wait for him to answer first.', 2.5);
@@ -461,6 +474,7 @@ export class Game {
       const a = { talk: p.in.talk, phone: p.in.phone, echo: p.in.phone ? !!p.in.show : p.in.echo, ask: p.in.phone ? false : p.in.ask, tap: false };
       p.in.echo = p.in.ask = p.in.show = false;
       p.aiming = !!p.in.aim && this.prankOpen() && !p.choice;
+      p.tool = p.aiming ? p.in.aimKind || 'ball' : null;
       if (p.choice || p.aiming) a.talk = a.phone = a.echo = a.ask = false;
       this.playerActs(p, a, dt);
     }
@@ -726,8 +740,8 @@ export class Game {
       yield* this.say(n === 1 ? 't_whosaid' : 't_notfunny', 0.3);
       // he does not know who said it, so he goes and looks for them
       this.searching = true;
-      yield* this.searchRows(n, p);
-      this.anger = Math.min(85, this.anger + (n === 1 ? 6 : 14));
+      const asked = yield* this.searchRows(n, p, 'echo');
+      if (!asked) this.anger = Math.min(85, this.anger + (n === 1 ? 6 : 14)); // (if he asked you, your answer decided that)
       T.lookAt(null, 3);
       T.leanTarget = 0; T.crouchTarget = 0;
       yield* this.walk(home.x, home.z);
@@ -736,8 +750,8 @@ export class Game {
     } finally { this.echoBusy = false; this.searching = false; this.teacher.leanTarget = 0; this.teacher.crouchTarget = 0; }
   }
 
-  /** down one aisle, stopping beside the desks to look at whoever sits there */
-  *searchRows(n, p) {
+  /** down one aisle, stopping beside the desks to look at whoever sits there. Returns true if he asked you "Who did it?" */
+  *searchRows(n, p, about = 'prank') {
     const T = this.teacher;
     const sus = [];
     for (const k of this.allKids()) if (!k.gone) sus.push({ kid: k, x: k.seat.x, z: k.seat.z, head: () => k.headWorld(new THREE.Vector3()) });
@@ -758,11 +772,13 @@ export class Game {
       T.lookAt(s.head(), 4);
       T.leanTarget = 0.4; T.crouchTarget = 0.08;
       if (s.kid) { s.kid.lookTarget = T.headWorld(new THREE.Vector3()); s.kid.tremble = 0.6; s.kid.speed = 5; }
-      try { yield* this.searchStop(s, n, p); } finally {
+      let asked = false;
+      try { asked = yield* this.searchStop(s, n, p, about); } finally {
         // (also when something cuts in: a bust, a story beat) the kid stops shaking and staring
         T.leanTarget = 0; T.crouchTarget = 0;
         if (s.kid) { s.kid.lookTarget = null; s.kid.tremble = 0; s.kid.speed = 4; }
       }
+      if (asked) return true; // (he asked you: that settles it, one way or the other)
     }
     // a last look over the whole class from the back of the aisle
     T.lookAt(FRONT, 2.5);
@@ -771,10 +787,11 @@ export class Game {
   }
 
   /** one desk on the search: he looks at whoever sits there (and maybe asks) */
-  *searchStop(s, n, p) {
+  *searchStop(s, n, p, about) {
     yield* this.wait(rand(0.7, 1.0));
     if (s.player === p && n >= 2) {
-      // the right desk. Does he know?
+      // the right desk. Does he know? (from period 3 on: "You. Who did it?", src/blame.js)
+      if (this.allowBlame) { yield* this.askWhoDidIt(p, about); return true; }
       yield* this.say('t_wasityou', 0.4);
       yield* this.wait(1.4);
     } else if (s.kid && s.kid.kind === 'kid' && chance(0.45)) {
@@ -1101,13 +1118,18 @@ export class Game {
       // both modes: if he sees you watching a video, he comes for the phone
       p.vidSeenT = p.vid && this.present && p.watching && p.lookDot > 0.8 ? (p.vidSeenT || 0) + dt : 0;
       // both modes: if he sees your arm up (aiming a paper, or just after a throw), he knows
-      p.prankSeenT = (p.aiming || p.exposeT > 0) && this.present && p.watching && p.lookDot > 0.8 ? (p.prankSeenT || 0) + dt : 0;
+      // (not while he chases the red dot: he only has eyes for it)
+      const catFocus = this.cat && this.cat.phase === 'chase';
+      p.prankSeenT = (p.aiming || p.exposeT > 0) && !catFocus && this.present && p.watching && p.lookDot > 0.8 ? (p.prankSeenT || 0) + dt : 0;
     }
     if (!this.cutscene && !this.ending && !this.eventLock && !this.lockBully && !this.choice) {
       const v = this.players.find((p) => p.vidSeenT > 0.45);
       if (v) { v.vidSeenT = 0; this.bust('video', v); return; }
       const pk = this.players.find((p) => p.prankSeenT > PRANK.seenLimit);
-      if (pk) { pk.prankSeenT = 0; pk.aim = null; this.bust('prank', pk); return; }
+      if (pk) {
+        const why = pk.aiming ? (pk.tool === 'laser' ? 'laser' : pk.tool === 'note' ? 'kickme' : 'prank') : pk.exposeKind || 'prank';
+        pk.prankSeenT = 0; pk.aim = null; this.bust(why, pk); return;
+      }
     }
     if (this.hard && !this.cutscene && !this.ending && !this.eventLock && !this.lockBully && !this.choice) {
       const seen = this.players.find((p) => p.seenT > 0.3);
@@ -1130,11 +1152,13 @@ export class Game {
     else if (this.closeArm && a < 30) { this.note(this.closeArm, 'closeCalls'); this.track.event(this.t, this.closeArm, 'closeCall'); this.closeArm = null; }
     if (a >= 100) { this.bust('noise', this.focus); return; }
     if (!this.lockBully && !this.choice && !this.eventLock) { // he warns you first
-      if (a >= 70 && !fl.r70) { fl.r70 = fl.r40 = true; this.interrupt(this.reactApproach()); }
+      // (in a scene with a player, chasing the red dot or asking "Who did it?", he only glares: the scene goes on)
+      const inScene = this.blameBusy || this.cat;
+      if (a >= 70 && !fl.r70) { fl.r70 = fl.r40 = true; if (inScene) this.fx.push(this.glareWarn()); else this.interrupt(this.reactApproach()); }
       else if (a >= 40 && !fl.r40) {
         fl.r40 = true;
         // in the middle of an event or one of his habits he only glares and warns you (it goes on); otherwise he stops for it
-        if (this.classEvent || this.quirkBusy) this.fx.push(this.glareWarn());
+        if (this.classEvent || this.quirkBusy || inScene) this.fx.push(this.glareWarn());
         else this.interrupt(this.reactWarn(false));
       }
     }
@@ -1209,6 +1233,14 @@ export class Game {
     yield* this.walkLine(x, z, speed);
   }
 
+  /** the nearest place he can stand near (x, z): in front of the rows, behind them, or in an aisle between the desks */
+  walkSpot(x, z, out = new THREE.Vector3()) {
+    z = clamp(z, BOARD_Z + 0.55, ROOM.z1 - 0.6);
+    x = clamp(x, ROOM.x0 + 0.5, ROOM.x1 - 0.5);
+    if (region(z) === 1) x = nearestAisle(x);
+    return out.set(x, 0, z);
+  }
+
   *walkLine(x, z, speed = CALM) {
     const T = this.teacher;
     const goal = new THREE.Vector3(x, 0, z);
@@ -1262,7 +1294,8 @@ export class Game {
       const p = this.phase;
       const canWipe = this.mode === 'free' || this.chapter >= 2;
       const act = wpick([[5, 'write'], [2.5, 'ponder'], [2, 'lecture'], [0.8 + p * 0.4, 'stare'], [1.4, 'stroll'], [1.1, 'clap'],
-        [this.projAuto || this.world.projector.on ? 0.8 : 0, 'laptop'], [canWipe && this.t > this.nextWipe ? 1.2 : 0, 'wipe']]);
+        [this.projAuto || this.world.projector.on ? 0.8 : 0, 'laptop'], [canWipe && this.t > this.nextWipe ? 1.2 : 0, 'wipe'],
+        [this.allowNote && !this.kickNote && this.players.some((q) => q.notesLeft > 0) ? 1.6 : 0, 'aisle']]);
       if (act === 'write') yield* this.actWrite();
       else if (act === 'lecture') yield* this.actLecture();
       else if (act === 'stare') yield* this.actStare(rand(2, 3.5));
@@ -1273,6 +1306,7 @@ export class Game {
         yield* this.laptopLookup(['how to be a teacher', 'how long can a class last', 'how often do people blink', 'what is a student'][i],
           ['Stand at the front.', 'Until the bell.', '15 times a minute.', 'A small person who learns.'][i]);
       } else if (act === 'wipe') { this.nextWipe = this.t + rand(60, 90); yield* this.glassesWipe(); }
+      else if (act === 'aisle') yield* this.actAisle();
       else yield* this.actStroll();
     }
   }
@@ -1783,9 +1817,11 @@ export class Game {
       T.lookAt(p.camPos, 10); T.facePoint(p.camPos, 4);
       yield* this.wait(0.5);
       const spot = this.deskSpot(p);
-      yield* this.walk(spot.approach.x, spot.approach.z, ANGRY);
-      T.faceTo(spot.face, 5);
-      yield* this.walk(spot.stand.x, spot.stand.z, 1.1);
+      if (T.pos.distanceTo(spot.stand) > 0.45) { // (he may be at your desk already: "Who did it?")
+        yield* this.walk(spot.approach.x, spot.approach.z, ANGRY);
+        T.faceTo(spot.face, 5);
+        yield* this.walk(spot.stand.x, spot.stand.z, 1.1);
+      }
       T.faceTo(spot.face, 5);
       // folds over your desk like a spider, face level with yours
       T.crouchTarget = 0.4; T.stanceTarget = 0.3; T.leanTarget = 1.1;
@@ -1804,7 +1840,7 @@ export class Game {
         this.videoScare(p);
         yield* this.wait(1.6);
       }
-      yield* this.say(reason === 'echo' ? 't_iknow' : reason === 'questions' ? 't_toomany' : reason === 'note' ? 't_readnote' : reason === 'video' ? 't_nophones' : reason === 'prank' ? 't_paper' : pick(['t_hear', 't_see', 't_who']), 0.5);
+      yield* this.say(BUST_LINE[reason] || pick(['t_hear', 't_see', 't_who']), 0.5);
       yield* this.say(this.strikes === this.maxStrikes - 1 ? 't_last' : 't_detention', 0.6);
       if (this.mp) this.mp.strikeToast(p, this.strikes, this.maxStrikes);
       else this.ui.toast(`STRIKE ${this.strikes} / ${this.maxStrikes}`, 2.8);
@@ -2776,6 +2812,14 @@ export class Game {
     yield* this.eventSlot(0, 22);
     yield* this.storyNote(2);
     yield* this.lesson(12);
+    // Sam slips you a laser pointer and a KICK ME note (src/blame.js)
+    yield* this.whisper(sam, 's_bl_give');
+    this.giveTools();
+    this.addObjective({ id: 'kickme', text: 'Stick KICK ME on his back' });
+    this.addObjective({ id: 'laser', text: 'Make him chase the red dot' });
+    this.showHint(this.input.touch ? 'Hold <b>PRANK</b> and tap <b>SWAP</b> for the <b>laser pointer</b> or the <b>KICK ME note</b>.'
+      : 'Press <b>X</b> for the <b>laser pointer</b> or the <b>KICK ME note</b>, then hold <b>G</b> to use it.', 7);
+    yield* this.lesson(7);
     // he starts walking between the desks
     this.ui.hint('He walks between the desks. <b>When he is close, he can hear you whisper.</b>', 6);
     this.callsOn = true; this.nextCall = 25; this.buzzOn = true; this.nextBuzz = 35;
@@ -2943,6 +2987,7 @@ export class Game {
     this.ui.card(CHAPTERS[3]);
     this.idleKind = 'none';
     this.allowEcho = true; this.allowAsk = true; this.allowPrank = true; this.projAuto = true;
+    this.giveTools(); // (Sam's laser pointer and KICK ME notes, from period 3)
     this.hintControls();
     this.setObjectives([{ id: 'bell', text: 'Survive until 12:30' }]);
     yield* this.wait(2.5);
@@ -3147,6 +3192,7 @@ export class Game {
     this.setClockRun(0, 240, FREE_LENGTH);
     this.idleKind = 'none';
     this.allowEcho = true; this.allowAsk = true; this.allowPrank = true;
+    this.giveTools(); // the laser pointer, KICK ME notes, and "Who did it?" (src/blame.js)
     const touch = this.input.touch;
     const h = this.hintControls();
     h(8, touch ? 'Look at Sam (left) or Nora (right) and hold <b>TALK</b> to whisper. Hold <b>PHONE</b> to play.' : 'Look at Sam or Nora and hold <b>E</b> to whisper. Hold <b>Q</b> to play on your phone.', 7);
@@ -3154,6 +3200,12 @@ export class Game {
     h(30, 'Three strikes and you are done.', 5);
     h(44, touch ? 'Your phone has a game and memes: hold <b>PHONE</b>, tap <b>APP</b> to switch. Crash in the game and it gets <b>LOUD</b>.' : 'Your phone has a game and memes: hold <b>Q</b>, press <b>T</b> to switch apps. Crash in the game and it gets <b>LOUD</b>.', 8);
     h(58, touch ? 'Hold <b>PRANK</b> to aim a paper ball, let go to throw. Hit his back while he isn\'t looking!' : 'Hold <b>G</b> to aim a paper ball (<b>X</b>: a paper plane), let go to throw. Hit his back while he isn\'t looking!', 8);
+    this.timers.after(76, () => {
+      if (this.state !== 'playing' || this.ending) return;
+      this.addObjective({ id: 'kickme', text: 'Stick KICK ME on his back' });
+      this.showHint(touch ? 'Hold <b>PRANK</b>, tap <b>SWAP</b>: a <b>laser pointer</b> (he chases the dot) and <b>KICK ME</b> notes (when he walks past your desk).'
+        : '<b>X</b> also picks a <b>laser pointer</b> (he chases the dot) and <b>KICK ME</b> notes (stick one on when he walks past your desk).', 8);
+    });
     this.setObjectives([{ id: 'echo', text: 'Repeat what he says' }, { id: 'ask', text: 'Ask him a dumb question' }, { id: 'video', text: 'Watch a whole meme video' },
       { id: 'prank', text: 'Hit him with a paper ball' }, { id: 'bell', text: 'Survive until 12:30' }]);
     yield* this.cmd(() => this.freeIntro(), 1);
@@ -3221,6 +3273,7 @@ export class Game {
       `Times you repeated him: <b>${this.stats.echoes}</b> &nbsp;·&nbsp; Dumb questions: <b>${this.stats.questions}</b>`,
       `Strikes: <b>${this.strikes}/${this.maxStrikes}</b> &nbsp;·&nbsp; ${this.hard ? '<b>HARD</b>' : 'Easy'} &nbsp;·&nbsp; Time: <b>${mins}:${String(secs).padStart(2, '0')}</b>`,
       ...(this.stats.throws ? [`Paper thrown: <b>${this.stats.throws}</b> &nbsp;·&nbsp; Hits on him: <b>${this.stats.hitHim}</b>`] : []),
+      ...(this.stats.kickme || this.stats.paws || this.stats.blamed ? [`KICK ME notes: <b>${this.stats.kickme}</b> &nbsp;·&nbsp; Paws at your dot: <b>${this.stats.paws}</b> &nbsp;·&nbsp; Kids you blamed: <b>${this.stats.blamed}</b>`] : []),
       ...this.todayLines(),
     ].join('<br>');
   }
@@ -3372,7 +3425,7 @@ export class Game {
   }
 }
 
-Object.assign(Game.prototype, VideoMixin, PrankMixin, LobbyMixin, EventMixin, QuirkMixin, SlangMixin);
+Object.assign(Game.prototype, VideoMixin, PrankMixin, LobbyMixin, EventMixin, QuirkMixin, SlangMixin, BlameMixin);
 
 /** is the clip on a phone held out to you at a loud moment? */
 function clipLoud(sh) {

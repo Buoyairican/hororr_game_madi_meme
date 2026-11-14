@@ -208,6 +208,7 @@ export const PrankMixin = {
   },
 
   hidePrankVisuals() {
+    if (this.hideBlameVisuals) this.hideBlameVisuals(); // (the red dots, the note on his back: src/blame.js)
     if (this.heldPaper) { this.heldPaper.visible = false; this.heldRaise = 0; }
     if (this.arcDots) this.arcDots.visible = false;
     if (this.arcMark) this.arcMark.visible = false;
@@ -241,8 +242,10 @@ export const PrankMixin = {
       return null;
     }
     if (!me.aim && inp.prank && !me.prankLatch && !blocked && open && !inp.phone) {
+      if (!this.toolKinds(me).includes(me.prankKind)) me.prankKind = 'ball'; // (the laser / the note: not today, or none left)
       me.aim = { kind: me.prankKind, curve: this.newCurve(), t: 0, power: 0.35 };
-      if (!this.prankHinted) {
+      if (me.prankKind === 'laser' || me.prankKind === 'note') this.toolHint(me.prankKind);
+      else if (!this.prankHinted) {
         this.prankHinted = true;
         this.uiTo(me, 'hint', 'Aim with the view, <b>let go to throw</b>. Hold longer to throw harder. If he sees your arm up, <b>you\'re caught</b>.', 5);
       }
@@ -254,19 +257,24 @@ export const PrankMixin = {
       if (me.foldT <= 0) a.power = clamp(a.power + dt * PRANK.charge, 0.35, 1);
       return null;
     }
-    // let go: throw (if the next one is ready)
+    // let go: the laser goes off, the note is stuck on (if he is in reach), paper is thrown (if the next one is ready)
     me.aim = null;
+    if (a.kind === 'laser') return null;
+    if (a.kind === 'note') return { note: true };
     if (me.foldT > 0) { this.uiTo(me, 'hint', 'Still folding the next one…', 1.5); return null; }
     return { yaw: this.yaw, pitch: this.pitch, power: a.power, kind: a.kind, curve: a.curve };
   },
 
   newCurve() { return (chance(0.5) ? -1 : 1) * rand(0.35, 1); },
 
+  /** the next thing to hold up: paper ball, paper plane, then the laser pointer and the KICK ME note once you have them */
   swapPaper(p) {
-    p.prankKind = p.prankKind === 'plane' ? 'ball' : 'plane';
+    const list = this.toolKinds(p);
+    p.prankKind = list[(list.indexOf(p.prankKind) + 1) % list.length];
     if (p.aim) { p.aim.kind = p.prankKind; p.aim.curve = this.newCurve(); }
     if (!p.local) return;
     this.audio.play('page', { vol: 0.35, local: true, reverb: 0 });
+    if (p.prankKind === 'laser' || p.prankKind === 'note') this.toolHint(p.prankKind);
     if (!p.aim) this.uiTo(p, 'hint', `<b>${PRANK_NAMES[p.prankKind]}</b> ready`, 1.5);
   },
 
@@ -283,15 +291,27 @@ export const PrankMixin = {
       if (!hp.visible) return;
     }
     const kind = a ? a.kind : me.prankKind;
-    const ready = me.foldT <= 0;
-    this.heldMeshes.ball.visible = kind === 'ball';
-    this.heldMeshes.plane.visible = kind === 'plane';
+    const paper = kind === 'ball' || kind === 'plane';
+    const ready = !paper || me.foldT <= 0;
+    for (const k in this.heldMeshes) this.heldMeshes[k].visible = k === kind;
     hp.visible = true;
-    const pw = a ? a.power : 0;
-    hp.position.set(0.3, -0.42 + 0.2 * this.heldRaise + pw * 0.025, -0.62 + pw * 0.06);
-    hp.rotation.set(kind === 'plane' ? -0.15 : this.t * 0.4, kind === 'plane' ? -0.2 : 0.3, kind === 'plane' ? -0.15 : 0);
-    hp.scale.setScalar(0.75 * (ready ? 1 : clamp(1 - me.foldT / (PRANK.fold[kind] || 1), 0.15, 1)));
+    const pw = a && paper ? a.power : 0;
+    if (kind === 'laser') {
+      // the pointer, held out in front (it points where you look)
+      hp.position.set(0.13, -0.2 + 0.08 * this.heldRaise, -0.4);
+      hp.rotation.set(0.12, 0.38, -0.2); // (angled in toward where you look, so you see its side)
+      hp.scale.setScalar(1);
+    } else if (kind === 'note') {
+      hp.position.set(0.26, -0.4 + 0.18 * this.heldRaise, -0.58);
+      hp.rotation.set(-0.5, -0.15, 0.08);
+      hp.scale.setScalar(1);
+    } else {
+      hp.position.set(0.3, -0.42 + 0.2 * this.heldRaise + pw * 0.025, -0.62 + pw * 0.06);
+      hp.rotation.set(kind === 'plane' ? -0.15 : this.t * 0.4, kind === 'plane' ? -0.2 : 0.3, kind === 'plane' ? -0.15 : 0);
+      hp.scale.setScalar(0.75 * (ready ? 1 : clamp(1 - me.foldT / (PRANK.fold[kind] || 1), 0.15, 1)));
+    }
     if (!a) return;
+    if (!paper) { this.arcDots.visible = this.arcMark.visible = false; this.toolHud(a, kind); return; }
     // the arc: the very same flight as the real throw
     const out = this.arcOut;
     throwStart(this.camPos, this.yaw, this.pitch, a.power, kind, _a, _b);
@@ -403,7 +423,7 @@ export const PrankMixin = {
     const pos = new THREE.Vector3(), vel = new THREE.Vector3();
     throwStart(eye, clamp(yaw, -3.2, 3.2), clamp(pitch, -1.2, 1.2), clamp(power, 0.2, 1), kind, pos, vel);
     this.spawnPaper(p, null, kind, pos, vel, curve);
-    p.foldT = PRANK.fold[kind]; p.exposeT = PRANK.exposeAfter; p.lastThrow = this.t; p.crumpleT = 0.6;
+    p.foldT = PRANK.fold[kind]; p.exposeT = PRANK.exposeAfter; p.exposeKind = 'prank'; p.lastThrow = this.t; p.crumpleT = 0.6;
     this.note(p, 'throws'); this.track.event(this.t, p, 'throw', { kind });
     this.mischief += PRANK.mischief.throw;
     if (this.away) this.completeObjective('chaos'); // he left the room (src/events.js)
@@ -523,7 +543,7 @@ export const PrankMixin = {
 
   /** he can be interrupted for this (not in a story moment, not already busy with something) */
   canReactPrank() {
-    return this.present && !this.cutscene && !this.ending && !this.eventLock && !this.lockBully && !this.memeBusy && !this.choice && !this.echoBusy && !this.searching && !this.prankBusy && !this.classEvent;
+    return this.present && !this.cutscene && !this.ending && !this.eventLock && !this.lockBully && !this.memeBusy && !this.choice && !this.echoBusy && !this.searching && !this.prankBusy && !this.classEvent && !this.cat && !this.blameBusy;
   },
 
   hitTeacher(p, part, at) {
