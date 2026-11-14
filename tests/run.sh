@@ -33,17 +33,22 @@ cmd_for() {
   esac
 }
 
+# Ports: TEST_PORT / PEER_PORT let several copies of the repo run tests at the same time.
+PORT="${TEST_PORT:-8765}"
+PEER_PORT="${PEER_PORT:-9000}"
+export PEER_PORT BASE_URL="http://localhost:$PORT" PEER="127.0.0.1:$PEER_PORT"
+
 # the game, served from the repo (plus api/turn, answered like Vercel does with no relay set up)
 STARTED=()
-if ! curl -s -o /dev/null "http://localhost:8765/index.html"; then
-  (cd "$ROOT_DIR" && exec python3 tests/serve.py 8765 >/dev/null 2>&1) &
+if ! curl -s -o /dev/null "http://localhost:$PORT/index.html"; then
+  (cd "$ROOT_DIR" && exec python3 tests/serve.py "$PORT" >/dev/null 2>&1) &
   STARTED+=($!)
-  for _ in $(seq 1 30); do curl -s -o /dev/null "http://localhost:8765/index.html" && break; sleep 0.3; done
+  for _ in $(seq 1 30); do curl -s -o /dev/null "http://localhost:$PORT/index.html" && break; sleep 0.3; done
 fi
 # a local PeerJS server for the online tests
 if [[ " $NAMES " == *" mp"* ]]; then
   [ -d node_modules/peer ] || npm install --no-audit --no-fund --silent
-  if ! curl -s -o /dev/null "http://127.0.0.1:9000/"; then
+  if ! curl -s -o /dev/null "http://127.0.0.1:$PEER_PORT/"; then
     node peer-server.cjs >out/peer.log 2>&1 &
     STARTED+=($!)
     sleep 1

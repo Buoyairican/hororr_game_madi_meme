@@ -9,7 +9,7 @@ bash tests/run.sh full      # ~17 min: quick + every story period, Hard, random 
 bash tests/run.sh ui mp     # only some of them
 ```
 
-The runner serves the game on `localhost:8765` (`serve.py`: the static files, plus `api/turn` answering
+The runner serves the game on `localhost:8765` (`TEST_PORT=8771 PEER_PORT=9011 bash tests/run.sh ...` picks other ports, so two copies of the repo can run tests at the same time) (`serve.py`: the static files, plus `api/turn` answering
 `{"iceServers":[]}` like the Vercel function with no relay set up), starts a local PeerJS server on `127.0.0.1:9000`
 for the online tests (`npm install` in this folder the first time), runs each test and prints
 PASS / FAIL. Logs and screenshots go to `tests/out/` (not committed).
