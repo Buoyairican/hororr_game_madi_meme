@@ -32,9 +32,13 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   const X = await mk('X');
   await open(X, BASE);
   await X.click('#btn-mp'); await X.fill('#mp-name', 'Xi'); await X.fill('#mp-code', 'ZZZZZ'); await X.click('#btn-join');
-  await waitFor(X, () => document.getElementById('mp-status').innerText.length > 12 && !/Joining/.test(document.getElementById('mp-status').innerText), 30000);
-  const s1 = await status(X);
+  // joining keeps looking for a while (the host may be coming back to the game), then gives up
+  const t1 = Date.now();
+  await waitFor(X, () => /no class|could not/i.test(document.getElementById('mp-status').innerText), 40000);
+  const s1 = await status(X), dt1 = (Date.now() - t1) / 1000;
   pass(/no class with that code/i.test(s1), 'wrong code is refused with a clear message: "' + s1.slice(0, 60) + '"');
+  pass(dt1 > 5 && dt1 < 25, `...after looking for it about 10 s (${dt1.toFixed(1)} s), not the full minute`);
+  pass(await X.evaluate(() => document.getElementById('btn-join').textContent === 'JOIN'), 'the JOIN button is back (it says CANCEL while joining)');
   pass(await X.evaluate(() => game.mp === null && game.role === 'solo'), 'after a failed join the game is back to solo');
   await X.fill('#mp-code', 'AB'); await X.click('#btn-join');
   pass(/5-letter/.test(await status(X)), 'too-short code is caught before connecting');
@@ -50,10 +54,19 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await waitFor(H, () => game.players.length === 4, 20000);
   const names = await H.evaluate(() => game.mp.lobby.map((x) => x.name + '@' + x.seat).join(','));
   pass(names.split(',').length === 4 && new Set(names.split(',').map((x) => x.split('@')[0])).size === 4, 'four players, duplicate names get told apart: ' + names);
-  await join(X, code, 'Fifth');
-  await waitFor(X, () => /full/i.test(document.getElementById('mp-status').innerText), 15000);
+  await open(X, BASE + '&join=' + code);
+  await X.evaluate(() => { // every status line the 5th player sees
+    window.statusLog = [];
+    new MutationObserver(() => window.statusLog.push(document.getElementById('mp-status').innerText)).observe(document.getElementById('mp-status'), { childList: true, characterData: true, subtree: true });
+  });
+  await X.fill('#mp-name', 'Fifth'); await X.click('#btn-join');
+  await waitFor(X, () => /full/i.test(document.getElementById('mp-status').innerText), 30000);
   pass(/full/i.test(await status(X)), '5th player is told the class is full');
+  const x5 = await X.evaluate(() => window.statusLog);
+  pass(!x5.some((t) => /You are in/.test(t)) && await X.evaluate(() => game.mp === null && document.getElementById('mp-room').classList.contains('hidden')),
+    'and never sees "You are in" first (a friend is in only when the host says welcome): ' + x5.join(' | '));
   pass(await H.evaluate(() => game.players.length === 4), 'host still has 4 players after turning someone away');
+  pass(/class is full/.test(await status(H)), 'the host\'s lobby says someone was turned away: "' + (await status(H)) + '"');
 
   // 3. start, a friend leaves while he is waiting for their answer (roll call), host keeps going
   await H.click('#btn-mp-go');

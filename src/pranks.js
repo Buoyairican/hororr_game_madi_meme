@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { BOARD_Z, ROWS, COLS, ROOM } from './world.js';
 import { clamp, damp, rand, pick, chance } from './util.js';
-import { PRANK, PRANK_NAMES } from './data.js';
+import { PRANK, PRANK_NAMES, QUIRKS } from './data.js';
 
 const STEP = 1 / 90;        // physics step: the same for the aim arc and the real throw
 const GRAV = 9.8;
@@ -22,7 +22,7 @@ const MAX_PAPERS = 16;
 const ARC_N = 70;
 const BOARD_HALF_W = 2.62, BOARD_Y0 = 0.88, BOARD_Y1 = 2.42;
 const TEACHER_DESK = { x: -3.15, z: -5.35, hx: 0.8, hz: 0.4, top: 0.785 };
-const COLORS = { teacher: 0xff6a3d, head: 0xffd23c, person: 0xf0c27a, board: 0x9fd4ff, none: 0xe8e4da };
+const COLORS = { teacher: 0xff6a3d, head: 0xffd23c, person: 0xf0c27a, board: 0x9fd4ff, fly: 0x9fe870, none: 0xe8e4da };
 let PAPER_ID = 1;
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3();
@@ -313,6 +313,7 @@ export const PrankMixin = {
       if (h.type === 'teacher') { col = h.part === 'head' ? COLORS.head : COLORS.teacher; label = h.part === 'head' ? 'his HEAD' : h.part === 'back' ? 'his back' : 'him (he\'ll see it coming)'; }
       else if (h.type === 'kid' || h.type === 'friend' || h.type === 'player') { col = COLORS.person; label = h.who.name; }
       else if (h.type === 'board') { col = COLORS.board; label = this.boardWriting() ? 'the board (he\'s writing!)' : 'the board'; }
+      else if (h.type === 'fly') { col = COLORS.fly; label = 'the FLY'; }
     }
     this.arcDots.material.color.setHex(col);
     this.arcMark.material.color.setHex(col);
@@ -353,6 +354,8 @@ export const PrankMixin = {
       list.push({ type: 'player', who: p, c: head, r: 0.15 });
       list.push({ type: 'player', who: p, c: head.clone().add(_c.set(0, -0.36, 0)), r: 0.17 });
     }
+    const fly = this.flyTarget && this.flyTarget(); // his fly hunt (src/events.js): swat it with paper
+    if (fly) list.unshift(fly);
     return list;
   },
 
@@ -403,6 +406,7 @@ export const PrankMixin = {
     p.foldT = PRANK.fold[kind]; p.exposeT = PRANK.exposeAfter; p.lastThrow = this.t; p.crumpleT = 0.6;
     this.note(p, 'throws'); this.track.event(this.t, p, 'throw', { kind });
     this.mischief += PRANK.mischief.throw;
+    if (this.away) this.completeObjective('chaos'); // he left the room (src/events.js)
     this.idleT = 0;
     this.audio.play('prank_swish', { pos, vol: 0.55, ref: 1, reverb: 0.05 });
     // and you start making the next one (paper is not quiet)
@@ -503,6 +507,7 @@ export const PrankMixin = {
     if (pr.npc) { if (h.type === 'player') this.bonk(h.who, pr.npc.name, at, pr.npc); return; }
     if (!by || !this.players.includes(by)) return;
     if (h.type === 'teacher') this.hitTeacher(by, h.part, at);
+    else if (h.type === 'fly') this.hitFly(by, at);
     else if (h.type === 'kid') this.hitKid(by, h.who, at);
     else if (h.type === 'friend') this.hitFriend(by, h.who, at);
     else if (h.type === 'player') {
@@ -518,7 +523,7 @@ export const PrankMixin = {
 
   /** he can be interrupted for this (not in a story moment, not already busy with something) */
   canReactPrank() {
-    return this.present && !this.cutscene && !this.ending && !this.eventLock && !this.lockBully && !this.memeBusy && !this.choice && !this.echoBusy && !this.searching && !this.prankBusy;
+    return this.present && !this.cutscene && !this.ending && !this.eventLock && !this.lockBully && !this.memeBusy && !this.choice && !this.echoBusy && !this.searching && !this.prankBusy && !this.classEvent;
   },
 
   hitTeacher(p, part, at) {
@@ -539,13 +544,17 @@ export const PrankMixin = {
   teacherHit(p, part) {
     if (!this.present || this.cutscene || this.ending) return;
     if (this.t - p.lastPrankHit > PRANK.streakReset) p.prankStreak = 0;
+    if (this.dozing) this.wokenBy(p); // a paper ball wakes him up (src/quirks.js)
     p.prankStreak++; p.lastPrankHit = this.t;
     p.heat += 12;
     const n = p.prankStreak;
     // the third one: he knows who it was (right now, so nothing can talk him out of it)
     if (n >= 3 && !this.eventLock && !this.lockBully && !this.choice) this.bust('prank', p);
     else if (this.canReactPrank()) this.interrupt(this.reactPrank(p, part, this.guessOrigin(p), n));
-    else this.angerUp(PRANK.anger.busy, 92);
+    else {
+      this.angerUp(PRANK.anger.busy, 92);
+      if (this.classEvent && !this.cutscene) this.fx.push(this.glareWarn(this.guessOrigin(p), 't_whothrew')); // in an event: a glare, and he goes on
+    }
   },
 
   /** a prank makes him angrier, never calmer (the cap only limits how much one hit adds) */
@@ -660,6 +669,7 @@ export const PrankMixin = {
     if (at) this.laughAt.copy(at);
     this.laughAbout = about || null;
     if (this.laugh > (this.track.global.peakLaugh || 0)) this.track.global.peakLaugh = Math.round(this.laugh);
+    if (this.laughQuirk) this.laughQuirk(n, at, !!about); // (if he hates laughing)
     const where = new THREE.Vector3(this.laughAt.x * 0.4, 1.1, clamp(this.laughAt.z, -2, 3));
     if (n >= 18 && this.t - this.lastLaughSnd > 2.2) {
       this.lastLaughSnd = this.t;
@@ -678,7 +688,7 @@ export const PrankMixin = {
   /** laughing near you is noise he hears (and the class is laughing at you) */
   laughNoise(p) {
     if (this.laugh < 15) return 0;
-    const k = clamp((this.laugh - 15) / 60, 0, 1) * PRANK.laughNoise;
+    const k = Math.min(1, clamp((this.laugh - 15) / 60, 0, 1) * PRANK.laughNoise * (this.quirkOn && this.quirkOn('laugh') ? QUIRKS.laugh.noise : 1));
     if (p === this.laughAbout) return k;
     const dx = p.eye.x - this.laughAt.x, dz = p.eye.z - this.laughAt.z;
     return dx * dx + dz * dz < PRANK.laughNear * PRANK.laughNear ? k : 0;

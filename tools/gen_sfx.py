@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Synthesise all sound effects used by the game (no samples, no licences).
 
-    python3 tools/gen_sfx.py          (needs numpy + ffmpeg)
+    python3 tools/gen_sfx.py          (needs numpy + ffmpeg; add v3, v4, v5, v6, v7 or memes for one group)
 
 Writes assets/audio/sfx/*.mp3. Every sound is built from noise, oscillators,
 filters and a synthetic room impulse response, so it can be tweaked freely.
@@ -1212,9 +1212,244 @@ def make_v5():
     save("class_laugh", reverb(x, 0.35, dur=1.4, decay=0.5), 0.8)
 
 
+def make_v6():
+    """playing online: a friend sits down in the lobby, every try to connect, could not get in.
+    Uses its own random numbers, so building only this group gives the same files."""
+    r = np.random.default_rng(91)
+
+    def nz(d):
+        return r.standard_normal(int(d * SR))
+
+    def wow(x, depth=0.003):
+        tt = np.arange(len(x)) / SR
+        warp = tt + depth * np.sin(2 * np.pi * 0.5 * tt) + depth * 0.4 * np.sin(2 * np.pi * 2.3 * tt)
+        return np.interp(warp * SR, np.arange(len(x)), x)
+
+    # a friend sat down: two soft knocks on a wooden desk, then two notes from the title's music box
+    d = 1.7
+    x = np.zeros(int(d * SR))
+    for k, at in enumerate((0.0, 0.11)):
+        tt = t_axis(0.14)
+        knock = biquad(nz(0.14), "bp", 420 + 70 * k, 3.0) * np.exp(-tt / 0.016) + osc_sin(np.full(len(tt), 150.0 + 25 * k)) * np.exp(-tt / 0.03) * 0.7
+        place(x, knock * (1.0 - 0.3 * k), at)
+    place(x, music_box_note(1318.5, 1.3) * 0.5, 0.27)    # E6
+    place(x, music_box_note(1760.0, 1.2) * 0.42, 0.45)   # A6: a fourth up, "here"
+    save("net_join", reverb(wow(x), 0.3, dur=1.4, decay=0.5), 0.6)
+
+    # every try to connect: a small ping and its echo, like calling into an empty hallway
+    d = 1.0
+    tt = t_axis(d)
+    ping = osc_sin(np.full(len(tt), 1046.5)) * np.exp(-tt / 0.07) + 0.3 * osc_sin(np.full(len(tt), 2101.0)) * np.exp(-tt / 0.025)
+    ping[: int(0.004 * SR)] *= np.linspace(0, 1, int(0.004 * SR))
+    x = ping.copy()
+    place(x, ping * 0.32, 0.19)
+    place(x, ping * 0.12, 0.38)
+    save("net_try", reverb(biquad(x, "lp", 5000), 0.3, dur=1.0, decay=0.5), 0.4)
+
+    # could not get in: two music-box notes falling out of tune, a low hum under them
+    d = 2.4
+    x = np.zeros(int(d * SR))
+    place(x, music_box_note(659.25 * 1.006, 1.6) * 0.5, 0.0)    # E5, a little sharp
+    place(x, music_box_note(587.33 * 0.982, 1.9) * 0.5, 0.34)   # D5, flat: wrong
+    tt = t_axis(d)
+    hum = (osc_sin(np.full(len(tt), 73.4)) + 0.45 * osc_sin(np.full(len(tt), 147.9))) * np.sin(np.pi * tt / d) ** 2 * 0.22
+    x += biquad(hum + nz(d) * 0.01, "lp", 420)
+    save("net_fail", reverb(wow(x, 0.006), 0.4, dur=1.8, decay=0.7), 0.55)
+
+
+def make_v7():
+    """a different teacher every class: his embarrassing ringtone, the voice in his phone, a fly, the
+    pizza at the door, the fire alarm, his humming and snoring, the class chatting while he is out.
+    Uses its own random numbers, so building only this group gives the same files."""
+    r = np.random.default_rng(97)
+
+    def nz(d):
+        return r.standard_normal(int(d * SR))
+
+    # his ringtone: a cheesy old-phone jingle (an original tune), pulse lead, bouncy bass, a "boing" at the end
+    beat = 0.2
+    lead = [(15, 1), (15, 1), (19, 1), (22, 1), (24, 2), (22, 1), (19, 1), (17, 1), (17, 1), (20, 1), (24, 1), (22, 2), None, (10, 1)]
+    ev = []
+    at = 0.0
+    for n in lead:
+        if n is None:
+            at += beat
+            continue
+        semi, beats = n
+        d = beats * beat * 0.92
+        tt = t_axis(d)
+        f = np.full(len(tt), nfreq(semi)) * (1 + 0.006 * np.sin(2 * np.pi * 7 * tt))
+        tone = biquad(osc_sq(f, 0.25), "lp", 3200) * adsr(d, 0.004, 0.03)
+        tone += osc_sin(f * 2) * 0.15 * adsr(d, 0.004, 0.03)
+        ev.append((at, tone, 0.5))
+        at += beats * beat
+    total = 16 * beat
+    for k in range(8):
+        tt = t_axis(0.16)
+        semi = [-9, -2, -9, -2, -7, 0, -7, -5][k]
+        bass = osc_sq(np.full(len(tt), nfreq(semi - 12)), 0.5) * np.exp(-tt / 0.07)
+        ev.append((k * 2 * beat, biquad(bass, "lp", 900), 0.35))
+    tt = t_axis(0.5)
+    boing = osc_sin(330 * (1 + 0.5 * np.exp(-tt / 0.05)) * (1 + 0.06 * np.sin(2 * np.pi * 18 * tt))) * np.exp(-tt / 0.18)
+    ev.append((13.5 * beat, boing, 0.45))
+    x = seq_render(total, ev)
+    save("madi_ring", biquad(x, "hp", 300) * 0.9 + biquad(x, "bp", 2400, 0.8) * 0.3, 0.75, "64k")
+
+    # the tiny voice in his phone: "wah-wah" syllables, a phone speaker (no bass, no highs)
+    d = 2.0
+    x = np.zeros(int(d * SR))
+    at = 0.05
+    while at < d - 0.25:
+        sd = r.uniform(0.09, 0.2)
+        tt = t_axis(sd)
+        f0 = r.uniform(170, 260) * (1 + 0.15 * np.sin(np.pi * tt / sd))
+        syl = osc_saw(f0)
+        form = r.uniform(600, 1100)
+        syl = biquad(syl, "bp", form, 3) + biquad(syl, "bp", form * 2.2, 4) * 0.5
+        place(x, syl * np.sin(np.pi * tt / sd) ** 1.5 * r.uniform(0.5, 1), at)
+        at += sd + r.uniform(0.02, 0.12)
+    x = biquad(biquad(x, "hp", 450), "lp", 2800)
+    save("phone_voice", np.tanh(x * 2.5), 0.5, "48k")
+
+    # a dead line: crackles and hiss, and far under it a slow low voice
+    d = 2.2
+    tt = t_axis(d)
+    x = biquad(nz(d), "bp", 1800, 0.7) * 0.25 * (0.6 + 0.4 * np.sin(2 * np.pi * 0.7 * tt))
+    for _ in range(40):
+        place(x, biquad(nz(0.01), "hp", 3000) * r.uniform(0.3, 1.0), r.uniform(0, d - 0.02))
+    low = osc_saw(85 * (1 + 0.04 * np.sin(2 * np.pi * 0.9 * tt)))
+    low = biquad(low, "bp", 420, 3) * 0.35 * np.sin(np.pi * tt / d) ** 2
+    save("phone_static", biquad(x + low, "hp", 300), 0.45, "48k")
+
+    # a fly: wings at ~200 Hz that never quite keep the same speed, louder and softer as it turns
+    d = 1.6
+    tt = t_axis(d)
+    f = 205 + 14 * np.sin(2 * np.pi * 1.25 * tt) + 9 * np.sin(2 * np.pi * 3.75 * tt + 1) + 4 * np.sin(2 * np.pi * 11.25 * tt)
+    wing = osc_saw(f) + 0.5 * osc_saw(f * 2.003)
+    x = biquad(wing, "bp", 520, 1.2) + biquad(wing, "bp", 1600, 2.0) * 0.35
+    x *= 0.75 + 0.25 * np.sin(2 * np.pi * 2.5 * tt)
+    loop_save("fly_buzz", x, 0.3, peak=0.6, bitrate="48k")
+
+    # ...swatted: a tiny wet tick
+    d = 0.3
+    tt = t_axis(d)
+    x = biquad(nz(d), "bp", 2600, 2) * np.exp(-tt / 0.012) + osc_sin(900 * np.exp(-tt / 0.03) + 200) * np.exp(-tt / 0.04) * 0.4
+    save("fly_splat", x, 0.5, "48k")
+
+    # three knocks on the classroom door (wood, the empty hallway behind it)
+    d = 1.3
+    x = np.zeros(int(d * SR))
+    for k, at in enumerate((0.0, 0.28, 0.5)):
+        tt = t_axis(0.2)
+        knock = biquad(nz(0.2), "bp", 380 + 40 * k, 2.5) * np.exp(-tt / 0.02) * 1.4 + osc_sin(np.full(len(tt), 120.0)) * np.exp(-tt / 0.045)
+        knock += biquad(nz(0.2), "bp", 1700, 1.5) * np.exp(-tt / 0.006) * 0.5
+        place(x, knock * (1.0 if k < 2 else 1.15), at)
+    save("door_knock", reverb(x, 0.35, dur=1.2, decay=0.5), 0.85)
+
+    # a pizza box: the lid flaps up, cardboard rubs
+    d = 0.75
+    tt = t_axis(d)
+    x = biquad(nz(d), "lp", 500) * np.exp(-tt / 0.03) * 1.3
+    x += biquad(nz(d), "bp", 1200, 0.8) * 0.3 * np.exp(-((tt - 0.25) / 0.12) ** 2)
+    x += crinkle(d, 80, 900, 3000, seed=171) * 0.4 * np.exp(-tt / 0.3)
+    save("pizza_box", x, 0.6, "48k")
+
+    # chewing: a crunch, then wet squishy bites
+    d = 1.7
+    x = np.zeros(int(d * SR))
+    for k, at in enumerate((0.0, 0.42, 0.8, 1.18)):
+        bd = 0.28
+        tt = t_axis(bd)
+        bite = biquad(nz(bd), "bp", 900 if k else 2600, 1.2) * np.exp(-tt / (0.05 if k else 0.03))
+        bite += biquad(nz(bd), "lp", 380) * np.sin(np.pi * tt / bd) * 0.6
+        if k == 0:
+            bite += crinkle(bd, 400, 2000, 6000, seed=181) * 0.6
+        place(x, bite * r.uniform(0.7, 1.0), at)
+    save("munch", x, 0.6, "48k")
+
+    # the school fire alarm: a hammer on a bell, 16 strikes a second, harsh and very loud
+    total = 2.0
+    ev = []
+    partials = ((1.0, 1.0, 0.5), (2.32, 0.6, 0.25), (4.25, 0.35, 0.12), (6.63, 0.25, 0.07))
+    for k in range(32):
+        tt = t_axis(0.5)
+        ring = np.zeros(len(tt))
+        for ratio, amp, tau in partials:
+            ring += amp * np.sin(2 * np.pi * 930 * ratio * tt) * np.exp(-tt / tau)
+        ring += biquad(nz(0.5), "bp", 4000, 1) * np.exp(-tt / 0.004) * 0.6
+        ev.append((k / 16, ring, 0.45 + 0.08 * (k % 2)))
+    x = seq_render(total, ev)
+    save("fire_alarm", np.tanh(x * 2.2), 0.8, "64k")
+
+    # his humming: the title's lullaby, low, through a closed mouth, a little off key
+    melody = [(12, 1), (7, 1), (8, 1), (7, 1), (3, 2), (0, 2), (2, 1), (3, 1), (7, 1), (3, 1), (2, 3), None]
+    beat = 0.55
+    d = sum(n[1] if n else 1.5 for n in melody) * beat
+    n_s = int(d * SR)
+    f = np.zeros(n_s); amp = np.zeros(n_s)
+    at = 0.0
+    prev = None
+    for n in melody:
+        if n is None:   # a breath
+            seg = int(1.5 * beat * SR)
+            i0 = int(at * SR)
+            f[i0:i0 + seg] = prev if prev else 110
+            at += 1.5 * beat
+            continue
+        semi, beats = n
+        i0, seg = int(at * SR), int(beats * beat * SR)
+        target = nfreq(semi - 24) * (1 + r.uniform(-0.012, 0.012))
+        start = prev if prev else target
+        k = np.clip(np.arange(seg) / (0.06 * SR), 0, 1)
+        f[i0:i0 + seg] = start + (target - start) * k
+        a = np.ones(seg); a[: int(0.03 * SR)] = np.linspace(0, 1, int(0.03 * SR)); a[-int(0.04 * SR):] *= np.linspace(1, 0.7, int(0.04 * SR))
+        amp[i0:i0 + seg] = a
+        prev = target
+        at += beats * beat
+    tt = t_axis(d)
+    f = f * (1 + 0.008 * np.sin(2 * np.pi * 5.2 * tt))
+    amp = np.convolve(amp, np.ones(800) / 800, mode="same")
+    glott = osc_saw(f)
+    hum = biquad(glott, "lp", 700) * 0.8 + biquad(glott, "bp", 270, 2.5) * 1.2 + biquad(glott, "bp", 2300, 4) * 0.08
+    save("madi_hum", hum * amp, 0.55, "48k")
+
+    # waking up with a jolt: a snore that catches, then a snort
+    d = 0.7
+    tt = t_axis(d)
+    flap = np.maximum(0, osc_saw(28 + 10 * tt)) ** 3
+    x = biquad(nz(d) * (0.3 + flap * 1.6), "bp", 360, 0.9) * np.clip((0.42 - tt) / 0.05, 0, 1)
+    sn = biquad(nz(0.25), "bp", 900, 1.2) * np.exp(-t_axis(0.25) / 0.05) * 1.8
+    place(x, sn, 0.42)
+    save("snort", x, 0.7, "48k")
+
+    # the class chatting while he is out: lots of quick syllables, kids' voices, a big room
+    d = 4.0
+    x = np.zeros(int(d * SR))
+    for v in range(16):
+        f0 = r.uniform(200, 340)
+        at = r.uniform(0, 0.5)
+        while at < d - 0.2:
+            sd = r.uniform(0.08, 0.18)
+            tt2 = t_axis(sd)
+            ff = f0 * (1 + 0.12 * np.sin(np.pi * tt2 / sd) * r.uniform(-1, 1))
+            syl = osc_saw(ff)
+            form = r.uniform(700, 1300)
+            syl = biquad(syl, "bp", form, 2.5) + biquad(syl, "bp", form * 2.3, 3) * 0.4
+            place(x, syl * np.sin(np.pi * tt2 / sd) ** 1.5 * r.uniform(0.2, 0.7), at)
+            at += sd + (r.uniform(0.02, 0.08) if r.random() < 0.8 else r.uniform(0.3, 0.8))
+    x = biquad(x, "hp", 160)
+    loop_save("class_chatter", reverb(x, 0.4, dur=1.2, decay=0.5)[: int(d * SR)], 0.6, peak=0.6, bitrate="64k")
+
+
 if __name__ == "__main__":
     import sys
     print("Synthesising sound effects ->", OUT)
+    if "v7" in sys.argv:
+        make_v7()
+        raise SystemExit(0)
+    if "v6" in sys.argv:
+        make_v6()
+        raise SystemExit(0)
     if "v5" in sys.argv:
         make_v5()
         raise SystemExit(0)
@@ -1244,4 +1479,6 @@ if __name__ == "__main__":
     make_v3()
     make_v4()
     make_v5()
+    make_v6()
+    make_v7()
     print("done")

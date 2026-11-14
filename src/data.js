@@ -64,6 +64,9 @@ export const QUESTIONS = [
   { id: 'day', ask: 'p_q_day', type: 'laptop', typed: 'what day is it', result: 'Monday', answer: 'a_day' },
   { id: 'lunch', ask: 'p_q_lunch', type: 'laptop', typed: 'what do teachers eat', result: 'Sandwiches. Coffee. Apples.', answer: 'a_lunch' },
   { id: 'glasses', ask: 'p_q_glasses', type: 'instant', answer: 'a_glasses', anger: 12 },
+  // only after that event happened in this class (src/events.js)
+  { id: 'pizza', ask: 'p_q_pizza', type: 'instant', answer: 't_pz_mine', needs: 'pizza' },
+  { id: 'call', ask: 'p_q_call', type: 'instant', answer: 't_ph_nobody', needs: 'ringtone' },
 ];
 // Background classmates goofing off. When you do nothing for a while (no whispering, phone,
 // repeating or questions), somebody in the back does a meme noise and he goes to check.
@@ -110,6 +113,183 @@ export const PRANK = {
   seenLimit: 0.3, exposeAfter: 0.7,                 // he looks right at your raised arm this long: caught
 };
 export const PRANK_NAMES = { ball: 'PAPER BALL', plane: 'PAPER PLANE' };
+
+// ---------------- a different teacher every class (src/events.js, src/quirks.js, src/slang.js)
+// One seeded setup per class (classSetup in src/events.js) draws the events and his quirks: the same
+// seed always gives the same class (the daily challenge uses that). Where an event or quirk can happen:
+// 'p1'..'p4' are the story periods, 'free' is Free Class (also online).
+export const CLASS_SETUP = {
+  events: [3, 4], four: 0.5,      // a class draws 3 or 4 events (4 with this chance)
+  quirks: 2,                      // ...and 2 quirks
+  // Free Class: when the events start (seconds after 8:30), spread over the morning
+  freeWindows: { 3: [[38, 70], [118, 158], [192, 232]], 4: [[34, 56], [92, 124], [152, 188], [212, 240]] },
+  freeQuiet: 12,                  // ...an event waits until he has been free this long after the last one
+  freeEnd: 8,                     // every event must be over this many seconds before the bell (or it is skipped)
+  storySlots: 4,                  // the quiet windows in each story period that can hold an event
+  readyWait: 15,                  // an event waits this long for a moment when he is free...
+  softWait: 30,                   // ...then this long for one when he is only busy with you (a reaction, a habit); then it is skipped
+};
+// The event deck. len: about how long it lasts (seconds). Texts: the hint the first time, phone messages after it.
+export const EVENTS = {
+  ringtone: {
+    in: ['p1', 'p2', 'p3', 'p4', 'free'], weight: 1, len: 24, hear: 0.45, laugh: 24, now: '📱 ON THE PHONE · hears you less',
+    hint: 'His phone is ringing! <b>While he is on the phone, his back is turned</b> and he hears you less.',
+    msgs: [['Group: Room 13', 'HIS RINGTONE 💀💀💀'], ['Sam', 'who is calling HIM'], ['Nora', 'did his phone just play THAT']],
+    // the calls (his lines, the tiny voice in the phone between them): mother / wrong number / (later) him
+    calls: [['t_ph_hello', 'phone', 't_ph_mother', 'phone', 't_ph_teaching', 'phone', 't_ph_bye'], ['t_ph_hello', 'phone', 't_ph_wrong'], ['t_ph_hello', 'static', 't_hale']],
+    meme: { id: 'ring', sfx: 'madi_ring', cap: '📱 <i>*his ringtone, from somebody\'s phone*</i>', react: 'check', line: 't_ph_never' },
+  },
+  fly: {
+    in: ['p1', 'p2', 'p3', 'p4', 'free'], weight: 1, len: 34, tries: 3, laugh: 14, hitLaugh: 34, hitMischief: 35, now: '🪰 HUNTING A FLY',
+    playerDesk: 0.45,               // the chance the fly lands on a player's desk (he comes and slaps it)
+    maxLen: 50,                     // no new try after this many seconds of hunting (the fly gets away through the window)
+    hint: 'A fly! He is hunting it, and <b>he only looks at the fly</b>.',
+    hintPrank: 'A fly! He is hunting it, and <b>he only looks at the fly</b>. Hit it with a paper ball?',
+    task: 'Hit the fly with a paper ball', taskTouch: 'Hit the fly with a paper ball (hold PRANK)',
+    msgs: [['Nora', 'why is he so angry at a fly'], ['Sam', 'the fly is winning 😭']],
+  },
+  pizza: {
+    in: ['p1', 'p2', 'p3', 'p4', 'free'], weight: 1, len: 32, laugh: 26, now: '🍕 PIZZA',
+    hint: 'A pizza delivery?! He is at the door: <b>his back is turned</b>.',
+    msgs: [['Sam', 'he is eating PIZZA 🍕 in class'], ['Group: Room 13', 'who orders pizza to room 13??'], ['Nora', 'it said Mr. Hale on the box']],
+  },
+  firedrill: {
+    in: ['p1', 'p2', 'p3', 'p4', 'free'], weight: 1, len: 20, alarm: 11, hear: 0.08, now: '🔔 FIRE ALARM · can\'t hear you', nowAfter: '🔔 FIRE ALARM',
+    hint: 'Fire alarm! It is so loud <b>he can\'t hear you</b>. He can still see you.',
+    msgs: [['Group: Room 13', 'was that a real fire alarm??'], ['Unknown', 'there is no fire']],
+  },
+  leave: {
+    // (not in detention: there he never leaves you alone)
+    in: ['p1', 'p2', 'p3', 'free'], weight: 1, len: 44, now: '🚪 OUT OF THE ROOM', away: 30, peek: [11, 17], peekFor: 4.5, back: 7.2, caughtAnger: 32, sawAnger: 26, paper: [3.5, 6],
+    hint: 'He left the room! <b>Go wild</b>, but listen for his footsteps.',
+    hintPeek: 'His face is in the door window. <b>He is watching.</b>',
+    task: 'He is out: make some noise before he is back',
+    msgs: [['Unknown', 'he is right outside the door'], ['Sam', 'he left?? where did he go']],
+  },
+};
+// His quirks: each changes a number he already uses (hearing, anger, glances) or adds one small habit.
+// chip: what the HUD lists ("TODAY HE...") once you have noticed it; hint: said the first time it shows.
+export const QUIRKS = {
+  deaf: {
+    in: ['p1', 'p2', 'p3', 'p4', 'free'], chip: '👂 is deaf in his {side} ear', hear: 0.3, edge: 0.35, react: [18, 30], tell: 75,
+    hint: 'He is deaf in his <b>{SIDE}</b> ear. On that side of him, <b>he can barely hear you</b>.',
+  },
+  laugh: {
+    in: ['p1', 'p2', 'p3', 'p4', 'free'], chip: '😠 hates laughing', noise: 2.2, anger: 9, react: 14, giggle: 4, glareEvery: 14,
+    hint: 'He <b>hates laughing</b>. When the class laughs, he gets angry fast.',
+  },
+  doze: {
+    in: ['p1', 'p2', 'p3', 'p4', 'free'], chip: '😴 dozes off', first: [24, 40], every: [44, 66], dur: [9, 13], hear: 0.25, wakeAnger: 16, wakeLaugh: 40,
+    hint: 'He is dozing off. <b>He can\'t see you</b>, and he barely hears you. Don\'t wake him up.',
+  },
+  clock: {
+    in: ['p1', 'p2', 'p3', 'p4', 'free'], chip: '🕒 keeps checking the clock', first: [14, 26], every: [22, 34], look: [2.4, 3.4], glance: 0.35,
+    hint: 'He keeps checking the <b>clock</b>. While he stares at it, his back is turned.',
+  },
+  count: {
+    in: ['p1', 'p2', 'p3', 'p4', 'free'], chip: '🔢 counts the class', first: [30, 48], every: [46, 70], per: 0.72, movedAnger: 14, movedHeat: 12,
+    hint: 'He counts the class. <b>When he points at you, sit still.</b>',
+  },
+  hum: {
+    in: ['p1', 'p2', 'p3', 'p4', 'free'], chip: '🎵 hums while he writes', first: [16, 28], hear: 0.5, stop: 1.7, stopFor: 3,
+    hint: 'He hums while he writes, so <b>he hears you less</b>. When the humming stops, he is listening.',
+  },
+};
+// He learns your slang: words from the class clowns and your echoes. Later he uses them wrong (line),
+// writes them on the board (board), and phonk from a phone makes him dance. He remembers them next class.
+export const SLANG = {
+  bruh: { from: 'bruh', line: 't_sl_bruh', board: 'BRUH = BROTHER ?' },
+  sus: { from: 'sus', line: 't_sl_sus', board: '2 + 2 = SUS' },
+  six7: { from: '67', line: 't_sl_67', board: '6 + 7 = 67', kid: 'm_67', word: '6 7' },
+  rizz: { from: 'rizz', line: 't_sl_rizz', board: 'MITOCHONDRIA = RIZZ' },
+  skill: { from: 'skill', line: 't_sl_skill', board: 'MR. HALE: SKILL ISSUE', word: 'skill issue' },
+  sheesh: { from: 'sheesh', line: 't_sl_sheesh', board: 'SHEESH (VERB)' },
+  yeet: { from: 'yeet', line: 't_sl_yeet', board: 'HOMEWORK: YEET IT' },
+  goat: { from: 'goat', line: 't_sl_goat', board: 'I AM THE GOAT', word: 'the goat' },
+  oof: { from: 'oof', line: 't_sl_oof', board: 'OOF = 5' },
+  huh: { from: 'huh', line: 't_sl_huh', board: 'HUH ?' },
+  mock: { from: 'echo', line: 't_sl_mock', word: 'your squeaky voice' },
+  phonk: { from: 'phonk', line: 't_sl_phonk', dance: 9, word: 'phonk' },
+};
+export const SLANG_USE = {
+  first: 22, gap: [34, 52],     // seconds after he learned a word before he uses it; between two uses
+  perWord: 2, board: 0.4,       // each word at most twice a class; the chance he writes a word instead of the lesson
+  keep: 8, laugh: 20,           // he remembers this many words next class; the class laughs this much
+  phonkHear: 2.2,               // seconds of phonk from a phone he must hear to learn it
+  danceHear: 0.3, danceLaugh: 32, // hearing while he dances (he only looks at his phone); the class laughs this much
+  danceHint: 'He is <b>dancing</b> to phonk. He only looks at his phone and <b>barely hears you</b>.',
+  danceCap: '🎵 <i>*phonk, from his phone*</i> 🕺',
+  msgs: [['Group: Room 13', 'STOP TEACHING HIM WORDS'], ['Sam', 'he said it wrong 💀']],
+  learnedToast: '📒 He learned a word: <b>{word}</b>',
+  hint: 'He <b>learns your slang</b>. Listen to him use it… wrong.',
+  remember: 'He remembers your slang from last time.',
+};
+
+// Playing online: how patient joining is, what the lobby says, and what you hear there
+// (src/net.js, src/lobby.js, the lobby in src/main.js). Times are in milliseconds.
+export const ONLINE = {
+  turnUrl: 'api/turn',       // your own relay servers, if set up (api/turn.js on Vercel; see the README)
+  turnTimeout: 3000,         // wait this long for them, then go on with the built-in ones
+  turnCache: 30 * 60000,     // reuse the answer this long (its credentials last a day)
+  joinFor: 60000,            // a friend keeps trying to connect this long (time with the game on screen)
+  joinWall: 5 * 60000,       // ...and never longer than this on the clock (a hidden tab on a computer)
+  tryFor: 15000,             // one try waits this long for the host to answer
+  retryGap: 1500,            // pause between tries
+  missingFor: 10000,         // "no class with that code" only after this long: the host may be coming back
+  serverFor: 20000,          // the game server can't be reached at all: give up after this long
+  openFor: 15000,            // one try to reach the game server
+  hostTrying: 30000,         // host: a friend's connection that isn't open after this long has failed
+  welcomeFor: 15000,         // a friend is in when the host says "welcome" (or "full"): wait this long for it
+  takenTries: 3,             // host: the game server says "that code belongs to someone else" this often: give up on it
+  refreshAfter: 10000,       // host back after this long in another app: renew the link to the game server
+  awayLine: 4000,            // host back in the lobby after this long away: Mr. Madi tells you to stay
+  text: {
+    server: 'Reaching the game server…',
+    connect: 'Connecting to the class…',
+    retry: 'Connecting to the class… try {n}',
+    missing: 'Looking for class {code}… try {n}',
+    noClass: 'No class with that code.\nCheck the code. The host must keep the game open on the screen.',
+    blocked: 'Could not connect to the host.\n1. The host keeps the game open on the screen.\n2. Press JOIN again.\n3. Still not working? One of you uses mobile data instead of Wi-Fi.',
+    // the host answered, but the two networks need a relay (a TURN server) and there is none / it did not answer
+    noRelay: 'Could not connect to the host.\nYour networks can\'t reach each other, and this game has no relay server.\n1. One of you uses mobile data instead of Wi-Fi. Press JOIN again.\n2. Game owner: switch on a relay (README, "Friends can\'t join?").',
+    relayDown: 'Could not connect to the host.\nThe relay server did not answer on your network.\n1. Press JOIN again.\n2. Still not working? One of you uses mobile data instead of Wi-Fi.',
+    noServer: 'Could not reach the game server. Check your internet, then press JOIN again.',
+    noHostServer: 'Could not reach the game server. Check your internet, then try again.',
+    stopped: 'Stopped. Press JOIN to try again.',
+    inClass: 'You are in. Wait for the host to start the class.',
+    lost: 'Lost the connection to the host. Press JOIN to go back in.',
+    closed: 'The host closed the class.',
+    classFull: 'That class is full (4 players max).',
+    hostOpen: 'Send the code to your friends. Keep the game open until they are in.',
+    keep: 'Keep the game open on this screen until your friends are in. In another app, they can\'t get in.',
+    keepShare: 'Keep the game open on this screen until your friends are in. In another app, they can\'t get in. SHARE CODE sends it and you stay here.',
+    shareTitle: 'MADI CLASS',
+    shareText: 'Come to my class in MADI CLASS. Code: {code}',
+    shared: 'Sent! Stay here until your friends are in.',
+    copied: 'Invite link copied. Paste it to your friends, then come right back.',
+    copyFailed: 'Send your friends this link: {url}',
+    trying: 'Someone is connecting…',
+    joined: '{name} is in.',
+    left: '{name} left.',
+    failed: 'Someone tried to join but could not connect. Ask them to press JOIN again.',
+    failedNoRelay: 'Someone tried to join but could not connect. This game has no relay server, so friends on some networks can\'t get in (owner: README, "Friends can\'t join?").',
+    full: 'Someone tried to join, but the class is full (4 players).',
+    serverLost: 'Lost the game server. Reconnecting… (keep the game open)',
+    serverBack: 'Your class is open again. Friends can join.',
+    taken: 'Your class code was lost. Close the class and host a new one.',
+    back: 'Welcome back. Your class is still open. Stay here while friends join.',
+  },
+  // what you hear in the lobby: a sound, and sometimes Mr. Madi (at the door) says something
+  lobby: {
+    joined: { sfx: 'net_join', line: 't_sitdown', fullLine: 't_everyone', gap: 6 },  // a friend sat down (4 of 4: "now everyone is here")
+    in: { sfx: 'net_join', line: 't_sitdown', gap: 6 },                                // you got into a class
+    left: { sfx: 'chair_scrape', vol: 0.45 },
+    try: { sfx: 'net_try', vol: 0.55 },                                                // every try to connect
+    fail: { sfx: 'net_fail', line: 't_nocome', gap: 20 },                              // you could not get in
+    away: { line: 't_dontleave', gap: 45 },                                            // the host came back from another app
+    lost: { sfx: 'door_slam', vol: 0.5 },                                              // sent back to the join screen (the class closed, the link died)
+  },
+};
 
 export const HISTORY = ['how to be a teacher', 'what is 2 + 2', 'how often do people blink', 'how long can a class last', 'mr hale room 13 found?'];
 

@@ -8,7 +8,7 @@ export class UI {
       'subtitle', 'toast', 'blackout', 'flash', 'note', 'note-text', 'title', 'loading', 'load-fill', 'load-text', 'menu', 'how', 'settings',
       'pause', 'end', 'end-title', 'end-text', 'end-stats', 'rotate', 'err', 'crosshair', 'objectives', 'strikes', 'bully', 'echo-cue', 'echo-bar',
       'choices', 'choices-title', 'choices-list', 'choices-bar', 'card', 'card-time', 'card-title', 'card-sub', 'chapters', 'chapter-list', 'btn-again', 'btn-echo', 'mp',
-      'laugh', 'laugh-fill', 'laugh-mult', 'aim-hud', 'aim-kind', 'aim-pow-fill']) this.el[id] = $(id);
+      'laugh', 'laugh-fill', 'laugh-mult', 'aim-hud', 'aim-kind', 'aim-pow-fill', 'quirks', 'ev-now']) this.el[id] = $(id);
     this.subTimer = 0;
     this.hintTimer = 0;
     this.toastTimer = 0;
@@ -23,6 +23,16 @@ export class UI {
   }
 
   show(id, on = true) { this.el[id].classList.toggle('hidden', !on); }
+  /** what Mr. Madi says in the online lobby (he stands at the door behind the menu) */
+  lobbyLine(text, dur = 3) {
+    const el = $('mp-madi');
+    if (!el) return;
+    clearTimeout(this.lobbyTimer);
+    if (!text || !this.subsOn) { el.classList.remove('on'); return; }
+    el.innerHTML = `<span class="who">MR. MADI</span> ${text}`;
+    el.classList.add('on');
+    this.lobbyTimer = setTimeout(() => el.classList.remove('on'), dur * 1000);
+  }
   screen(id) {
     for (const s of ['title', 'how', 'settings', 'pause', 'end', 'chapters', 'mp']) this.show(s, s === id);
   }
@@ -57,8 +67,19 @@ export class UI {
   setEye(state) {
     this.set('eye', state, (st) => {
       this.el.eye.setAttribute('class', st === 'closed' ? '' : st);
-      this.el['eye-label'].textContent = { open: 'WATCHING', blind: "CAN'T SEE", busy: 'TYPING', away: '', closed: '' }[st] || '';
+      this.el['eye-label'].textContent = { open: 'WATCHING', blind: "CAN'T SEE", busy: 'TYPING', asleep: 'ASLEEP', dance: 'DANCING', away: '', closed: '' }[st] || '';
     });
+  }
+  /** what kind of teacher he is today (his quirks you have noticed): small tags under the tasks */
+  setQuirks(list) {
+    const l = Array.isArray(list) ? list.filter((x) => typeof x === 'string').slice(0, 4) : [];
+    this.quirkList = l;
+    this.el.quirks.innerHTML = l.map((q) => `<span class="q">${q.replace(/[<>&"]/g, '')}</span>`).join('');
+    this.el.quirks.classList.toggle('off', !l.length);
+  }
+  /** what is going on in class right now (one of today's events), under his eye ('' hides it) */
+  setEventNow(text) {
+    this.set('evNow', text || '', (x) => { this.el['ev-now'].textContent = x; this.el['ev-now'].classList.toggle('off', !x); });
   }
   setAnger(v) {
     const vis = this.meterOn ? 'visible' : 'hidden';
@@ -129,6 +150,7 @@ export class UI {
     this.el.hint.innerHTML = text;
     this.el.hint.classList.add('show');
     this.hintTimer = dur;
+    this.hintSeq = (this.hintSeq || 0) + 1; // (a new hint went up: src/events.js lets each one be read)
   }
 
   toast(text, dur = 3) {

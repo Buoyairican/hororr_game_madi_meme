@@ -18,6 +18,10 @@ export const STAT_KEYS = [
   'throws',      // paper balls / planes thrown
   'hits',        // ...that hit someone (or the board)
   'hitHim',      // ...that hit him
+  'flies',       // flies you swatted with a paper ball (his fly hunt)
+  'taught',      // words he learned from you (your echoes, phonk from your phone)
+  'woke',        // times you woke him up when he dozed off
+  'chaos',       // seconds of mischief while he could not catch you (out of the room, asleep, on the phone, dancing, blind, typing)
 ];
 
 export class RunStats {
@@ -26,7 +30,7 @@ export class RunStats {
   reset() {
     this.by = new Map();        // player id -> counters
     this.log = [];              // what happened, in order: { t, who, type, ...info }
-    this.global = { objectives: 0, memes: 0, peakAnger: 0, peakLaugh: 0 };
+    this.global = { objectives: 0, memes: 0, peakAnger: 0, peakLaugh: 0, events: [], quirks: [], learned: [] };
   }
 
   /** the counters for one player (made on first use) */
@@ -60,6 +64,6 @@ export class RunStats {
       for (const k in s) o[k] = typeof s[k] === 'number' ? Math.round(s[k] * 10) / 10 : s[k];
       players.push(o);
     }
-    return { players, global: { ...this.global }, log: this.log.slice() };
+    return { players, global: { ...this.global, events: this.global.events.slice(), quirks: this.global.quirks.slice(), learned: this.global.learned.slice() }, log: this.log.slice() };
   }
 }

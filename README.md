@@ -27,12 +27,60 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 **Play with friends**: up to 4 players in the same Free Class (Easy or Hard, the host picks).
 
 1. One player presses **PLAY WITH FRIENDS → HOST A CLASS** and gets a 5-letter class code.
-2. Friends press **PLAY WITH FRIENDS**, type the code and **JOIN**, or just open the invite link (**COPY INVITE LINK**).
-3. The host picks Easy or Hard and presses **START FREE CLASS**. Friends who join later drop straight into the running class.
+2. The host sends the code with **SHARE CODE** (on a phone the share sheet opens on top of the game, so you never leave it) or **COPY INVITE LINK**. **Host: keep the game open on your screen until your friends are in.** On a phone, a game in another app is frozen and can't let anybody in.
+3. Friends press **PLAY WITH FRIENDS**, type the code and **JOIN**, or just open the invite link. The game keeps trying for about a minute and says what it is doing ("Connecting to the class… try 2"). **CANCEL** stops it.
+4. The host picks Easy or Hard and presses **START FREE CLASS**. Friends who join later drop straight into the running class.
+
+In the lobby Mr. Madi waits at the door. He tells every friend to sit down, he doesn't like it when the host leaves, and the door slams when a class closes on you.
 
 Everyone sits at their own desk and sees the others as students with name tags. Look at a friend and hold **E** to whisper to them (only they see it). Hold your phone in the meme app, look at a friend and press **R**: you shout "Bro! Look at this!" and hold your phone out to them; they look at it to watch. Throw paper at him, at the class or at each other: everyone sees the paper fly, your arm winding up, and the laugh meter. Repeating him, dumb questions, the phone and whispering all work for everyone, and he goes after whoever is making the most noise: he walks to *their* desk. Strikes are shared by the whole class (Easy: 3, plus 1 for every friend; Hard: one strike for everybody).
 
-How it works: the host's browser runs the game and streams it to the friends over WebRTC (peer to peer, through [PeerJS](https://peerjs.com)'s free public server for the handshake). Nothing to install and no game server; it works from any static host such as Vercel. The host should keep the game's tab open (it keeps running in the background). A few very strict networks (some school or office Wi-Fi) block peer-to-peer connections; if friends can't connect, try another network or a phone hotspot.
+How it works: the host's browser runs the game and streams it to the friends over WebRTC (peer to peer). [PeerJS](https://peerjs.com)'s free public server does the handshake. To find a way between two networks the game uses Google's STUN servers and **your own relay** (a TURN server, free for a small game). **Switch it on**, or friends on mobile data and strict Wi-Fi often can't join: see **Friends can't join?** below. Nothing to install and no game server; it works from any static host such as Vercel. If the host's link to the handshake server drops, or the host's phone comes back to the game, it reconnects by itself and keeps the same class code.
+
+## Friends can't join?
+
+**Why it happens.** Two phones on different networks (mobile data, school Wi-Fi, another country) often can't talk to each other directly. Then the game needs a *relay* in the middle (a TURN server). The game had no working relay, so these friends saw "could not connect to the host". It was not Vercel.
+
+**Switch on your own relay. This is the real fix.** Without it, friends on mobile data or strict Wi-Fi will often still not get in.
+- PeerJS's free relays are still in the game's list, but they are offline. (In November 2026 their addresses `eu-0.turn.peerjs.com` and `us-0.turn.peerjs.com` do not exist.) Don't count on them.
+- Your own relay is free for a small game. You set it up once (below). It takes about 10 minutes.
+
+**What the game does:**
+- The host and every friend ask your relay for fresh passwords (`api/turn`).
+- A friend keeps trying for about one minute.
+- If it fails, the message says why. **"This game has no relay server"** means: switch on your own relay. The browser console (F12) shows the details.
+
+**Try this first:**
+1. Host: keep the game open on your screen. Don't switch apps. Send the code with **SHARE CODE**.
+2. Friend: press **JOIN** and wait. It can take up to a minute.
+3. Still not working? One of you switches from Wi-Fi to mobile data (or the other way).
+
+**Switch on your own relay (Vercel).** The file `api/turn.js` is a small Vercel function. It gives the game fresh relay passwords. Your keys stay in Vercel, never in the code. Pick **one** provider:
+
+*Cloudflare (recommended, a big free amount every month)*
+1. Log in at [dash.cloudflare.com](https://dash.cloudflare.com). A free account is fine.
+2. Open **Realtime → TURN Server** (older dashboards: **Calls → TURN**) and press **Create**.
+3. Copy the **Turn Token ID** and the **API Token**. You see the API token only once.
+4. In Vercel: your project → **Settings → Environment Variables**. Add:
+   - `CF_TURN_KEY_ID` = the Turn Token ID
+   - `CF_TURN_API_TOKEN` = the API Token
+5. **Deployments → ⋯ → Redeploy.** New variables work only after a new deploy.
+
+*Metered*
+1. Sign up at [metered.ca](https://www.metered.ca) and open **TURN Server** in the dashboard.
+2. Your app has a domain like `yourapp.metered.live`. Copy it. Copy your **API key** too.
+3. In Vercel, add `METERED_DOMAIN` = `yourapp.metered.live` and `METERED_API_KEY` = the key. Redeploy.
+
+*Any other TURN server* (for example your own coturn)
+- Add `TURN_URLS` (comma separated, for example `turn:turn.example.com:3478,turns:turn.example.com:443?transport=tcp`), `TURN_USERNAME` and `TURN_CREDENTIAL`. Redeploy.
+- Add a `turns:` address on port **443**. Strict networks (school, office) often allow only that.
+
+**Check it:**
+1. Open `https://<your-game>.vercel.app/api/turn` in a browser. You should see `turn:` addresses. `{"iceServers":[]}` means no relay is set up yet, or a key is wrong (Vercel → your project → **Logs** shows the error).
+2. Host a class on a computer and open the console (F12). It says `own relay from api/turn: yes`.
+3. Test with two phones on different networks: the host on Wi-Fi, the friend on mobile data. The friend should get in.
+
+On a local server or GitHub Pages there is no `api/turn`, so there is no relay. Players on the same Wi-Fi can still play together.
 
 ## How to play
 
@@ -61,6 +109,11 @@ How it works: the host's browser runs the game and streams it to the friends ove
 * **When the chalk stops, stop talking.** He turns around without warning.
 * If he catches you, he comes to your desk. **Three strikes** and the period is over.
 * **The class clowns**: if you do nothing for a while (a random 30 seconds to over a minute each time; no whispering, phone, repeating or questions; just looking around doesn't count), somebody in the back does a meme noise: snoring, "bruh", an airhorn, a sad trombone, "six seven!", a goat, a whoopee cushion, crickets, a metal pipe… He stops, turns around and goes to find out who did it. He looks slang up on his laptop ("what does bruh mean"), wakes up the snorer by slapping their desk, and once the laptop even tells him who farted. In detention, the ones he catches don't look the same afterwards.
+* **A different teacher every class.** Every class draws 3 or 4 **events** and 2 **quirks** from one seed (the same seed always gives the same class; `?seed=123` picks one).
+  * **Events**: his embarrassing **ringtone** (he takes the call with his back to you and hears less), a **fly** he hunts (he only looks at the fly; it can land on your desk and he slaps it; hit it with a paper ball and he thanks you), a **pizza** at the door (his back is turned, then he eats it staring at you), a **fire alarm** that is so loud he hears nothing, and he **leaves the room** for 30 seconds (chaos counts double; watch the door window and listen for his footsteps). A hint tells you what each one means for you, and the line under his eye on the HUD says what he is doing.
+  * **Quirks**: **half deaf** on one side (whisper on his deaf side), **hates laughing** (the class laughing makes him angrier), **dozes off** (he can't see you, but a loud noise wakes him), **obsessed with the clock** (he glances back less), **counts the class** (he points at every head) and **hums** while he writes (he hears you less, then more when he stops). You find them out by playing: the HUD lists the ones you noticed ("TODAY HE").
+  * **He learns your slang**: class-clown memes and your echoes are remembered (also next class, in this browser). Later he uses them wrong in the lesson, writes them on the board, mocks your squeaky voice, and dances to phonk from his own phone.
+  * Online, every player sees and hears all of it, also a friend who joins late.
 * An optional helper HUD (Settings) shows when he is watching you and how angry he is.
 
 Tip: headphones. The audio is positional; you can hear his footsteps.
@@ -85,7 +138,7 @@ The game is plain static files with no build step, so Vercel can host it as-is:
 3. Framework Preset: **Other**. Leave the build command and output directory empty.
 4. Press **Deploy**. You get a link like `https://hororr-game-madi-meme.vercel.app` that anyone can open on a PC or phone.
 
-Every push to `main` redeploys automatically.
+Every push to `main` redeploys automatically. The `api/` folder has one small function (`api/turn.js`); Vercel runs it by itself. It gives online games your own relay. **Set it up** (see **Friends can't join?**), or friends on mobile data often can't join.
 
 ## Put it online (GitHub Pages)
 
@@ -111,6 +164,10 @@ src/game.js                the teacher's brain (coroutines), story chapters, fre
                            echo / question mechanics, friends, phone, scares, endings
 src/videos.js              meme videos in class: missions, phones held out to you, the loud crash
 src/pranks.js              pranks you aim: paper balls and planes, the aim arc, hits, his reactions, the LAUGHS meter
+src/events.js              a different teacher every class: the seeded class setup and the event deck
+                           (ringtone, fly, pizza, fire alarm, he leaves the room)
+src/quirks.js              his quirks (half deaf, hates laughing, dozes off, the clock, counts the class, hums)
+src/slang.js               the slang he learns from you and uses wrong (remembered in the browser)
 src/memes.js, src/clips.js the meme clips (original cartoons drawn live) and the clip player
 src/phone.js               your phone: PAPER PLANE, the meme feed, messages
 src/stats.js               what every player did in a class (counts + event log)
@@ -124,13 +181,16 @@ src/world.js               the classroom (merged static geometry, lights, rain, 
 src/board.js               chalkboard written letter by letter
 src/models.js              loads the rigged character models
 src/mp.js                  multiplayer: lobby, streaming the class to friends, friends' desks and avatars
-src/net.js                 WebRTC connections (PeerJS): host / join by class code
+src/net.js                 WebRTC connections (PeerJS): host / join by class code, relay servers (STUN / TURN),
+                           patient joining, the host reconnecting with the same code, connection diagnosis
+src/lobby.js               the online lobby: its sounds, and Mr. Madi at the door while friends join
+api/turn.js                Vercel function: your own TURN relay for online play (keys in Vercel, see above; switch it on)
 src/audio.js               Web Audio engine: 3D HRTF sound, reverb, live ambience
 src/post.js                retro post-processing (grain, aberration, glitch, blackout)
 assets/models/             rigged characters (built by tools/build_characters.py, bundled in models.json)
 assets/textures/           teacher face texture + glow mask (from the reference photo)
-assets/audio/voice/        283 spoken lines
-assets/audio/sfx/          91 sound effects and music loops
+assets/audio/voice/        285 spoken lines
+assets/audio/sfx/          94 sound effects and music loops
 assets/videos/             your own .mp4 memes (optional, see assets/videos/README.md)
 tools/                     scripts that generate all of the assets above + preview pages
 tests/                     browser tests and their runner (bash tests/run.sh quick|full)
@@ -140,7 +200,7 @@ vendor/                    three.js r170 (+ GLTFLoader), PeerJS 1.5.5
 
 ### Tests
 
-`bash tests/run.sh quick` (about 8 minutes) or `bash tests/run.sh full` (about 10 minutes) plays the game in
+`bash tests/run.sh quick` (about 10 minutes) or `bash tests/run.sh full` (about 17 minutes) plays the game in
 headless Chromium and prints PASS / FAIL per test. See `tests/README.md`.
 
 ### Regenerating the assets

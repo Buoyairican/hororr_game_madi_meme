@@ -2,9 +2,10 @@
 
 The game was scary once and then repetitive: you mostly sit and hold a key, the jokes are
 scripted, he does the same things every time and every run is the same. This plan fixes that in
-8 small phases. Each phase is one request ("do phase N"), ships on its own to `main` (Vercel),
-and the game stays fully playable after every phase. Play it after each one; what feels off gets
-fixed before the next phase starts.
+8 small phases. The phases run one after another; each one ships on its own to `main` (Vercel)
+and the game stays fully playable after every phase. Before the next phase starts, the work is
+reviewed: checked against this plan, the code read again, the full test suite run and the
+screenshots looked at. Whatever the review finds gets fixed first.
 
 ## Rules for every phase
 
@@ -24,7 +25,8 @@ fixed before the next phase starts.
 6. **Count it.** Everything a player does goes through `game.note(p, key)` and
    `game.track.event(...)` (`src/stats.js`) so the report card and scoreboard can use it.
 7. **Test, then ship.** A test for the new feature in `tests/`, then `bash tests/run.sh full`,
-   screenshots checked by eye, one pull request merged into `main`, the claude.ai link updated.
+   screenshots checked, the review passed, one pull request merged into `main`, the claude.ai link
+   updated.
 
 ## Controls budget (everything new, in one place)
 
@@ -63,7 +65,49 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, 
   Free Class allow pranks (period 1 does not). Touch: PRANK, then DROP / BALL-PLANE / SWAP.
   Numbers in `PRANK` (`src/data.js`). Tests: `tests/pranks.js`, `tests/mp_prank.js`, touch.js.
 
-### [ ] Phase 2: A different teacher every class (ideas 4, 6, 7)
+### [x] Online fix: friends can always join
+- The bug: `src/net.js` passed its own `iceServers` (STUN only) to PeerJS, which threw away
+  PeerJS's default TURN relays. Without a relay, two phones on different networks (mobile data,
+  strict Wi-Fi, carrier NAT) often cannot reach each other: "could not connect to the host".
+  Vercel is not the cause.
+- Relays: keep PeerJS's free TURN servers (they turned out to be offline, see Shipped), plus an own relay from a tiny Vercel function
+  (`api/turn.js`, credentials in Vercel environment variables, never in the repo; Cloudflare or
+  Metered TURN, or any TURN server), including TURN over TCP/TLS on port 443 for strict networks.
+  Without the function (local server, other static hosts) the game falls back silently.
+- Joining is patient: a guest retries for about a minute with a clear status, the host's lobby
+  says to keep the game open on screen, has a share/copy button for the code, and reconnects to
+  the signalling server when the phone comes back to the game.
+- Clear errors that say what to do; the README explains how to switch on the own relay.
+- Done when: tests for the relay config, the fallback, the retry, and every online test passes.
+- Shipped: `src/net.js` lists Google STUN + PeerJS's TURN relays + the own relay from `api/turn.js`
+  (Cloudflare, Metered or any TURN server, from Vercel environment variables; it answers
+  `{"iceServers":[]}` when nothing is set up or a provider fails). Both sides ask it, wait 3 s at most
+  and fall back silently; a slow first answer is asked again in the background and used for the next
+  connections. **The own relay must be switched on in Vercel for the fix to work**: PeerJS's free
+  relays turned out to be offline (November 2026: `eu-0` / `us-0.turn.peerjs.com` have no DNS records),
+  so without it there is still no relay. A friend tries for 60 s of time on screen (5 minutes on the
+  clock at most) ("Connecting to the class… try 2"), "no class with that code" only after ~10 s;
+  JOIN turns into CANCEL; a friend is in only when the host says welcome (a full class never shows
+  "You are in"). The host keeps a secret token so it can take its code back: it reconnects (1, 2, 4,
+  8 s) when the signalling link drops (also when it comes back slowly), renews it when the phone comes
+  back after 10 s away (wall clock), and reopens the same code if the Peer died; a code another
+  browser took is reported once, then it stops trying. Host lobby: the keep-open tip (it names SHARE
+  CODE only when the button is there), SHARE CODE (the phone's share sheet) + COPY INVITE LINK,
+  "Someone is connecting…", "could not connect" (only for friends who never got in, never from a
+  closed class), "the class is full". In a class the lobby shows the code, the status line, the
+  players and START on one screen (two columns on landscape phones and computers; a new note scrolls
+  into view on tiny screens). A failed connection logs a diagnosis (ICE state, host / srflx / relay
+  addresses, relay names that don't resolve, TURN errors); when the host answered but no relay was
+  found, the friend reads "this game has no relay server" (or "the relay server did not answer") and
+  the host gets the matching note. Lobby sounds (`net_join`, `net_try`, `net_fail`, the door slam when
+  a class closes on you) and Mr. Madi at the door: "Sit... down.", "Do not... leave... my class.",
+  "Nobody... is... coming." (`src/lobby.js`, `ONLINE` in `src/data.js`). Late joins and leaving are in
+  the class log (`track.event`). README: "Friends can't join?" (switch on the own relay, how to check
+  it). Tests: `tests/turn_api.js`, `tests/mp_net.js`, `tests/mp_lobby.js`, `tests/mp_fail.js`, `mp_edge`.
+  Real NAT traversal (two phones on different networks) and a real TURN allocation can't be
+  reproduced on the test machine: after deploying, test with two phones on different networks.
+
+### [x] Phase 2: A different teacher every class (ideas 4, 6, 7)
 - **Event deck** (`src/events.js`): each class draws 3-4 from: his embarrassing ringtone,
   a fly he hunts (slaps desks), a pizza delivery at the door, a fire-drill false alarm,
   he leaves the room for 30 seconds (chaos window, footsteps when he comes back).
@@ -72,6 +116,15 @@ Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, 
   rate, glance chance) or adds one small behaviour.
 - **He learns your slang**: echoes and class-clown memes are remembered; later he uses them
   wrong (new voice lines), writes them on the board, tries to dance to phonk from a phone.
+- Shipped: one seeded class setup (`classSetup` in `src/events.js`; `game.start(mode, chapter, { seed })`,
+  `game.setup.seed`, `?seed=`) picks the events and quirks, so a daily challenge can reuse it. Free Class
+  spreads the events over the class; story periods put each one in a quiet window that keeps the period's
+  length and never lands on a scripted beat. Every event and quirk has a first-time hint, a line under his
+  eye on the HUD, voice lines and sounds, and changes his hearing / sight / anger through the numbers he
+  already uses; quirks show on the HUD only once you notice them. The slang he learns is kept in the
+  browser for the next class. Online, guests get the setup (also late) and see and hear everything; a
+  friend's desk can be slapped, a friend can swat the fly. Numbers and texts in `EVENTS`, `QUIRKS`, `SLANG`
+  (`src/data.js`). Tests: `tests/events.js`, `tests/mp_events.js`.
 
 ### [ ] Phase 3: Blame + note on his back + laser pointer (ideas 5, 1)
 - "Who did it?" opens a choice: point at a kid, stay silent, confess. Lying while you are the

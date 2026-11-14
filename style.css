@@ -164,6 +164,21 @@ body:not(.touch) .touch-only { display: none !important; }
 #eye.blind #eye-slash { stroke: #7cc4a0; }
 #eye.busy #eye-lid { stroke: #7cb4ff; }
 #eye.away { opacity: 0.15; }
+#eye.asleep { opacity: 1; }
+#eye.asleep #eye-lid { stroke: #b49cf0; }
+#eye.asleep #eye-pupil { transform: scaleY(0.04); fill: #b49cf0; }
+#eye.dance { opacity: 1; }
+#eye.dance #eye-lid { stroke: #ff7ad9; }
+#eye.dance #eye-pupil { transform: scaleY(0.3); fill: #ff7ad9; }
+/* what kind of teacher he is today (his quirks, once noticed) */
+#quirks { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; font-size: 13px; color: #e9e3cf; transition: opacity .4s; }
+#quirks::before { content: "TODAY HE"; font-size: 10px; letter-spacing: 3px; color: var(--dim); margin-right: 2px; }
+#quirks.off { display: none; }
+/* what is going on right now (today's event): under the clock, clear of the hints */
+#ev-now { position: absolute; top: 22px; right: 52px; font-size: 11px; letter-spacing: 1.5px; color: #ffd98a; text-align: right; white-space: nowrap; text-shadow: 0 0 4px #000, 0 0 2px #000; animation: ev-now-in .5s ease-out; }
+#ev-now.off { display: none; }
+@keyframes ev-now-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+#quirks .q { background: rgba(8, 10, 9, .55); border: 1px solid rgba(240, 194, 122, .35); border-radius: 10px; padding: 2px 8px; white-space: nowrap; text-shadow: 0 0 4px #000; }
 #strikes { font-size: 13px; letter-spacing: 4px; color: rgba(255,255,255,0.25); min-height: 14px; }
 #strikes .on { color: var(--blood-hi); text-shadow: 0 0 6px #000; }
 #bully { font-size: 10px; letter-spacing: 1.5px; color: var(--dim); text-align: center; line-height: 1.5; text-shadow: 0 0 4px #000; }
@@ -221,8 +236,9 @@ body.touch .desk-only { display: none !important; }
 #mp input { font: inherit; background: rgba(0, 0, 0, 0.45); color: var(--ink); border: 1px solid var(--line); padding: 10px 12px; }
 #mp .mp-name input { display: block; width: 100%; margin-top: 4px; box-sizing: border-box; }
 #mp .mp-or { color: var(--dim); margin: 14px 0 6px; font-size: 14px; }
-#mp .mp-join { display: flex; gap: 6px; justify-content: center; }
-#mp .mp-join input { width: 8.5em; text-transform: uppercase; letter-spacing: 6px; text-align: center; font-size: 20px; }
+#mp .mp-join { display: flex; gap: 6px; justify-content: center; max-width: 100%; }
+#mp .mp-join input { width: 8.5em; min-width: 0; flex: 0 1 8.5em; text-transform: uppercase; letter-spacing: 6px; text-align: center; font-size: 20px; }
+#mp .mp-join button { min-width: 6.5em; flex: 0 0 auto; margin: 0; }
 #mp .mp-code-box { font-size: 15px; color: var(--dim); }
 #mp .mp-code-box b { display: block; font-size: 40px; letter-spacing: 12px; color: #f0e6cc; margin: 4px 0 8px; }
 #mp .small-btn { font-size: 13px; padding: 8px 14px; }
@@ -231,8 +247,46 @@ body.touch .desk-only { display: none !important; }
 #mp-players li .seat { color: var(--dim); font-size: 13px; }
 #mp-players li.empty { opacity: 0.35; }
 #mp-mode { font: inherit; background: rgba(0, 0, 0, 0.5); color: var(--ink); border: 1px solid var(--line); padding: 10px; margin: 0 0 10px; display: block; width: 100%; max-width: 360px; margin-inline: auto; }
-#mp-status { min-height: 1.4em; color: #e0a090; font-size: 14px; }
+#mp-status { min-height: 1.4em; color: #e0a090; font-size: 14px; white-space: pre-line; line-height: 1.45; }
 #mp-status.ok { color: var(--dim); }
+#mp-code-show { -webkit-user-select: text; user-select: text; }
+#mp .mp-share { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+#mp .mp-share button { min-width: 0; margin: 2px 0; }
+#mp #btn-share { border-color: rgba(214, 58, 42, 0.6); }
+#mp .mp-keep { max-width: 400px; margin: 10px auto 0; font-size: 13px; line-height: 1.45; color: #cfc5a8;
+  border-left: 2px solid var(--blood-hi); padding: 4px 10px; text-align: left; background: rgba(0, 0, 0, 0.25); }
+#mp-madi { min-height: 1.3em; margin: 4px 0 0; font-size: 14px; font-style: italic; color: var(--blood-hi); opacity: 0; transition: opacity .4s; }
+#mp-madi.on { opacity: 1; }
+#mp-madi .who { font-style: normal; font-size: 11px; letter-spacing: 2px; color: var(--dim); margin-right: 4px; }
+#btn-join.cancel { border-color: var(--blood-hi); color: #f0c8b8; }
+/* the room view (in a class): the name field and the intro go away; one column on narrow screens
+   (code, share, tip, then right away the status and the players), two side by side on wide ones */
+#mp-panel.room .mp-intro, #mp-panel.room .mp-name { display: none; }
+#mp-room { display: flex; flex-direction: column; }
+#mp-room .mp-col { display: contents; }
+#mp-room #btn-mp-leave { order: 9; }
+#mp-room #mp-players { margin: 10px auto; width: 100%; }
+#mp-room .mp-keep { margin: 10px auto 2px; }
+#mp-news-room #mp-status { margin: 8px 0 0; }
+@media (min-width: 600px) {
+  #mp-panel.room { max-width: 860px; }
+  #mp-room { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 0 26px; align-items: start; }
+  #mp-room .mp-col { display: block; }
+  #mp-room #btn-mp-leave { margin-top: 14px; }
+  #mp-news-room #mp-status { margin-top: 0; }
+}
+@media (max-height: 500px) {
+  #mp-panel.room { padding: 10px 16px; }
+  #mp-panel.room h2, #mp-panel.room .mp-free, #mp-panel.room #mp-diff-note { display: none; }
+  #mp .mp-code-box { font-size: 13px; }
+  #mp .mp-code-box b { display: inline-block; font-size: 30px; letter-spacing: 8px; margin: 0 0 6px 8px; vertical-align: middle; }
+  #mp .mp-keep { font-size: 12px; line-height: 1.35; }
+  #mp-status, #mp-madi { font-size: 13px; line-height: 1.35; }
+  #mp-room #mp-players { margin: 6px auto; }
+  #mp-players li { padding: 4px 10px; margin-bottom: 3px; }
+  #mp-players li .seat { font-size: 11px; }
+  #mp-room .diff-row button { padding: 6px 14px; }
+}
 
 /* ---------- pranks (Phase 1) ---------- */
 #laugh { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 2px; transition: opacity .4s; }
@@ -257,4 +311,9 @@ body.touch .desk-only { display: none !important; }
   #objectives { font-size: 13px; line-height: 1.25; padding: 5px 9px 5px 8px; }
   #objectives li { padding-top: 1px; padding-bottom: 1px; }
   #objectives::before { margin-bottom: 2px; font-size: 10px; }
+}
+@media (max-height: 500px) {
+  #quirks { font-size: 11px; gap: 4px; }
+  #quirks .q { padding: 1px 6px; }
+  #quirks::before { font-size: 9px; letter-spacing: 2px; }
 }

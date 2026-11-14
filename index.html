@@ -28,6 +28,7 @@
       <div id="score"><span class="lbl">MISCHIEF</span> <span id="score-val">0</span></div>
       <div id="laugh" class="off"><span class="lbl">LAUGHS</span><span id="laugh-bar"><span id="laugh-fill"></span></span><span id="laugh-mult"></span></div>
       <ul id="objectives"></ul>
+      <div id="quirks" class="off"></div>
     </div>
     <div id="eye-wrap">
       <svg id="eye" viewBox="0 0 64 32" aria-hidden="true">
@@ -36,6 +37,7 @@
         <path id="eye-slash" d="M6 30 L58 2"/>
       </svg>
       <div id="eye-label"></div>
+      <div id="ev-now" class="off"></div>
       <div id="anger"><div id="anger-fill"></div></div>
       <div id="strikes"></div>
       <div id="bully"></div>
@@ -128,6 +130,7 @@
       <li>Sit still too long and the <b>class clowns</b> in the back start making noises. He will go and find out who did it.</li>
       <li><b>Difficulty</b>: <b>Easy</b> gives you 3 strikes. <b>Hard</b> plays the same, but you only get <b>one strike</b>, and if he actually <b>sees</b> you whispering or on your phone, he comes for you right away.</li>
       <li><b>Play with friends</b> (Free Class): one of you hosts, the others join with the class code (up to 4). Look at a friend and hold <kbd>E</kbd> / <b>TALK</b> to whisper to them. In the meme app, look at a friend and press <kbd>R</kbd> / <b>SHOW</b> to hold your phone out to them. Throw paper at each other too. Strikes are shared, so keep each other quiet.</li>
+      <li><b>Hosting?</b> Keep the game open on your screen until your friends are in: on a phone, a game in the background can't let anybody in. Send the code with <b>SHARE CODE</b> (you stay in the game) or <b>COPY INVITE LINK</b>. Joining takes up to a minute on slow networks; the game keeps trying by itself.</li>
     </ul>
     <button class="back">BACK</button>
   </div>
@@ -135,28 +138,38 @@
 
 <!-- ============ MULTIPLAYER LOBBY ============ -->
 <div id="mp" class="screen hidden">
-  <div class="panel center">
+  <div class="panel center" id="mp-panel">
     <h2>PLAY WITH FRIENDS</h2>
-    <p class="dim">Up to 4 players in the same class. One of you hosts, the others join with the class code.</p>
+    <p class="dim mp-intro">Up to 4 players in the same class. One of you hosts, the others join with the class code.</p>
     <label class="mp-name">Your name <input id="mp-name" maxlength="12" autocomplete="off" spellcheck="false"></label>
     <div id="mp-pick">
       <button id="btn-host" class="big">HOST A CLASS</button>
       <div class="mp-or">or join a friend</div>
       <div class="mp-join"><input id="mp-code" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false"><button id="btn-join">JOIN</button></div>
+      <div id="mp-news-pick">
+        <!-- what is happening (status) and what Mr. Madi says; main.js moves this block into the room view's
+             right column while you are in a class, so the host sees it without scrolling -->
+        <div id="mp-news"><p id="mp-status" aria-live="polite"></p><p id="mp-madi"></p></div>
+      </div>
     </div>
     <div id="mp-room" class="hidden">
-      <div class="mp-code-box">Class code <b id="mp-code-show">-----</b></div>
-      <button id="btn-copy" class="small-btn">COPY INVITE LINK</button>
-      <ul id="mp-players"></ul>
-      <div id="mp-host-ctl" class="hidden">
-        <div class="dim">Online play is Free Class (8:30 to 12:30).</div>
-        <div class="diff-row"><button id="mp-easy">EASY</button><button id="mp-hard">HARD</button></div>
-        <div id="mp-diff-note" class="dim"></div>
-        <button id="btn-mp-go" class="big">START FREE CLASS</button>
+      <div class="mp-col">
+        <div class="mp-code-box">Class code <b id="mp-code-show">-----</b></div>
+        <div class="mp-share"><button id="btn-share" class="small-btn hidden">SHARE CODE</button><button id="btn-copy" class="small-btn">COPY INVITE LINK</button></div>
+        <p id="mp-keep" class="mp-keep hidden"></p>
       </div>
-      <p id="mp-wait" class="dim hidden">Waiting for the host to start the class&hellip;</p>
+      <div class="mp-col">
+        <div id="mp-news-room"></div>
+        <ul id="mp-players"></ul>
+        <div id="mp-host-ctl" class="hidden">
+          <div class="dim mp-free">Online play is Free Class (8:30 to 12:30).</div>
+          <div class="diff-row"><button id="mp-easy">EASY</button><button id="mp-hard">HARD</button></div>
+          <div id="mp-diff-note" class="dim"></div>
+          <button id="btn-mp-go" class="big">START FREE CLASS</button>
+        </div>
+        <p id="mp-wait" class="dim hidden">Waiting for the host to start the class&hellip;</p>
+      </div>
     </div>
-    <p id="mp-status"></p>
     <button id="btn-mp-leave">BACK</button>
   </div>
 </div>
