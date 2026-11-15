@@ -692,6 +692,8 @@ export const REPORT = {
     A: 'The worst student... I have ever had.', B: 'A bad influence... on the others.', C: 'Could be worse. Could be... quieter.',
     D: 'Almost... a good student.', F: 'Quiet. Still. My... favorite.',
   },
+  remarkCaught: { D: 'You stay... after class.', F: 'You stay... after class.' }, // caught one time too many: not his quiet favorite
+
   voice: { A: 't_gradeA', B: 't_gradeB', C: 't_gradeC', D: 't_gradeD', F: 't_gradeF' },
 };
 

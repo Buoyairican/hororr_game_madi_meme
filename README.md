@@ -20,7 +20,9 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 | 10:30 AM | Pop Quiz | He quizzes you to your face, asks how many students are in the class, and Kevin is back for a moment. Sam slips you a laser pointer and a KICK ME note. Then he walks between the desks (past your desk: stick it on) and stops right behind your chair. Sam needs to show you a video right now. The power goes out: every flash of lightning shows him a little closer. Don't make a sound. |
 | 11:30 AM | Detention | Nora has a plan. The clock runs backwards. Mr. Hale texts you, and Nora wants to know what is on his laptop: slip off your chair and sneak to his desk. He puts Mr. Hale's glasses down on it. "There is no lunch." The speaker he tore out comes back on: *the school is closed today, there is nobody in the building.* Somebody sends you a video of this classroom, filmed from the back... At the last bell, ask him something he can't look up. Three different endings. |
 
-**Free Class**: the whole morning in one go (about 5 minutes), getting darker and stranger every hour.
+**Free Class**: the whole morning in one go (about 5 minutes), getting darker and stranger every hour. His big scares (behind you, the neck, the lights) start from the halfway point, and at least one always comes before the bell.
+
+**Scares**: the room acts up in every period (the storm, the lights, a face at the door, a book falling), gently at first. While a scare is on, the task list fades out of its way and the class stops giggling.
 
 **Daily class** (title screen): one Free Class a day that is the same for everyone in the world. It is built from one number, the class seed, made from the date (UTC): `2026-11-14` is class `#20261114`. The day decides whether it is Easy or Hard, and what counts double in the score that day (PAPER DAY, PARROT DAY, QUESTION DAY…). You get a score, and your best score of each day is kept in your browser. The menu shows today's date and your best. Online, the host can start the daily class for everyone (**DAILY** in the lobby).
 

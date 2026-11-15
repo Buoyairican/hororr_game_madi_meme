@@ -49,7 +49,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
     const g = game;
     g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {}; g.extrasAuto = false; // (Phase 7's note chain, ghosts and decoy hints: tests/mp_extras.js)
     g.startMeme = () => false;
-    g.eventsOn = false; g.setup.plan = []; g.quirks = new Set();
+    g.eventsOn = false; g.scaresOn = false; g.setup.plan = []; g.quirks = new Set();
     window.said = [];
     const ts = g.teacherSay.bind(g); g.teacherSay = (id, v) => { said.push(id); return ts(id, v); };
     window.stand = (x, z, facing, at = null) => {

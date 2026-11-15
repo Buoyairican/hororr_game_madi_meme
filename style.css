@@ -502,3 +502,7 @@ body.ghosting #btn-breath, body.ghosting #breath-hud { display: none; }
   #notebook-tabs button { padding: 6px 10px; font-size: 12px; }
   .nb-note { font-size: 17px; padding: 7px 10px; }
 }
+
+/* a scare owns the screen: the task list, today's habits and the key list fade out of its way */
+#objectives, #keys-legend, #laugh, #score { transition: opacity .35s; }
+body.scared #objectives, body.scared #quirks, body.scared #keys-legend, body.scared #laugh, body.scared #score { opacity: .08; }
