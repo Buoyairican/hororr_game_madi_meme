@@ -2397,6 +2397,41 @@ export class Game {
     yield* this.say('t_nohale', 0.8);
     yield* this.actStare(2);
     yield* this.actWrite('THERE IS NO MR. HALE');
+    yield* this.anyQuestions();
+  }
+
+  /** right after "THERE IS NO MR. HALE": the lights go, and when they come back he is folded over your desk. "Any... questions?" */
+  *anyQuestions() {
+    const T = this.teacher, W = this.world, A = this.audio;
+    this.eventLock = true;
+    try {
+      yield* this.wait(1.2);
+      for (const b of W.lights.banks) if (!b.dead) b.flicker = 0.6;
+      yield* this.wait(0.6);
+      A.play('lights_off', { vol: 1 });
+      W.setMaster(0); this.blackoutTarget = 1; this.blackout = 1;
+      A.fadeBus('amb', 0.1, 0.3); // (the rain drops away: nothing to hear in the dark)
+      yield* this.wait(1.9);
+      T.place(this.camPos.x, this.camPos.z - 1.6, 0); T.lookAt(this.camPos, 60);
+      T.leanTarget = T.lean = 0.95; T.crouchTarget = T.crouch = 0.34; T.stanceTarget = T.stance = 0.25;
+      T.eyeGlow = 0.7;
+      W.setMaster(0.6); this.blackoutTarget = 0; this.blackout = 0;
+      A.fadeBus('amb', 1, 0.2);
+      A.play('stinger_2', { vol: 1.1 });
+      this.scareFear = 1; this.shake = 0.5;
+      yield* this.wait(1.1);
+      yield* this.say('t_question', 0.9);
+      W.setMaster(0); this.blackoutTarget = 0.95;
+      A.play('zap', { vol: 0.7 });
+      yield* this.wait(0.45);
+      T.place(0, -5.5, 0);
+    } finally {
+      W.setMaster(1); this.blackoutTarget = 0; A.fadeBus('amb', 1, 0.3);
+      T.eyeGlow = 0.12; T.leanTarget = 0; T.crouchTarget = 0; T.stanceTarget = 0;
+      this.eventLock = false;
+    }
+    yield* this.actStare(1.5);
+    yield* this.say('t_continue', 0.6);
   }
 
   /** Sam's note has to get to Nora without him seeing it */
