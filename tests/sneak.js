@@ -25,6 +25,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
     g.post.render = () => {};
     g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {};
     g.startMeme = () => false;
+    g.dreadAuto = false; // (no creeping, leaning or changes by themselves: src/dread.js)
     g.timers.clear(); // (no Free Class hints and tasks on their timers)
     window.said = [];
     const ts = g.teacherSay.bind(g); g.teacherSay = (id, v) => { said.push(id); return ts(id, v); };
@@ -183,6 +184,21 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   await check('...PFFFRT: the class laughs, mischief, counted', `until(() => game.stats.cushions === 1, 4) && game.laugh > 30 && !game.cushion`);
   await check('"Who did it?" (it was you: the choice is yours)', `until(() => game.choice && /Who did it/.test(document.getElementById('choices-title').innerText), 15)`);
   await page.evaluate(() => { game.pickChoice(1, game.me); run(4); fresh(); });
+
+  // ---------------------------------------------------------------- with Phase 5 (src/dread.js)
+  await check('he never comes to listen at an empty chair (only you in class, off your chair: no visit)', `(() => {
+    stand(0.3, -6.3, Math.PI, null, true); putAt(-2.25, 3); const D = game.dread;
+    game.dreadAuto = true; D.nextLean = 0; game.dreadOpen = () => true; game.dreadVisits(); const none = !D.lean;
+    game.dreadAuto = false; delete game.dreadOpen; return none; })()`);
+  await page.evaluate(() => { putAt(-0.7, -1.4); game.input.pressed.seat = true; run(0.8); calm(); });
+  await check('he leans over your desk: you can\'t slip off your chair now (C does nothing)', `(() => {
+    game.interrupt(game.dreadLean(game.me, { from: 'visit' })); until(() => game.dreadLeanOn(game.me), 15);
+    game.input.pressed.seat = true; run(0.3); return !!game.dreadLeanOn(game.me) && !game.me.out; })()`);
+  await page.evaluate(() => { game.input.keys.breath = true; until(() => !game.dread.lean, 20); game.input.keys.breath = false; run(1); fresh(); });
+  await check('his "Hm?" (he saw something move) never starts while he leans over a desk', `(() => {
+    game.interrupt(game.dreadLean(game.me, { from: 'visit' })); until(() => game.dreadLeanOn(game.me), 15);
+    const bi = game.brainIdle; game.input.keys.breath = true; until(() => !game.dread.lean, 20); game.input.keys.breath = false; run(0.5); return bi === false; })()`);
+  await page.evaluate(() => { run(2); fresh(); });
 
   // ---------------------------------------------------------------- his habits, the end
   await check('he sits down now and then (and stands up again)', `(() => { game.interrupt(game.actSit()); const a = until(() => game.sitting, 15); run(12); return a && !game.sitting; })()`);

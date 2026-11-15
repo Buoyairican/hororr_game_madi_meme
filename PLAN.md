@@ -222,6 +222,13 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   log, `dreadChanges` in the class totals) and a line of your own numbers on the end screen.
   12 voice lines, 10 sounds (`gen_sfx.py dread`). Tests: `tests/dread.js`, `tests/mp_dread.js`; the
   careful story player holds its breath. Tests that need a class with no surprises: `game.dreadAuto = false`.
+- Built in another session without Phases 2-4, then merged on top of them here. To fit them: he creeps
+  up or leans over only when none of his other scenes is on (an event, a quirk habit, "Who did it?", the
+  red dot, the empty-chair search, sitting on his chair); he never listens at an empty chair; off your
+  chair, what you can see (for changes and noticing) is where you really are; you can't leave your seat
+  while he leans over a desk or creeps up on you; the kids hide a crawling player where they sit now
+  (two may have swapped seats); a breath heard on Hard gets "I can... hear you.". `tests/fuzz.js` holds
+  its breath when he leans over and checks the breath, the lean and the creep never get stuck.
 
 ### [ ] Phase 6: Reasons to replay (idea 9)
 - Report card after every class (A to F) built from `game.track`.
