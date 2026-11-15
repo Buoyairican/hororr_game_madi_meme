@@ -1497,12 +1497,76 @@ def make_p3():
     save("bl_ooh", fade(reverb(x, 0.35, dur=1.4, decay=0.5)[: int(2.7 * SR)], 0.005, 0.3), 0.75)
 
 
+def make_p4():
+    """Phase 4 (src/sneak.js): slipping off your chair, his glasses picked up, the clock hands pushed forward,
+    the whoopee cushion (and its rubber squeak), his desk drawer (the spare pair).
+    Uses its own random numbers, so building only this group gives the same files."""
+    r = np.random.default_rng(404)
+
+    def nz(d):
+        return r.standard_normal(int(d * SR))
+
+    # off the chair: a plastic seat creaks (a slow resonant groan), cloth slides over it, a palm on the floor
+    d = 0.6; t = t_axis(d)
+    groan = svf(nz(d), 420 + 260 * np.sin(np.pi * np.clip(t / 0.35, 0, 1)), 9.0, "bp") * np.sin(np.pi * np.clip(t / 0.38, 0, 1)) ** 1.5 * 0.9
+    cloth = biquad(nz(d), "bp", 2400, 0.6) * np.clip(t / 0.05, 0, 1) * np.exp(-t / 0.25) * 0.35
+    pat = np.zeros(len(t)); tt = t_axis(0.12)
+    place(pat, biquad(nz(0.12), "lp", 700) * np.exp(-tt / 0.018) * 1.1, 0.42)
+    save("sn_slip", groan + cloth + pat, 0.55)
+
+    # his glasses picked up off the desk: two small plastic clacks (the arms fold), a tiny rattle
+    d = 0.32; x = np.zeros(int(d * SR))
+    for at, f, g in ((0.0, 3100.0, 1.0), (0.07, 4200.0, 0.7), (0.15, 2600.0, 0.5)):
+        tt = t_axis(0.04)
+        place(x, (osc_sin(np.full(len(tt), f)) * 0.5 + biquad(nz(0.04), "bp", f * 1.3, 3.0)) * np.exp(-tt / 0.005) * g, at)
+    tt = t_axis(0.2)
+    place(x, biquad(nz(0.2), "hp", 5000) * np.exp(-tt / 0.04) * 0.15, 0.06)
+    save("sn_grab", x, 0.5)
+
+    # the clock: a finger pushes the minute hand round, the gears tick under it (and the old clock rings a little)
+    d = 1.0; x = np.zeros(int(d * SR))
+    for i in range(9):
+        tt = t_axis(0.09)
+        f = 1900 + 120 * (i % 3)
+        click = (biquad(nz(0.09), "bp", f, 6.0) * 1.0 + osc_sin(np.full(len(tt), 5200.0)) * 0.25) * np.exp(-tt / 0.006)
+        ring = osc_sin(np.full(len(tt), 880.0 + 7 * i)) * np.exp(-tt / 0.05) * 0.08
+        place(x, click + ring, 0.04 + i * 0.095 + r.uniform(-0.01, 0.01))
+    save("sn_clock", reverb(x, 0.2, dur=0.6, decay=0.4), 0.6)
+
+    # the whoopee cushion: rubber flapping (a pulse train through a rubbery mouth), dropping in pitch, sputtering out
+    d = 1.5; t = t_axis(d)
+    f = 118 * np.exp(-t * 0.55) * (1 + 0.09 * np.sin(2 * np.pi * 7.5 * t) + 0.05 * r.standard_normal(len(t)).cumsum() / np.sqrt(len(t)) * 3)
+    flap = osc_sq(np.clip(f, 40, 200), 0.18) * 0.6 + osc_saw(np.clip(f, 40, 200)) * 0.4
+    env = np.clip(t / 0.03, 0, 1) * np.clip((1.25 - t) / 0.5, 0, 1)
+    sput = np.where(t > 0.85, (np.sin(2 * np.pi * 11 * t) > -0.2).astype(float), 1.0)
+    src = flap * env * (0.7 + 0.3 * sput)
+    x = biquad(src, "bp", 380, 1.4) * 1.0 + biquad(src, "bp", 900, 2.5) * 0.45 + biquad(src, "lp", 180) * 0.8
+    x += biquad(nz(d), "bp", 1500, 0.8) * env * 0.06
+    save("sn_cushion", reverb(x, 0.18, dur=0.8, decay=0.4), 0.92)
+
+    # a rubber squeak (the cushion put down / picked up)
+    d = 0.3; t = t_axis(d)
+    f = 900 + 500 * np.sin(np.pi * np.clip(t / 0.22, 0, 1))
+    x = (osc_sin(f) * 0.6 + osc_saw(f) * 0.15) * np.sin(np.pi * np.clip(t / 0.25, 0, 1)) ** 2
+    save("sn_squeak", biquad(x, "bp", 1300, 1.5), 0.45)
+
+    # his desk drawer: wood sliding on wood, then the stop
+    d = 0.75; t = t_axis(d)
+    slide = biquad(nz(d), "bp", 260, 1.2) * (0.7 + 0.3 * np.sin(2 * np.pi * 23 * t)) * np.clip(t / 0.05, 0, 1) * np.clip((0.55 - t) / 0.05, 0, 1)
+    x = slide * 0.9
+    tt = t_axis(0.2)
+    place(x, (biquad(nz(0.2), "lp", 500) * 1.4 + osc_sin(np.full(len(tt), 140.0)) * 0.6) * np.exp(-tt / 0.03), 0.55)
+    save("sn_drawer", reverb(x, 0.2, dur=0.7, decay=0.5), 0.7)
+
 
 if __name__ == "__main__":
     import sys
     print("Synthesising sound effects ->", OUT)
     if "p3" in sys.argv:  # Phase 3: blame, the note on his back, the laser pointer
         make_p3()
+        raise SystemExit(0)
+    if "p4" in sys.argv:  # Phase 4: off your chair, his desk
+        make_p4()
         raise SystemExit(0)
     if "v7" in sys.argv:
         make_v7()
@@ -1542,4 +1606,5 @@ if __name__ == "__main__":
     make_v6()
     make_v7()
     make_p3()
+    make_p4()
     print("done")

@@ -22,14 +22,33 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
       const ROWS = [-2.05, -0.35, 1.35, 3.05], COLS = [-3.0, -1.5, 0, 1.5, 3.0];
       let reckless = false, intent = 'idle', yawT = 0, choiceDelay = -1, noteT = 0;
       let cutT = 0, memeT = 0, lockT = 0, choiceT = 0, blackT = 0, blameT = 0, catT = 0, lastSub = '', subs = [], memes = 0, wasMeme = false;
+      let sneakT = 0, sitT = 0, huntT = 0, outT = 0, moveT = 0;
       const maxT = 1100;
       while (g.state === 'playing' && g.t < maxT) {
         // ---- random player
         if (lazy) { if (Math.random() < 0.006) intent = Math.random() < 0.85 ? (Math.random() < 0.5 ? 'idle' : 'look') : ['sam', 'nora', 'phone'][(Math.random() * 3) | 0]; if (g.memeBusy && g.canEcho() && Math.random() < 0.004) g.input.pressed.echo = true; }
-        else if (Math.random() < 0.012) intent = ['idle', 'idle', 'idle', 'sam', 'nora', 'phone', 'phone', 'look', 'look', 'echo', 'ask', 'show', 'prank'][(Math.random() * 13) | 0];
+        else if (Math.random() < 0.012) intent = ['idle', 'idle', 'idle', 'sam', 'nora', 'phone', 'phone', 'look', 'look', 'echo', 'ask', 'show', 'prank', 'sneak'][(Math.random() * 14) | 0];
+        // Phase 4: off the chair, crawl about, use what is at his desk, back to the chair (C at the desk)
+        const mk = g.input.moveKeys;
+        if (intent === 'sneak' && g.allowSneak) {
+          if (!g.me.out && g.me.slipK === 0 && Math.random() < 0.05) g.input.pressed.seat = true;
+          if (g.me.out) {
+            outT += 0.05;
+            if ((moveT -= 0.05) <= 0) { moveT = 0.5 + Math.random() * 2; mk.f = Math.random() < 0.7; mk.b = !mk.f && Math.random() < 0.3; mk.l = Math.random() < 0.25; mk.r = !mk.l && Math.random() < 0.25; yawT = (Math.random() * 2 - 1) * 3.1; }
+            g.yaw += (yawT - g.yaw) * 0.08;
+            if (g.deskNear(g.me)) g.input.keys.talk = Math.random() < 0.97;
+            if (outT > 25 || Math.random() < 0.002) { // head home: put back next to the chair, then C
+              g.me.pos.set(g.me.desk.x + 0.75, 0, g.me.desk.z + 0.55); g.input.pressed.seat = true; outT = 0;
+            }
+          }
+        } else {
+          mk.f = mk.b = mk.l = mk.r = false;
+          if (g.me.out && !g.me.carried) { g.me.pos.set(g.me.desk.x + 0.75, 0, g.me.desk.z + 0.55); g.input.pressed.seat = true; }
+        }
         if (g.shows.some((s) => !s.over) && Math.random() < 0.02) intent = 'show';
         if (g.vidJob && Math.random() < 0.02) intent = 'phone';
-        g.input.keys.talk = false; g.input.keys.phone = false; if (intent !== 'prank') g.input.keys.prank = false;
+        if (intent !== 'sneak') g.input.keys.talk = false;
+        g.input.keys.phone = false; if (intent !== 'prank') g.input.keys.prank = false;
         const safe = (!g.watching && !g.near) || reckless;
         if (Math.random() < 0.004) reckless = Math.random() < 0.15;
         if (intent === 'sam') { g.yaw = 1.52; g.input.keys.talk = safe && Math.random() < 0.97; }
@@ -81,7 +100,7 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
         blackT = g.blackout > 0.9 && !g.ending ? blackT + 0.05 : 0; if (blackT > 12) issue('black', 'screen black > 12 s');
         for (const s of g.students) if (s.hollow && !s.taken && !g.cutscene && !g.eventLock && !g.fx.length && g.phase < 3) issue('hollow' + s.name, s.name + ' hollow eyes with no reason');
         if (T.glassesHeld && !g.blind && !g.cutscene && g.brainIdle) issue('glasses', 'glasses still in his hand');
-        if (T.glasses.parent !== T.head && !T.glassesHeld && !g.blind && !g.ending && g.brainIdle) issue('glassesFloor', 'glasses left on the floor');
+        if (T.glasses.parent !== T.head && !T.glassesHeld && !g.blind && !g.ending && g.brainIdle && g.glassesAt === 'face') issue('glassesFloor', 'glasses left on the floor');
         if (g.blind && g.brainIdle && !T.glassesHeld && T.glasses.parent === T.head) issue('blind', 'blind with his glasses on');
         if (g.papers.length > 16) issue('papers', 'too many papers: ' + g.papers.length);
         if (g.laugh < 0 || g.laugh > 100 || !isFinite(g.mischief)) issue('laugh', 'laugh/mischief out of range');
@@ -91,10 +110,22 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
         if (g.handNote.visible && g.brainIdle) issue('handnote', 'the KICK ME note left in his hand');
         if (g.me.laserOn && !g.me.aiming) issue('laser', 'laser on with nothing held up');
         if (g.me.notesLeft < 0) issue('notes', 'notes left < 0');
+        // Phase 4: off your chair, his desk
+        const me = g.me;
+        if (me.out && !me.carried && me.slipK >= 1 && !g.onFloor(me.pos.x, me.pos.z)) issue('floor', `crawled off the floor to ${me.pos.x.toFixed(2)},${me.pos.z.toFixed(2)}`);
+        if (!(me.slipK >= 0 && me.slipK <= 1) || !isFinite(me.pos.x) || !isFinite(me.pos.z)) issue('slip', 'slip / position out of range');
+        if (me.carried && !g.cutscene) issue('carried', 'carried outside the caught scene');
+        if (g.ending && (me.out || me.slipK > 0)) issue('endout', 'still off the chair at the bell');
+        if (g.glassesAt === 'gone' && T.glasses.visible) issue('glassesSeen', 'stolen glasses still visible');
+        if (g.glassesAt === 'face' && g.halfBlind) issue('halfBlind', 'half blind with his glasses on');
+        sneakT = g.sneakBusy ? sneakT + 0.05 : 0; if (sneakT > 60) issue('sneakBusy', 'sneakBusy stuck > 60 s');
+        sitT = g.sitting ? sitT + 0.05 : 0; if (sitT > 30) issue('sit', 'sitting > 30 s');
+        huntT = g.glassesHunt ? huntT + 0.05 : 0; if (huntT > 60) issue('hunt', 'hunting his glasses > 60 s');
       }
       if (g.state === 'playing') issue('nofinish', `did not finish by ${maxT}s: clock=${document.getElementById('clock-hud').innerText} script=${!!g.script} brainIdle=${g.brainIdle} cut=${g.cutscene} memeBusy=${g.memeBusy} objs=${g.objectives.map((o) => o.id + (o.done ? '+' : '-')).join(' ')}`);
-      const out = { mode, ch, t: +g.t.toFixed(0), end: document.getElementById('end-title').innerText, strikes: g.strikes, memes, throws: g.stats.throws, hitHim: g.stats.hitHim, issues };
+      const out = { mode, ch, t: +g.t.toFixed(0), end: document.getElementById('end-title').innerText, strikes: g.strikes, memes, throws: g.stats.throws, hitHim: g.stats.hitHim, sneaks: g.stats.sneaks, deskThings: g.stats.glasses + g.stats.secrets + g.stats.clocks + g.stats.cushions, issues };
       g.input.keys.talk = g.input.keys.phone = g.input.keys.prank = false;
+      g.input.stopMove();
       if (g.state === 'end' || g.state === 'playing') { g.state = 'title'; g.audio.stopAll(); }
       return out;
     }, [mode, ch, lazy, hard]);

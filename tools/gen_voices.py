@@ -625,6 +625,43 @@ MEMES.update({
     "k_bl_what": ("What? Me?", "What?! Me?!", ""),
 })
 
+# ---------------- Phase 4 (src/sneak.js): off your chair, his desk (glasses, laptop, clock, chair).
+TEACHER.update({
+    "t_sn_hmm": "Hmm?",
+    "t_sn_where": "Where | did you | go?",
+    "t_sn_back": "Back | to your | seat.",
+    "t_sn_seat": "You do not | leave | your seat.",
+    "t_sn_mine": "And these | are | mine.",
+    "t_sn_spare": "My | spare | pair.",
+    "t_sn_hear": "I can | still | hear you.",
+    "t_sn_time": "That | is not | the time.",
+    "t_sn_whodid": "Who | did | this?",
+})
+SUBS.update({
+    "t_sn_hmm": "Hm?",
+    "t_sn_where": "Where... did you... go?",
+    "t_sn_back": "Back... to your... seat.",
+    "t_sn_seat": "You do not... leave... your seat.",
+    "t_sn_mine": "And these... are... mine.",
+    "t_sn_spare": "My... spare... pair.",
+    "t_sn_hear": "I can... still... hear you.",
+    "t_sn_time": "That... is not... the time.",
+    "t_sn_whodid": "Who... did... this?",
+})
+SAM.update({
+    "s_sn_go": "Bro. Where are you going?",
+    "s_sn_down": "Get down! He's looking!",
+    "s_sn_glasses": "You took his glasses? Bro.",
+    "s_sn_left": "He left his glasses on the desk. Go. Go!",
+    "s_sn_cushion": "Oh no. Oh no no no. I can't breathe.",
+})
+NORA.update({
+    "n_sn_give": "His laptop knows what he is. Sneak over there while he isn't looking.",
+    "n_sn_hide": "Get down! Behind the desks!",
+    "n_sn_back": "Get back to your seat! Now!",
+    "n_sn_hale": "Those are Mister Hale's glasses. Take them back.",
+})
+
 # Voices inside the meme clips on the phones: (espeak voice, speed, pitch, rubberband pitch, text)
 CLIPV = {
     "v_br_pencil": ("it", 125, 30, 0.86, "Matitino Gommarino!"),

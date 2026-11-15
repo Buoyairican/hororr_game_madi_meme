@@ -11,11 +11,12 @@ import { EventMixin } from './events.js';
 import { QuirkMixin } from './quirks.js';
 import { SlangMixin } from './slang.js';
 import { BlameMixin } from './blame.js';
+import { SneakMixin } from './sneak.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
   FREE_LENGTH, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
-  QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, PRANK, QUIRKS, EVENTS, SLANG, NOTE, mock, clockLabel,
+  QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, PRANK, QUIRKS, EVENTS, SLANG, NOTE, SNEAK, mock, clockLabel,
 } from './data.js';
 
 const CALM = 0.85;           // he walks slowly unless he is angry
@@ -39,7 +40,7 @@ const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3
 // what he says when he catches you, by what you did (noise: one of three)
 const BUST_LINE = {
   echo: 't_iknow', questions: 't_toomany', note: 't_readnote', video: 't_nophones', prank: 't_paper',
-  lie: 't_bl_lie', confess: 't_iknow', laser: 't_lz_give', kickme: 't_bl_watch',
+  lie: 't_bl_lie', confess: 't_iknow', laser: 't_lz_give', kickme: 't_bl_watch', seat: 't_sn_seat',
 };
 
 function wpick(list) {
@@ -98,6 +99,7 @@ export class Game {
     this.setupPranks();
     this.setupEvents();
     this.setupBlame();
+    this.setupSneak();
     this.reset('free', 0);
   }
 
@@ -127,6 +129,7 @@ export class Game {
       // the laser pointer, the KICK ME notes, "Who did it?" (src/blame.js)
       tool: null, laserOn: false, laserHit: null, laserT: 0, eyesT: 0, lastEyes: -99, notesLeft: NOTE.perClass, watchedT: 0, lastGlare: -99, confessions: 0, lies: 0 });
     p.prankKind = p.prankKind || 'ball';
+    this.resetSneakPlayer(p); // off your chair (src/sneak.js)
   }
   removePlayer(id) {
     const p = this.players.find((x) => x.id === id);
@@ -172,7 +175,8 @@ export class Game {
     this.nextCall = 18; this.nextBuzz = 30; this.nextScare = 36; this.nextWipe = 50;
     this.scareDone = {}; this.lastScare = {};
     this.notesGiven = 0;
-    this.stats = { caught: 0, talk: 0, phone: 0, echoes: 0, questions: 0, memes: 0, videos: 0, fails: 0, throws: 0, hits: 0, hitHim: 0, kickme: 0, paws: 0, blamed: 0 };
+    this.stats = { caught: 0, talk: 0, phone: 0, echoes: 0, questions: 0, memes: 0, videos: 0, fails: 0, throws: 0, hits: 0, hitHim: 0, kickme: 0, paws: 0, blamed: 0,
+      sneaks: 0, glasses: 0, secrets: 0, cushions: 0, clocks: 0 };
     this.track.reset(); this.closeArm = null;
     this.talk = null; this.buzz = null; this.phoneUpTime = 0; this.phoneScares = 0; this.noteLatch = false;
     this.noise = 0; this.watching = false; this.near = false; this.blind = false; this.typing = false;
@@ -224,6 +228,7 @@ export class Game {
     this.resetVideos();
     this.resetPranks();
     this.resetBlame();
+    this.resetSneak();
     // a different teacher every class: this class's events and quirks, from one seeded setup
     this.setup = this.makeSetup(mode, chapter);
     this.track.global.seed = this.setup.seed;
@@ -308,6 +313,7 @@ export class Game {
     for (const c of this.allKids()) { c.attend = att; c.update(dt); }
     for (const k in this.world.dynamicChairs) this.world.dynamicChairs[k].update(dt, this.t);
     this.updateWatching();
+    this.updateSneakSight(dt); // (off your chair: what he sees of where you really are)
     this.phone.clock = this.clockText();
     this.updateShows(dt);
     if (!this.cutscene) this.updateActions(dt);
@@ -320,6 +326,8 @@ export class Game {
     this.updatePrankVisuals(dt);
     this.updateBlame(dt);
     this.blameVisuals(dt);
+    this.updateSneak(dt);
+    this.sneakVisuals(dt);
     this.updateEvents(dt);
     this.updateQuirks(dt);
     this.updateSlang(dt);
@@ -362,13 +370,17 @@ export class Game {
     const c = this.clock;
     if (c.fixed !== null) this.clockMin = c.fixed;
     else this.clockMin = c.from + clamp((this.t - c.t0) / c.dur, 0, this.mode === 'free' ? 1 : 0.985) * (c.to - c.from);
+    if (this.clockAhead) this.clockMin = Math.min(c.to, this.clockMin + this.clockMinutes()); // (Free Class: somebody moved the clock forward)
   }
 
   // ------------------------------------------------------------- camera
   updateLook(dt) {
     const d = this.input.consume();
     if (!this.camOverride) {
-      this.yaw = clamp(this.yaw + d.yaw, -2.85, 2.85);
+      // (on the floor you can turn all the way round; back on your chair you turn back to the front)
+      if (this.me.out) this.yaw = wrapAngle(this.yaw + d.yaw);
+      else if (Math.abs(this.yaw) > 2.86) this.yaw = damp(this.yaw, clamp(this.yaw, -2.85, 2.85), 6, dt);
+      else this.yaw = clamp(this.yaw + d.yaw, -2.85, 2.85);
       this.pitch = clamp(this.pitch + d.pitch, -1.1, 1.05);
     }
     this.applyCamera(dt);
@@ -376,7 +388,8 @@ export class Game {
 
   applyCamera(dt) {
     const cam = this.camera;
-    const ex = this.me.eye;
+    const sneaking = this.me.slipK > 0; // off your chair (src/sneak.js): your eyes are where you are
+    const ex = sneaking ? this.sneakEye(this.me, this.eyeTmp) : this.me.eye;
     const o = this.camOverride;
     if (o) {
       o.t += dt;
@@ -398,7 +411,10 @@ export class Game {
     const wantFov = this.vidZoom && !o ? Math.min(this.baseFov, 30) : this.baseFov;
     if (Math.abs(cam.fov - wantFov) > 0.05) { cam.fov = damp(cam.fov, wantFov, 6, dt); cam.updateProjectionMatrix(); }
     cam.updateMatrixWorld(true);
-    this.camPos.copy(cam.position);
+    this.me.view.copy(cam.position);
+    // everything he does looks at your chair (camPos): off it, he only finds you by seeing you (me.view)
+    if (sneaking && !o) { const e = this.me.eye; this.camPos.set(e.x - Math.sin(this.yaw) * 0.07, e.y, e.z + (1 - Math.cos(this.yaw)) * 0.05); }
+    else this.camPos.copy(cam.position);
     cam.getWorldDirection(this.camFwd);
   }
 
@@ -414,6 +430,7 @@ export class Game {
     const fwd = T.forward(v3);
     const present = this.present && T.root.visible;
     const canSee = present && W.master > 0.3 && this.blackout < 0.5 && !this.blind && !this.typing && !this.dozing && !this.dancing;
+    const blur = this.halfBlind ? SNEAK.glasses.halfSee : 99; // (without his glasses he only sees what is close)
     for (const p of this.players) {
       if (!p.local) {
         // a friend's camera: their seat and where they are looking
@@ -422,13 +439,13 @@ export class Game {
       } else { p.yaw = this.yaw; p.pitch = this.pitch; }
       v4.subVectors(p.camPos, head).normalize();
       p.dist = head.distanceTo(p.camPos);
-      p.lookDot = canSee ? fwd.dot(v4) : -1;
+      p.lookDot = canSee && p.dist < blur ? fwd.dot(v4) : -1;
       p.watching = p.lookDot > 0.55;
       p.near = present && p.dist < 2.6 && !this.blind;
     }
     const me = this.me;
     this.teacherDist = me.dist; this.watching = me.watching; this.near = me.near;
-    this.lookingAtTeacher = present && this.lookingAt(head, 0.84);
+    this.lookingAtTeacher = present && me.slipK <= 0 && this.lookingAt(head, 0.84);
     this.lookingAtBoard = this.lookingAt(this.boardCenter, 0.72);
   }
 
@@ -455,30 +472,37 @@ export class Game {
     const pressed = inp.takePressed();
     let blocked = false;
     // a note is open: pressing a key folds it away (needed with pointer lock)
-    if (ui.noteOpen && (inp.talk || inp.phone || pressed.echo || pressed.ask)) { ui.closeNote(); this.noteLatch = true; blocked = true; }
+    // (not the E you are still holding from reading his laptop: noteHold, src/sneak.js)
+    if (this.noteHold && !inp.talk) this.noteHold = false;
+    if (ui.noteOpen && !this.noteHold && (inp.talk || inp.phone || pressed.echo || pressed.ask)) { ui.closeNote(); this.noteLatch = true; blocked = true; }
     if (this.noteLatch && !inp.talk && !inp.phone) this.noteLatch = false;
     blocked = blocked || ui.noteOpen || this.noteLatch || !!this.choice;
+    // off your chair (src/sneak.js): C, crawling, his desk; nothing else while you are on the floor
+    const away = this.localSneak(dt, inp, pressed, blocked);
     // pranks: hold G to aim a paper, let go to throw (while aiming, the other keys work the paper)
-    const throwReq = this.localPrank(dt, inp, pressed, blocked, this.prankOpen());
+    const throwReq = this.localPrank(dt, inp, pressed, blocked || away, this.prankOpen());
     if (throwReq) { if (throwReq.note) this.stickNote(me); else this.throwFrom(me, throwReq); }
     const aiming = me.aiming = !!me.aim;
     me.tool = aiming ? me.aim.kind : null;
-    if (aiming || (!blocked && inp.phone)) { /* with the phone up, R and T are phone buttons */ }
+    if (away || aiming || (!blocked && inp.phone)) { /* with the phone up, R and T are phone buttons */ }
     else if (!blocked && pressed.echo && !this.canEcho(me) && this.allowEcho && !this.lockBully) ui.hint('Repeat him right after he says something.', 2.5);
-    if (!aiming && !blocked && !inp.phone && pressed.ask && !this.canAsk(me) && this.allowAsk && me.qBusy) ui.hint('Wait for him to answer first.', 2.5);
-    this.playerActs(me, blocked || aiming ? { talk: false, phone: false, echo: false, ask: false, tap: false } : { talk: inp.talk && !me.talkLatch, phone: inp.phone, echo: pressed.echo, ask: pressed.ask, tap: pressed.tap }, dt);
+    if (!away && !aiming && !blocked && !inp.phone && pressed.ask && !this.canAsk(me) && this.allowAsk && me.qBusy) ui.hint('Wait for him to answer first.', 2.5);
+    this.playerActs(me, blocked || aiming || away ? { talk: false, phone: false, echo: false, ask: false, tap: false } : { talk: inp.talk && !me.talkLatch, phone: inp.phone, echo: pressed.echo, ask: pressed.ask, tap: pressed.tap }, dt);
     // friends playing over the network
     for (const p of this.players) {
       if (p.local) continue;
       // with their phone up, R means "show this video" and T switches apps on their own screen
       const a = { talk: p.in.talk, phone: p.in.phone, echo: p.in.phone ? !!p.in.show : p.in.echo, ask: p.in.phone ? false : p.in.ask, tap: false };
       p.in.echo = p.in.ask = p.in.show = false;
-      p.aiming = !!p.in.aim && this.prankOpen() && !p.choice;
+      this.remoteSneak(p, dt); // off their chair: where they crawl
+      const off = p.out || p.slipK > 0;
+      p.aiming = !!p.in.aim && this.prankOpen() && !p.choice && !off;
       p.tool = p.aiming ? p.in.aimKind || 'ball' : null;
-      if (p.choice || p.aiming) a.talk = a.phone = a.echo = a.ask = false;
+      if (p.choice || p.aiming || off) a.talk = a.phone = a.echo = a.ask = false;
       this.playerActs(p, a, dt);
     }
     this.noise = me.noise;
+    if (away) { ui.phoneControls('out', this.input.touch); return; } // (localSneak wrote the prompt)
     const aim = this.aimFriend(me);
     let pr = '';
     if (aiming) pr = this.aimLabel;
@@ -1153,7 +1177,7 @@ export class Game {
     if (a >= 100) { this.bust('noise', this.focus); return; }
     if (!this.lockBully && !this.choice && !this.eventLock) { // he warns you first
       // (in a scene with a player, chasing the red dot or asking "Who did it?", he only glares: the scene goes on)
-      const inScene = this.blameBusy || this.cat;
+      const inScene = this.blameBusy || this.cat || this.sneakBusy;
       if (a >= 70 && !fl.r70) { fl.r70 = fl.r40 = true; if (inScene) this.fx.push(this.glareWarn()); else this.interrupt(this.reactApproach()); }
       else if (a >= 40 && !fl.r40) {
         fl.r40 = true;
@@ -1198,7 +1222,8 @@ export class Game {
     T.owl = false;
     T.setPose('rest');
     T.moveTarget = null;
-    T.leanTarget = 0; T.stretchTarget = 0; T.rollTarget = 0; T.crouchTarget = 0; T.stanceTarget = 0;
+    T.leanTarget = 0; T.stretchTarget = 0; T.rollTarget = 0; T.crouchTarget = 0; T.stanceTarget = 0; T.footFwdTarget = 0;
+    this.sitting = false;
     if (T.glassesHeld) T.wearGlasses();
     this.blind = false; this.typing = false;
     this.humOn(false);
@@ -1289,12 +1314,12 @@ export class Game {
       if (this.idleKind !== kind) return;
       if (kind === 'patrol') { yield* this.actPatrol(); continue; }
       // his quirks and his new words (src/quirks.js, src/slang.js), when one is due
-      const habit = this.quirkAct() || this.slangAct();
+      const habit = this.quirkAct() || this.slangAct() || this.sneakHabit(); // (his glasses on the desk, his chair: src/sneak.js)
       if (habit) { yield* habit; continue; }
       const p = this.phase;
       const canWipe = this.mode === 'free' || this.chapter >= 2;
       const act = wpick([[5, 'write'], [2.5, 'ponder'], [2, 'lecture'], [0.8 + p * 0.4, 'stare'], [1.4, 'stroll'], [1.1, 'clap'],
-        [this.projAuto || this.world.projector.on ? 0.8 : 0, 'laptop'], [canWipe && this.t > this.nextWipe ? 1.2 : 0, 'wipe'],
+        [this.projAuto || this.world.projector.on ? 0.8 : 0, 'laptop'], [canWipe && this.t > this.nextWipe && this.glassesAt === 'face' ? 1.2 : 0, 'wipe'],
         [this.allowNote && !this.kickNote && this.players.some((q) => q.notesLeft > 0) ? 1.6 : 0, 'aisle']]);
       if (act === 'write') yield* this.actWrite();
       else if (act === 'lecture') yield* this.actLecture();
@@ -1811,11 +1836,13 @@ export class Game {
     this.scareFriends(true);
     let br = null;
     try {
-      if (this.strikes >= this.maxStrikes) { yield* this.jumpscare('caught'); return; }
+      if (this.strikes >= this.maxStrikes) { this.allSeated(); yield* this.jumpscare('caught'); return; }
       A.play('sub_hit', { vol: 0.9 });
       for (const b of W.lights.banks) b.flicker = 0.8;
-      T.lookAt(p.camPos, 10); T.facePoint(p.camPos, 4);
+      const seen = p.slipK > 0 ? p.view : p.camPos; // (off your chair: where you really are)
+      T.lookAt(seen, 10); T.facePoint(seen, 4);
       yield* this.wait(0.5);
+      if (p.out || p.slipK > 0) yield* this.walkBack(p); // he takes you back to your chair first (src/sneak.js)
       const spot = this.deskSpot(p);
       if (T.pos.distanceTo(spot.stand) > 0.45) { // (he may be at your desk already: "Who did it?")
         yield* this.walk(spot.approach.x, spot.approach.z, ANGRY);
@@ -1840,6 +1867,7 @@ export class Game {
         this.videoScare(p);
         yield* this.wait(1.6);
       }
+      if (p.hasGlasses) yield* this.takeBackGlasses(p); // "And these... are mine."
       yield* this.say(BUST_LINE[reason] || pick(['t_hear', 't_see', 't_who']), 0.5);
       yield* this.say(this.strikes === this.maxStrikes - 1 ? 't_last' : 't_detention', 0.6);
       if (this.mp) this.mp.strikeToast(p, this.strikes, this.maxStrikes);
@@ -1847,6 +1875,7 @@ export class Game {
       yield* this.wait(1.0);
     } finally {
       if (br) br.stop(0.4);
+      if (p.out || p.slipK > 0) this.seatNow(p);
       A.fadeBus('amb', 1, 1);
       T.leanTarget = 0; T.crouchTarget = 0; T.stanceTarget = 0; T.setPose('rest');
       T.faceGlow = 0.08; T.eyeGlow = 0.12;
@@ -3014,6 +3043,12 @@ export class Game {
     yield* this.lesson(16);
     // a message from Mr. Hale
     yield* this.haleMessage(touch);
+    // Nora: his laptop knows what he is. Off your chair and over there (src/sneak.js)
+    yield* this.whisper(nora, 'n_sn_give');
+    this.giveSneak();
+    this.addObjective({ id: 'secret', text: 'Sneak to his desk and read his laptop' });
+    this.showHint(touch ? 'Tap <b>SEAT</b> to slip off your chair. Crawl with the <b>stick</b>; desks hide you. <b>SIT</b> at your desk to sit down.'
+      : 'Press <b>C</b> to slip off your chair. Crawl with <b>WASD</b>; desks hide you. <b>C</b> at your desk to sit down.', 9);
     yield* this.eventSlot(1, 22);
     yield* this.beat(() => this.saySomething('t_quietfav'));
     yield* this.whisper(nora, 'n_quietone');
@@ -3023,6 +3058,8 @@ export class Game {
     this.lastScare.behind = this.t;
     yield* this.cmd(() => this.scareBehind(), 1);
     yield* this.lesson(12);
+    // he puts Mr. Hale's glasses down on his desk
+    if (this.glassesAt === 'face') yield* this.beat(() => this.actDeskGlasses());
     // the speaker he tore out speaks again
     this.lockBully = true;
     yield* this.beat(() => this.paClosed(), 2);
@@ -3081,6 +3118,8 @@ export class Game {
   *finale() {
     const T = this.teacher, A = this.audio, sam = this.friend('sam'), nora = this.friend('nora');
     this.lockBully = true;
+    this.allSeated();
+    if (this.glassesAt !== 'face') this.restoreGlasses(); // (his spare pair: the ending needs them on his face)
     this.clock.fixed = 240;
     if (this.buzz) this.resolveBuzz();
     A.play('bell', { pos: new THREE.Vector3(3.5, 2.8, -6.8), vol: 1.2, ref: 3, reverb: 0.4 });
@@ -3193,6 +3232,7 @@ export class Game {
     this.idleKind = 'none';
     this.allowEcho = true; this.allowAsk = true; this.allowPrank = true;
     this.giveTools(); // the laser pointer, KICK ME notes, and "Who did it?" (src/blame.js)
+    this.giveSneak(); // leave your seat (src/sneak.js)
     const touch = this.input.touch;
     const h = this.hintControls();
     h(8, touch ? 'Look at Sam (left) or Nora (right) and hold <b>TALK</b> to whisper. Hold <b>PHONE</b> to play.' : 'Look at Sam or Nora and hold <b>E</b> to whisper. Hold <b>Q</b> to play on your phone.', 7);
@@ -3206,14 +3246,27 @@ export class Game {
       this.showHint(touch ? 'Hold <b>PRANK</b>, tap <b>SWAP</b>: a <b>laser pointer</b> (he chases the dot) and <b>KICK ME</b> notes (when he walks past your desk).'
         : '<b>X</b> also picks a <b>laser pointer</b> (he chases the dot) and <b>KICK ME</b> notes (stick one on when he walks past your desk).', 8);
     });
+    this.timers.after(100, () => {
+      if (this.state !== 'playing' || this.ending) return;
+      this.addObjective({ id: 'secret', text: 'Sneak to his desk and read his laptop' });
+      this.showHint(touch ? 'Tap <b>SEAT</b> to slip off your chair and crawl to <b>his desk</b>: his laptop, his chair, the clock. Desks hide you.'
+        : 'Press <b>C</b> to slip off your chair and crawl (<b>WASD</b>) to <b>his desk</b>: his laptop, his chair, the clock. Desks hide you.', 9);
+    });
+    this.timers.after(150, () => {
+      if (this.state !== 'playing' || this.ending) return;
+      this.addObjective({ id: 'cushion', text: 'Whoopee cushion on his chair' });
+      this.addObjective({ id: 'clock', text: 'Move the clock forward' });
+    });
     this.setObjectives([{ id: 'echo', text: 'Repeat what he says' }, { id: 'ask', text: 'Ask him a dumb question' }, { id: 'video', text: 'Watch a whole meme video' },
       { id: 'prank', text: 'Hit him with a paper ball' }, { id: 'bell', text: 'Survive until 12:30' }]);
     yield* this.cmd(() => this.freeIntro(), 1);
     this.idleKind = 'lesson'; this.memesOn = true;
     this.callsOn = true; this.buzzOn = true; this.scaresOn = true;
     this.eventsOn = true; // today's events start at their times (src/events.js)
-    yield* this.until(() => this.t >= FREE_LENGTH && !this.cutscene);
+    // (the bell rings when the clock says 12:30: sooner if somebody moved it forward)
+    yield* this.until(() => (this.t >= FREE_LENGTH || this.clockMin >= 240) && !this.cutscene);
     this.ending = true;
+    this.allSeated();
     this.interrupt(this.freeEnding());
   }
 
@@ -3274,6 +3327,8 @@ export class Game {
       `Strikes: <b>${this.strikes}/${this.maxStrikes}</b> &nbsp;·&nbsp; ${this.hard ? '<b>HARD</b>' : 'Easy'} &nbsp;·&nbsp; Time: <b>${mins}:${String(secs).padStart(2, '0')}</b>`,
       ...(this.stats.throws ? [`Paper thrown: <b>${this.stats.throws}</b> &nbsp;·&nbsp; Hits on him: <b>${this.stats.hitHim}</b>`] : []),
       ...(this.stats.kickme || this.stats.paws || this.stats.blamed ? [`KICK ME notes: <b>${this.stats.kickme}</b> &nbsp;·&nbsp; Paws at your dot: <b>${this.stats.paws}</b> &nbsp;·&nbsp; Kids you blamed: <b>${this.stats.blamed}</b>`] : []),
+      ...(this.stats.sneaks ? [`Out of your seat: <b>${this.stats.sneaks}</b>× &nbsp;·&nbsp; Glasses stolen: <b>${this.stats.glasses}</b> &nbsp;·&nbsp; Laptop secrets: <b>${this.stats.secrets}</b>`
+        + (this.stats.cushions ? ` &nbsp;·&nbsp; Whoopee cushions: <b>${this.stats.cushions}</b>` : '') + (this.stats.clocks ? ` &nbsp;·&nbsp; Clock moved: <b>${this.stats.clocks}</b>×` : '')] : []),
       ...this.todayLines(),
     ].join('<br>');
   }
@@ -3362,11 +3417,11 @@ export class Game {
   updateHud() {
     const ui = this.ui;
     ui.setScore(this.mischief);
-    ui.setEye(!this.present ? 'away' : this.dozing ? 'asleep' : this.dancing ? 'dance' : this.blind ? 'blind' : this.typing ? 'busy' : this.watching ? 'open' : 'closed');
+    ui.setEye(!this.present ? 'away' : this.dozing ? 'asleep' : this.dancing ? 'dance' : this.blind ? 'blind' : this.typing ? 'busy' : this.watching ? 'open' : this.halfBlind ? 'half' : 'closed');
     ui.setAnger(this.anger);
     ui.setLaugh(this.laugh);
     ui.setStrikes(this.strikes, this.maxStrikes);
-    ui.echoCue(this.canEcho() && !this.vidZoom && !this.input.phone && !this.me.aim ? clamp((this.echoable.until - this.t) / 4, 0, 1) : -1, this.input.touch);
+    ui.echoCue(this.canEcho() && !this.vidZoom && !this.input.phone && !this.me.aim && this.me.slipK <= 0 ? clamp((this.echoable.until - this.t) / 4, 0, 1) : -1, this.input.touch);
     const c = clockLabel(this.clockMin);
     ui.setClock(c.text);
     this.world.clock.set(c.h, c.m, c.s);
@@ -3425,7 +3480,7 @@ export class Game {
   }
 }
 
-Object.assign(Game.prototype, VideoMixin, PrankMixin, LobbyMixin, EventMixin, QuirkMixin, SlangMixin, BlameMixin);
+Object.assign(Game.prototype, VideoMixin, PrankMixin, LobbyMixin, EventMixin, QuirkMixin, SlangMixin, BlameMixin, SneakMixin);
 
 /** is the clip on a phone held out to you at a loud moment? */
 function clipLoud(sh) {

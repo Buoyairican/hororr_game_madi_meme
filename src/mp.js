@@ -46,6 +46,8 @@ class Avatar {
     this.c = new Classmate('player', name, model, world.seats.find((x) => x.row === s.row && x.col === s.col));
     this.c.speed = 9;
     scene.add(this.c.root);
+    this.home = this.c.root.position.clone(); // (their chair: off it, the body crawls on the floor)
+    this.crawled = false;
     this.look = new THREE.Vector3();
     // name tag
     const cv = document.createElement('canvas');
@@ -93,6 +95,18 @@ class Avatar {
   headWorld(out = new THREE.Vector3()) { return this.c.headWorld(out); }
   update(dt, st) {
     const c = this.c;
+    // off their chair (src/sneak.js): on hands and knees where they are (held up by the collar when he carries them)
+    const k = st.slip || 0, r = c.root;
+    if (k > 0.001) {
+      const e = k * k * (3 - 2 * k);
+      this.crawled = true;
+      r.rotation.order = 'YXZ';
+      r.position.set(lerp(this.home.x, st.x, e), lerp(this.home.y, st.carried ? 0.62 : 0.4, e), lerp(this.home.z, st.z, e));
+      r.rotation.set((st.carried ? 0.3 : 1.22) * e, Math.PI + st.yaw * e, 0);
+    } else if (this.crawled) {
+      this.crawled = false;
+      r.position.copy(this.home); r.rotation.order = 'XYZ'; r.rotation.set(0, Math.PI, 0);
+    }
     const head = c.headWorld(_v);
     this.look.set(-Math.sin(st.yaw) * Math.cos(st.pitch), Math.sin(st.pitch), -Math.cos(st.yaw) * Math.cos(st.pitch)).multiplyScalar(3).add(head);
     c.lookTarget = this.look;
@@ -214,11 +228,14 @@ export class MP {
       p.in.ck = Number.isInteger(m.ck) ? m.ck : -1; p.in.cs = Number(m.cs) | 0; p.in.lk = Number(m.lk) | 0;
       p.in.aim = !!m.am; // holding a paper up, ready to throw (or the laser pointer, or a KICK ME note)
       p.in.aimKind = toolName(Number(m.ak) | 0);
+      // off their chair (src/sneak.js): where they crawl (the host checks it), reaching up for the clock
+      p.in.so = !!m.so; p.in.sx = Number(m.sx); p.in.sz = Number(m.sz); p.in.st = Number(m.st) || 0;
     } else if (m.t === 'press') {
       if (m.k === 'echo' || m.k === 'ask' || m.k === 'show') p.in[m.k] = true;
       else if (m.k === 'fail' && !(p.failT > 0.5)) g.phoneFail(p);
       else if (m.k === 'throw') g.throwFrom(p, { yaw: m.y, pitch: m.p, power: m.pw, kind: m.kd === 1 ? 'plane' : 'ball', curve: m.cv });
       else if (m.k === 'note') g.stickNote(p);
+      else if (m.k === 'use') g.deskAct(p, String(m.w)); // his glasses, his laptop, the clock, his chair
     }
     else if (m.t === 'pick') g.pickChoice(Number(m.i), p);
   }
@@ -291,7 +308,10 @@ export class MP {
   hostTick(dt) {
     const g = this.g;
     this.checkSilent();
-    for (const p of g.players) if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: !!p.talk, phone: p.phoneUp, hand: p.handT > 0, aim: p.aiming, tool: p.tool, thr: g.t - p.lastThrow });
+    for (const p of g.players) {
+      if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: !!p.talk, phone: p.phoneUp, hand: p.handT > 0, aim: p.aiming, tool: p.tool, thr: g.t - p.lastThrow,
+        slip: p.slipK, x: p.pos.x, z: p.pos.z, carried: p.carried });
+    }
     if (!this.live()) { this.q = []; return; }
     this.snapT -= dt;
     if (this.snapT <= 0) { this.snapT = SNAP_DT; this.q.push(this.makeSnap()); }
@@ -318,7 +338,7 @@ export class MP {
       W.lights.banks.map((x) => [r2(Math.max(0, x.flicker)), x.dead ? 1 : 0]), [...va(bk.position), r3(bk.rotation.x), r3(bk.rotation.y), r3(bk.rotation.z)]];
     const fx = [r2(g.blackoutTarget), r2(g.blackout), r2(g.shake), r2(g.glitch), r2(g.scareFear), r2(g.redFlash)];
     const P = g.players.map((p) => [p.id, r3(p.yaw), r3(p.pitch), p.talk ? 1 : 0, p.phoneUp ? 1 : 0, p.handT > 0 ? 1 : 0, p.aiming ? 1 : 0, r2(Math.min(9, g.t - p.lastThrow)),
-      p.aiming ? toolCode(p.tool) : 0, p.notesLeft | 0]);
+      p.aiming ? toolCode(p.tool) : 0, p.notesLeft | 0, ...g.sneakRow(p)]);
     return {
       t: 's', T: tt, b, K, w, fx, P,
       ck: r2(g.clockMin), ph: g.phase, a: Math.round(g.anger), s: g.strikes, ms: g.maxStrikes, m: Math.floor(g.mischief),
@@ -331,6 +351,8 @@ export class MP {
       ev: g.eventSnap(),
       // Phase 3: the laser and the note (1) / (2) in your hands; the note on his back, everyone's red dot
       tl: (g.allowLaser ? 1 : 0) | (g.allowNote ? 2 : 0), bm: g.blameSnap(),
+      // Phase 4: his glasses (on, on the desk, gone), half blind, the cushion, the clock, leaving your seat allowed, sitting
+      sn: g.sneakSnap(),
     };
   }
 
@@ -549,6 +571,7 @@ export class MP {
     g.syncPapers(s.pj);
     g.applyEventSnap(s.ev);
     g.applyBlameSnap(s.bm);
+    g.applySneakSnap(s.sn);
     // classmates
     const kids = g.allKids();
     s.K.forEach((row, i) => {
@@ -580,13 +603,14 @@ export class MP {
     g.shake = Math.max(g.shake, fx[2]); g.glitch = Math.max(g.glitch, fx[3]); g.scareFear = Math.max(g.scareFear, fx[4]); g.redFlash = Math.max(g.redFlash, fx[5]);
     // the other players
     for (const row of s.P) {
-      if (row[0] === this.myId) { g.me.notesLeft = Number(row[9]) | 0; continue; }
+      if (row[0] === this.myId) { g.me.notesLeft = Number(row[9]) | 0; g.applyMySneak(row.slice(10)); continue; }
       const p = g.players.find((q) => q.id === row[0]);
       if (!p) continue;
       p.yaw = row[1]; p.pitch = row[2]; p.netTalk = !!row[3]; p.phoneUp = !!row[4]; p.netHand = !!row[5];
       const age = Number(row[7]);
       p.netAim = !!row[6]; p.netThrAt = g.t - (Number.isFinite(age) && row[7] !== null ? age : 9);
       p.netTool = toolName(Number(row[8]) | 0);
+      g.applyOtherSneak(p, row.slice(10));
     }
     // the teacher: snap when he teleports, otherwise glide there (see guestTick)
     const t = s.T, T = g.teacher;
@@ -609,7 +633,11 @@ export class MP {
       const att = g.present ? T.headWorld(_v).clone() : null;
       for (const c of g.allKids()) { c.attend = att; c.update(dt); }
       g.world.board.update(dt);
-      for (const p of g.players) if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: p.netTalk, phone: p.phoneUp, hand: p.netHand, aim: p.netAim, tool: p.netTool, thr: g.t - (p.netThrAt ?? -99) });
+      g.sneakVisuals(dt); // (the others' crawling, the cushion, his glasses, your meter)
+      for (const p of g.players) {
+        if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: p.netTalk, phone: p.phoneUp, hand: p.netHand, aim: p.netAim, tool: p.netTool, thr: g.t - (p.netThrAt ?? -99),
+          slip: p.slipK, x: p.pos.x, z: p.pos.z, carried: p.carried });
+      }
       g.updateWatching();
       this.guestShows(dt);
       this.guestActions(dt);
@@ -626,7 +654,8 @@ export class MP {
         const ph = g.phone;
         this.send({ t: 'in', y: r3(g.yaw), p: r3(g.pitch), talk: this.talk ? 1 : 0, ph: this.phoneUp ? 1 : 0,
           pv: this.phoneUp && ph.playing ? 1 : 0, pl: this.phoneUp && ph.loud ? 1 : 0,
-          ck: typeof ph.feed.key === 'number' ? ph.feed.key : -1, cs: ph.feed.seed | 0, lk: this.lookShow || 0, am: g.me.aim ? 1 : 0, ak: g.me.aim ? toolCode(g.me.aim.kind) : 0 });
+          ck: typeof ph.feed.key === 'number' ? ph.feed.key : -1, cs: ph.feed.seed | 0, lk: this.lookShow || 0, am: g.me.aim ? 1 : 0, ak: g.me.aim ? toolCode(g.me.aim.kind) : 0,
+          so: g.me.out ? 1 : 0, sx: r2(g.me.pos.x), sz: r2(g.me.pos.z), st: g.me.standK > 0.3 ? r2(g.me.standY || 1) : 0 });
       }
     }
     if (this.jump && this.jump.next().done) {
@@ -710,18 +739,21 @@ export class MP {
     const g = this.g, inp = g.input, ui = g.ui, me = g.me;
     const pressed = inp.takePressed();
     let blocked = false;
-    if (ui.noteOpen && (inp.talk || inp.phone || pressed.echo || pressed.ask)) { ui.closeNote(); g.noteLatch = true; blocked = true; }
+    if (g.noteHold && !inp.talk) g.noteHold = false; // (the E you still hold from reading his laptop)
+    if (ui.noteOpen && !g.noteHold && (inp.talk || inp.phone || pressed.echo || pressed.ask)) { ui.closeNote(); g.noteLatch = true; blocked = true; }
     if (g.noteLatch && !inp.talk && !inp.phone) g.noteLatch = false;
     blocked = blocked || ui.noteOpen || g.noteLatch || !!this.choice || g.cutscene;
+    // off your chair (src/sneak.js): crawl here, the host checks where you are; nothing else while you are on the floor
+    const away = g.localSneak(dt, inp, pressed, blocked);
     // pranks: aim here, the host throws it (and everything after)
-    const req = g.localPrank(dt, inp, pressed, blocked, g.prankOpen());
+    const req = g.localPrank(dt, inp, pressed, blocked || away, g.prankOpen());
     if (req && req.note) this.send({ t: 'press', k: 'note' });
     else if (req) {
       this.send({ t: 'press', k: 'throw', y: r3(req.yaw), p: r3(req.pitch), pw: r2(req.power), kd: req.kind === 'plane' ? 1 : 0, cv: r2(req.curve) });
       me.foldT = PRANK.fold[req.kind];
     }
     const aiming = !!me.aim;
-    const held = !blocked && !aiming && inp.phone;
+    const held = !blocked && !away && !aiming && inp.phone;
     if (aiming) { /* the other keys work the paper */ }
     else if (held) {
       // the phone's buttons: tap (fly / next video), switch app, show the friend you look at
@@ -729,17 +761,22 @@ export class MP {
       if (pressed.ask) g.phone.switchApp();
       if (pressed.echo) this.send({ t: 'press', k: 'show' });
     } else {
-      if (!blocked && pressed.echo) {
+      if (!blocked && !away && pressed.echo) {
         if (this.ec >= 0) this.send({ t: 'press', k: 'echo' });
         else ui.hint('Repeat him right after he says something.', 2.5);
       }
-      if (!blocked && pressed.ask) this.send({ t: 'press', k: 'ask' });
+      if (!blocked && !away && pressed.ask) this.send({ t: 'press', k: 'ask' });
     }
     this.phoneUp = held;
-    this.talk = !blocked && !aiming && inp.talk && !me.talkLatch && !this.phoneUp;
+    this.talk = !blocked && !away && !aiming && inp.talk && !me.talkLatch && !this.phoneUp;
     g.phone.up = this.phoneUp;
     const aim = g.aimFriend(me);
     let pr = '';
+    if (away) {
+      ui.phoneControls('out', inp.touch); // (localSneak wrote the prompt)
+      if (this.choice) { const k = inp.takeChoice(); if (k >= 0 && k < this.choice.n) this.pick(k); }
+      return;
+    }
     if (aiming) pr = g.aimLabel;
     else if (held) { if (g.phone.mode === 'memes' && aim && !aim.kind) pr = inp.touch ? `tap SHOW · show ${aim.name} this video` : `[R] · show ${aim.name} this video`; }
     else if (aim && !this.talk) pr = inp.touch ? `hold TALK · whisper to ${aim.name}` : `hold [E] · whisper to ${aim.name}`;
@@ -755,11 +792,11 @@ export class MP {
   guestHud() {
     const g = this.g, ui = g.ui;
     ui.setScore(g.mischief);
-    ui.setEye(!g.present ? 'away' : g.dozing ? 'asleep' : g.dancing ? 'dance' : g.blind ? 'blind' : g.typing ? 'busy' : g.watching ? 'open' : 'closed');
+    ui.setEye(!g.present ? 'away' : g.dozing ? 'asleep' : g.dancing ? 'dance' : g.blind ? 'blind' : g.typing ? 'busy' : g.watching ? 'open' : g.halfBlind ? 'half' : 'closed');
     ui.setAnger(g.anger);
     ui.setLaugh(g.laugh);
     ui.setStrikes(g.strikes, g.maxStrikes);
-    ui.echoCue(this.ec >= 0 && !g.cutscene && !g.vidZoom && !this.phoneUp && !g.me.aim ? clamp(this.ec / 4, 0, 1) : -1, g.input.touch);
+    ui.echoCue(this.ec >= 0 && !g.cutscene && !g.vidZoom && !this.phoneUp && !g.me.aim && g.me.slipK <= 0 ? clamp(this.ec / 4, 0, 1) : -1, g.input.touch);
     const c = clockLabel(g.clockMin);
     ui.setClock(c.text);
     g.world.clock.set(c.h, c.m, c.s);
@@ -772,6 +809,7 @@ export class MP {
     const g = this.g, T = g.teacher, W = g.world;
     this.localTeacher = true;
     g.input.enable(false);
+    g.seatNow(g.me); // (off your chair: back on it, he is right in front of you)
     if (this.choice) { this.choice = null; g.ui.closeChoices(); }
     const dir = new THREE.Vector3(g.camFwd.x, 0, g.camFwd.z).normalize();
     const start = 1.3, end = 0.5;

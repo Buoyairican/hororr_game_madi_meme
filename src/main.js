@@ -101,6 +101,8 @@ async function boot() {
   input.bindButton(document.getElementById('btn-prank'), 'prank');
   input.bindTap(document.getElementById('btn-echo'), 'echo');
   input.bindTap(document.getElementById('btn-ask'), 'ask');
+  input.bindTap(document.getElementById('btn-seat'), 'seat'); // off your chair / back on it (src/sneak.js)
+  input.bindStick(document.getElementById('joy'), document.getElementById('joy-knob'));
 
   ui.progress(0.2, 'tuning the whispers&hellip;');
   await audio.load((p) => ui.progress(0.2 + p * 0.78, p < 0.5 ? 'tuning the whispers&hellip;' : 'sharpening the chalk&hellip;'));

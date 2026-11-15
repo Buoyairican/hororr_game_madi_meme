@@ -29,6 +29,12 @@ export const STAT_KEYS = [
   'blamed',      // kids you blamed (and he believed you)
   'confessed',   // times you confessed
   'lies',        // lies he saw through
+  'sneaks',      // times you left your seat
+  'sneakTime',   // seconds off your chair
+  'glasses',     // times you stole his glasses
+  'secrets',     // things you read on his laptop
+  'clocks',      // times you moved the clock forward
+  'cushions',    // whoopee cushions he sat on
 ];
 
 export class RunStats {
