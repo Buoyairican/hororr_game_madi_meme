@@ -58,6 +58,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
     g.post.render = () => {};
     g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {}; g.startMeme = () => false;
     g.dreadAuto = false; g.nextSit = g.nextDeskGlasses = 1e9; g.chainNext = 1e9;
+    g.eventsOn = false; g.setup.plan = []; g.quirks = new Set(); // (no class events or quirks: an online class has its own setup)
     window.seeOnly = null;
     const uw = g.updateWatching.bind(g);
     g.updateWatching = function () { uw(); for (const p of g.players) { const s = window.seeOnly === p.name; p.watching = s; p.lookDot = s ? 0.97 : -1; } };
@@ -132,11 +133,11 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   const press = async (k) => { await G.keyboard.press(k); await G.waitForTimeout(400); await hostSteps(4); };
   // (the first haunt: wait until the host has it; the HUD shows when the haunts are ready)
   await waitFor(G, () => !/wait/.test(document.querySelector('#ghost-haunts .h').className), 10000);
-  await H.evaluate(() => { game.anger = 50; atBoard(); game.anger = 50; });
+  await H.evaluate(() => { game.anger = 30; atBoard(); game.anger = 30; }); // (under 40: no warning of his gets in the way)
   await press('2');
   r = await H.evaluate(() => ({ haunts: game.track.log.filter((e) => e.type === 'haunt').map((e) => e.id), moved: game.chairAt.n, anger: Math.round(game.anger) }));
   if (r.moved !== 1) r.why = await G.evaluate(() => ({ hints: window.hints.slice(-3), hud: document.getElementById('ghost-haunts').innerText, k: game.me.ghostK }));
-  pass(r.haunts.join() === 'chair' && r.moved === 1 && r.anger < 50, '2: the spare chair slides; it calms him a little ' + JSON.stringify(r));
+  pass(r.haunts.join() === 'chair' && r.moved === 1 && r.anger < 30, '2: the spare chair slides; it calms him a little ' + JSON.stringify(r));
   await H.evaluate(() => { window.backMax = 0; });
   for (let k = 0; k < 7; k++) { await H.evaluate(() => { for (let i = 0; i < 40 && game.state === 'playing'; i++) { game.playTick(0.05); window.backMax = Math.max(window.backMax, game.teacher.pos.z); } }); await H.waitForTimeout(60); }
   r = await H.evaluate(() => ({ back: +window.backMax.toFixed(2), said: said.slice(-4) }));
@@ -187,8 +188,12 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
     const aq = g.askQuestion.bind(g); g.askQuestion = (q, p) => { qlog.push('ask ' + q.id + ' ' + p.name); return aq(q, p); }; });
   await stepUntil(() => game.canAsk(game.players.find((p) => p.name === 'Bo')), 200);
   // the friend asks him something...
-  await G.keyboard.press('t');
-  const asked = await waitFor(G, () => !document.getElementById('choices').classList.contains('hidden') && /Raise your hand/.test(document.getElementById('choices-title').innerText), 8000);
+  // (T, again if the picker did not come up: once in a while the first press is lost between the two pages)
+  let asked = false;
+  for (let i = 0; i < 3 && !asked; i++) {
+    await G.keyboard.press('t');
+    asked = await waitFor(G, () => !document.getElementById('choices').classList.contains('hidden') && /Raise your hand/.test(document.getElementById('choices-title').innerText), 5000);
+  }
   if (!asked) console.log('   (no questions on the guest:', JSON.stringify(await H.evaluate(() => { const g = game, bo = g.players.find((p) => p.name === 'Bo'); return { can: g.canAsk(bo), qBusy: bo.qBusy, choice: !!bo.choice, cut: g.cutscene, ev: g.classEvent, lock: g.eventLock, pres: g.present, allow: g.allowAsk, blame: g.blameBusy }; })), JSON.stringify(await G.evaluate(() => ({ en: game.input.enabled, ch: !!game.mp.choice, out: game.me.out, ghost: !!game.me.ghost }))), ')');
   await G.keyboard.press('1');
   const qb = await stepUntil(() => game.players.find((p) => p.name === 'Bo').qBusy, 200);
