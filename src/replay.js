@@ -206,13 +206,16 @@ export const ReplayMixin = {
   noteEvent(e, p) {
     if (this.state !== 'playing' || this.role === 'guest') return;
     for (const N of HALE_NOTES) {
-      const f = N.find, type = f.event || f.classEvent;
-      if (!type || e.type !== type) continue;
-      let ok = true;
-      for (const k in f) if (k !== 'event' && k !== 'classEvent' && e[k] !== f[k]) ok = false;
-      if (!ok) continue;
-      if (f.classEvent) { if (!this.noteClass.has(N.n)) { this.noteClass.add(N.n); for (const q of [...this.players]) this.giveHaleNote(q, N.n); } }
-      else if (p) this.giveHaleNote(p, N.n);
+      // (`alt`: a second way to find the same note, e.g. taking his glasses from his desk)
+      for (const f of N.alt ? [N.find, N.alt] : [N.find]) {
+        const type = f.event || f.classEvent;
+        if (!type || e.type !== type) continue;
+        let ok = true;
+        for (const k in f) if (k !== 'event' && k !== 'classEvent' && e[k] !== f[k]) ok = false;
+        if (!ok) continue;
+        if (f.classEvent) { if (!this.noteClass.has(N.n)) { this.noteClass.add(N.n); for (const q of [...this.players]) this.giveHaleNote(q, N.n); } }
+        else if (p) this.giveHaleNote(p, N.n);
+      }
     }
   },
 

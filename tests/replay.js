@@ -67,6 +67,14 @@ const { chromium, ROOT, GL, shot } = require('./lib');
       const sp = D.DAILY.specials.find((x) => x.id === a.special);
       const base = R.dailyScore({ survived: 1 }, a), plus = R.dailyScore({ survived: 1, [sp.keys[0]]: 1 }, a);
       const pts = D.DAILY.score.find((x) => x[0] === sp.keys[0])[1] * (a.difficulty === 'hard' ? D.DAILY.hardBonus : 1);
+      // Phases 3-5 on the card: blame, sneaking, his desk, the dread
+      const ph = R.makeCard({ blamed: 2, lies: 1, glasses: 1, sneaks: 2, sneakTime: 30, secrets: 2, clocks: 1, paws: 1, breath_hold: 2, dread_spotted: 1 });
+      const sub = (c, n) => c.subjects.find((s) => s.name === n);
+      const phases = { beh: sub(ph, 'Behaviour'), gym: sub(ph, 'Gym'), drama: sub(ph, 'Drama'), sci: sub(ph, 'Science'), media: sub(ph, 'Media Studies'), n: ph.subjects.length, honest: sub(R.makeCard({ confessed: 1 }), 'Behaviour').score };
+      // note 8 also comes from taking his glasses from his desk (Phase 4)
+      const g8 = game, had8 = !!(g8.me.noteGot && g8.me.noteGot.has(8));
+      g8.track.event(g8.t, g8.me, 'glasses');
+      phases.note8 = !had8 && g8.me.noteGot.has(8);
       const r1 = U.seededRng(42), r2 = U.seededRng(42), r3 = U.seededRng(43);
       const s1 = [r1(), r1(), r1()], s2 = [r2(), r2(), r2()], s3 = [r3(), r3(), r3()];
       return { emptyGrade: empty.grade, emptyN: empty.subjects.length, oddOk: odd.subjects.every((s) => Number.isFinite(s.score)) && odd.subjects[0].score === 28,
@@ -74,11 +82,19 @@ const { chromium, ROOT, GL, shot } = require('./lib');
         good: good.grade, hard: hard.score, easy: easy.score, bonus: D.REPORT.hardBonus,
         seed: a.seed, same: JSON.stringify(a) === JSON.stringify(a2), hardDays: days.filter((d) => d.difficulty === 'hard').length, specials: new Set(days.map((d) => d.special)).size,
         seeds: new Set(days.map((d) => d.seed)).size, doubled: Math.abs(plus - base - Math.round(2 * pts)) <= 1,
-        rng: JSON.stringify(s1) === JSON.stringify(s2) && JSON.stringify(s1) !== JSON.stringify(s3) && s1.every((x) => x >= 0 && x < 1), hash: U.hashStr('a') !== U.hashStr('b') && U.hashStr('abc') === U.hashStr('abc') };
+        phases, rng: JSON.stringify(s1) === JSON.stringify(s2) && JSON.stringify(s1) !== JSON.stringify(s3) && s1.every((x) => x >= 0 && x < 1), hash: U.hashStr('a') !== U.hashStr('b') && U.hashStr('abc') === U.hashStr('abc') };
     })();`));
   pass(!r.error && r.emptyGrade === 'F' && r.emptyN === 7, 'report card: no stats at all is an F in 7 subjects ' + JSON.stringify(r.error || [r.emptyGrade, r.emptyN]));
   pass(!r.error && r.oddOk, 'report card: counters that do not exist (blames, crawling, breath holds) are simply worth nothing');
   pass(!r.error && r.before === 50 && r.after.score === 80 && /Blamed 3 classmates/.test(r.after.comment), 'report card: a row added for a new counter grades it, with its comment ' + JSON.stringify(r.after));
+  {
+    const P = r.phases || {};
+    pass(!r.error && P.n === 7 && P.beh.score === 92 && /Blamed 2 classmates/.test(P.beh.comment) && P.gym.score === 25 && /Left their seat 2 times/.test(P.gym.comment)
+      && P.drama.score === 28 && /Held their breath 2 times/.test(P.drama.comment) && P.sci.score === 22 && /clock/.test(P.sci.comment) && P.media.score === 20 && /laptop/.test(P.media.comment),
+      'report card: blaming, sneaking, his desk and the dread (Phases 3-5) are graded too ' + JSON.stringify(r.error || P));
+    pass(!r.error && P.honest === 44, 'report card: telling him the truth takes a little off Behaviour');
+    pass(!r.error && P.note8, 'note 8 ("my spare glasses are missing") also comes from taking his glasses from his desk');
+  }
   pass(!r.error && r.good === 'A' && r.hard === r.easy + r.bonus, `report card: lots of mischief is an A; Hard adds ${r.bonus} points (${r.easy} -> ${r.hard})`);
   pass(!r.error && r.seed === 20261114 && r.same && r.seeds === 28, 'daily: the class seed is the UTC date as one number (2026-11-14 -> 20261114), the same every time');
   pass(!r.error && r.hardDays > 2 && r.hardDays < 20 && r.specials >= 4, `daily: the day picks Easy or Hard and a special (February: ${r.hardDays} Hard days, ${r.specials} different specials)`);
@@ -173,6 +189,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
 
   r = await run('mode=free', new Function(H + `
     quiet(); step(240); blind(true); atBoard(); step(10);
+    g.allowBlame = false; // his own reactions only: "You. Who did it?" (Phase 3) is tested in blame.js
     const T = g.teacher, out = {}, me = g.me, said = [];
     const say0 = g.teacherSay.bind(g); g.teacherSay = (id, v) => { said.push(id); return say0(id, v); };
     const at = (pt, kind, sp = 9) => { const from = pt.clone().add(new V(0.1, 0.1, 1.2)); return g.spawnPaper(me, null, kind, from, pt.clone().sub(from).normalize().multiplyScalar(sp), 0); };

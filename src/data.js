@@ -508,20 +508,34 @@ export const REPORT = {
     ['Whispering', 'talk', 0.7, 30, '{n} seconds of talking. In my class... nobody talks.'],
     ['Whispering', 'notes', 9, 27, 'Reads notes. Notes... are not... the lesson.'],
     ['Drama', 'echoes', 24, 96, 'Repeated me {n} times. Repeated me... {n} times.'],
+    ['Drama', 'breath_hold', 10, 30, 'Held their breath {n} times. I heard... nothing.'],          // Phase 5
+    ['Drama', 'dread_spotted', 8, 24, 'Turned around {n} times. Just as I... got close.'],
     ['Science', 'questions', 24, 96, 'Asked {n} questions. Water... is dry.'],
+    ['Science', 'paws', 10, 30, 'Made me chase a red dot. I am... not... a cat.'],                // Phase 3
+    ['Science', 'clocks', 12, 24, 'Moved my clock. Time... does not... go faster.'],               // Phase 4
     ['Media Studies', 'videos', 22, 88, 'Watched {n} videos. None of them... were the lesson.'],
     ['Media Studies', 'shown', 12, 36, 'Showed {n} videos to the class. Nobody... showed me.'],
     ['Media Studies', 'phone', 0.4, 24, '{n} seconds on a phone. No... phones.'],
     ['Media Studies', 'fails', 8, 16, 'A very loud phone. {n} times.'],
     ['Media Studies', 'psst', 5, 20, 'Passed {n} notes. On a phone. In my class.'],
+    ['Media Studies', 'secrets', 10, 30, 'Read {n} things on my laptop. Those... are mine.'],       // Phase 4
     ['Gym', 'hitHim', 26, 78, 'Hit me with paper {n} times. I... counted.'],
     ['Gym', 'hits', 7, 35, '{n} hits. Paper... is for... writing.'],
     ['Gym', 'throws', 3, 21, 'Threw {n} things. Missed... most of them.'],
     ['Gym', 'glassesOff', 14, 28, 'My glasses fell off {n} times. Strange.'],
     ['Gym', 'soaked', 16, 32, 'I am... still... wet.'],
     ['Gym', 'trickShots', 12, 24, 'A rubber band came off the wall. Geometry.'],
+    ['Gym', 'sneaks', 8, 24, 'Left their seat {n} times. Sit... down.'],                            // Phase 4
+    ['Gym', 'sneakTime', 0.3, 18, '{n} seconds on the floor. The floor... is not... a seat.'],
     ['Behaviour', 'closeCalls', 14, 42, 'Almost caught {n} times. Almost.'],
     ['Behaviour', 'objectives', 9, 36, 'Finished {n} tasks. None of them... were mine.'],
+    ['Behaviour', 'blamed', 10, 30, 'Blamed {n} classmates. It was... you.'],                      // Phase 3
+    ['Behaviour', 'lies', 8, 24, 'Lied to me {n} times. I... remember.'],
+    ['Behaviour', 'kickme', 10, 20, 'A note... on my back. I... found it.'],
+    ['Behaviour', 'confessed', -6, 12, 'Told me the truth. Strange.'],
+    ['Behaviour', 'glasses', 14, 28, 'Took my glasses. I saw... nothing.'],                         // Phase 4
+    ['Behaviour', 'cushions', 12, 24, 'My chair... made a noise. {n} times.'],
+    ['Behaviour', 'woke', 10, 20, 'Woke me up. I was... thinking.'],
     ['Behaviour', 'caught', -30, 90, 'Caught {n} times. I... see you.'],
     ['Attendance', 'survived', 70, 70, 'Stayed until the bell. Nobody... leaves early.'],
     ['Attendance', 'minutes', 6, 30, 'Lasted {n} minutes. Then... detention.'],
@@ -597,7 +611,7 @@ export const HALE_NOTES = [
     text: 'My lesson plan is gone from my desk. Page 47 is torn out of every book. He is studying my class. I think he wants it.' },
   { n: 7, title: 'Thursday, later', find: { event: 'question', q: 'name' }, hint: 'Ask him his first name.',
     text: 'He knows nothing by himself. He has to look everything up, and he hates it. Ask him something he cannot find, and he just... stops. Remember that.' },
-  { n: 8, title: 'Thursday night', find: { event: 'hit', target: 'teacher', part: 'head' }, hint: 'Knock his glasses off.',
+  { n: 8, title: 'Thursday night', find: { event: 'hit', target: 'teacher', part: 'head' }, alt: { event: 'glasses' }, hint: 'Knock his glasses off. Or take them from his desk.',
     text: 'My spare glasses are missing from the drawer. I think he believes the glasses are what make a teacher. Without them, I don\'t think he can see a class at all.' },
   { n: 9, title: 'Friday', find: { look: 'kevin', sec: 2.5 }, hint: 'Kevin\'s desk is empty. Look at it for a while.',
     text: 'Kevin stayed after class to ask about his grade. I went to the office for five minutes. When I came back, the closet door was shut and Kevin\'s desk was empty.' },

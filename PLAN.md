@@ -266,6 +266,17 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   score). A best score per day, DAILY CLASS in the menu with today's date and your best, DAILY in the
   host's lobby. `seededRng` and `hashStr` in `src/util.js`.
   Tests: `tests/replay.js`, `tests/replay_touch.js`, `tests/secrets.js`, `tests/mp_replay.js`.
+- Built in another session without Phases 2-5, then merged on top of them here. To fit them: the
+  report card grades Phases 3-5 too (new `REPORT.rows`: `blamed`, `lies`, `kickme`, `confessed` (a
+  little off), `glasses`, `cushions`, `woke` in Behaviour; `sneaks`, `sneakTime` in Gym; `paws`,
+  `clocks` in Science; `secrets` in Media Studies; `breath_hold`, `dread_spotted` in Drama; still seven
+  subjects). Phase 4's laptop texts are `LAPTOP_SECRETS` (the endings keep `SECRETS`). X / SWAP cycles
+  every tool you have: paper ball, plane, the unlocked pranks, then the laser and the note (`toolKinds`,
+  src/blame.js), with a short tip for each new prank. The water balloon soaks whoever is near across the
+  room (not measured to heads, so a balloon on the floor wets the kid sitting above it). Note 8 ("my
+  spare glasses are missing") also comes from taking his glasses from his desk (`alt` in `HALE_NOTES`:
+  a second way to find a note). The daily seed goes through Phase 2's class setup (`game.setup.seed`):
+  the same events, quirks and plan for everyone that day. One `seededRng` / `hashStr` in `src/util.js`.
 
 ### [ ] Phase 7: Online extras
 - Teamwork missions: one asks a question to distract him while another sneaks to his desk;

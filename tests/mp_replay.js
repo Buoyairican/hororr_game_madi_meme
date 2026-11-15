@@ -30,14 +30,18 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   const today = new Date().toISOString().slice(0, 10);
   const join = async (page, code, name) => {
     // (a busy machine: a page that dies or reloads while it loads is opened once more)
+    // (the name goes in through the page itself: on the third page of this test Playwright's fill()
+    // sometimes never finds the field, although it is there and visible; the JOIN button runs the same code)
     for (let i = 0; i < 3; i++) {
       try {
         await page.goto(BASE + '&join=' + code);
         await page.waitForFunction(() => window.game && !document.getElementById('mp').classList.contains('hidden'), null, { timeout: 240000 });
-        await page.fill('#mp-name', name, { timeout: 15000 });
-        await page.click('#btn-join', { timeout: 15000 });
+        await page.evaluate((n) => { const f = document.getElementById('mp-name'); f.value = n; f.dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('btn-join').click(); }, name);
         return;
-      } catch (e) { console.log(`  (${name}: could not open the join screen, try ${i + 1}: ${String(e.message).split('\n')[0].slice(0, 140)} at ${page.url()})`); }
+      } catch (e) {
+        const seen = await page.evaluate(() => window.game ? { state: game.state, screens: [...document.querySelectorAll('body > *')].filter((x) => getComputedStyle(x).display !== 'none' && !x.classList.contains('hidden')).map((x) => x.id || x.className).join(',') } : 'no game').catch((x) => String(x).slice(0, 80));
+        console.log(`  (${name}: could not open the join screen, try ${i + 1}: ${String(e.message).split('\n').slice(0, 4).join(' | ').slice(0, 400)} at ${page.url()} ${JSON.stringify(seen)})`);
+      }
     }
     throw new Error(name + ' could not open the join screen');
   };
