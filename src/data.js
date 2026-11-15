@@ -564,6 +564,7 @@ export const MIC = {
     refused: 'The browser did not allow the microphone, so this setting is off again. Allow the microphone for this page in your browser, then turn it on once more.',
     missing: 'No microphone was found, so this setting is off again.',
     insecure: 'The microphone only works on a secure (https) page, so this setting is off again.',
+    blocked: 'This page may not use a microphone here (it is shown inside another page), so this setting is off again. Open the game on its own site to use it.',
     failed: 'The microphone could not be started, so this setting is off again.',
     lost: 'The microphone stopped. The setting is off again.',
     hint: 'Your <b>microphone</b> is on: laugh out loud and he hears it for real.',

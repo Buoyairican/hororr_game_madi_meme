@@ -34,12 +34,15 @@ export const MicMixin = {
   resetMicPlayer(p) { p.micRearm = 0; p.micHeard = false; },
 
   /** SETTINGS: turn it on (the browser asks) or off. Resolves to 'on', 'off', or why it could not: 'refused' |
-   *  'missing' | 'insecure' | 'failed' (the keys of MIC.text) */
+   *  'missing' | 'insecure' | 'blocked' | 'failed' (the keys of MIC.text) */
   async micSet(on) {
     const M = this.mic;
     if (!on) { this.micStop(); return 'off'; }
     if (M.on) return 'on';
     if (typeof window !== 'undefined' && window.isSecureContext === false) return 'insecure';
+    // shown inside another page that does not allow a microphone (a preview, an embed): the browser would only say no
+    const fp = document.permissionsPolicy || document.featurePolicy;
+    try { if (fp && typeof fp.allowsFeature === 'function' && !fp.allowsFeature('microphone')) return 'blocked'; } catch (e) { /* no policy to read */ }
     const md = navigator.mediaDevices;
     if (!md || !md.getUserMedia) return window.isSecureContext === false ? 'insecure' : 'missing';
     let stream = null;

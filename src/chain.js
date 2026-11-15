@@ -28,7 +28,7 @@ export const ChainMixin = {
     if (this.role === 'guest' || !this.mp || this.mode !== 'free') return;
     const C = CHAIN, ch = this.chain;
     if (!ch) {
-      if (this.t < this.chainNext) return;
+      if (this.t < this.chainNext || !this.extrasAuto) return;
       // not close to the bell (the clock may have been moved forward)
       if (this.t > FREE_LENGTH - C.stopBefore || this.clockMin > 240 * (1 - C.stopBefore / FREE_LENGTH)) return;
       if (!this.present || this.cutscene || this.ending || this.eventLock || this.lockBully || this.choice) { this.chainNext = this.t + 3; return; }

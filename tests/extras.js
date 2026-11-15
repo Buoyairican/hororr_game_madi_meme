@@ -89,6 +89,8 @@ const { chromium, devices, ROOT, GL, shot } = require('./lib');
   pass(r && !r.checked && /No microphone/.test(r.note), 'no microphone: off again, "No microphone was found"');
   r = await refused(() => { Object.defineProperty(window, 'isSecureContext', { get: () => false }); });
   pass(r && !r.checked && /secure \(https\)/.test(r.note), 'not https: off again, "only works on a secure (https) page"');
+  r = await refused(() => { Object.defineProperty(document, 'featurePolicy', { get: () => ({ allowsFeature: (f) => f !== 'microphone' }) }); Object.defineProperty(document, 'permissionsPolicy', { get: () => undefined }); });
+  pass(r && !r.checked && /its own site/.test(r.note), 'inside a page that allows no microphone (a preview): off again, "Open the game on its own site"');
 
   // ---------------------------------------------------------------- 3. in class, on your own
   page = await open('autostart=1&mode=free&events=none&quirks=none');

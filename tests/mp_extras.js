@@ -168,11 +168,13 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await stepUntil(() => game.brainIdle || !game.blameBusy, 300);
   r = await H.evaluate(() => { const g = game, bo = g.players.find((p) => p.name === 'Bo'); return { n: g.track.of(g.me).blame_friend, watched: bo.watchedT > 0, w: bo.watchedT, said: said.includes('t_bl_friend'), log: g.track.log.filter((e) => e.type === 'blame').map((e) => e.result), busy: g.blameBusy, idle: g.brainIdle }; });
   pass(r.n === 1 && r.watched && r.said, 'he believes it: "Your... friend. Interesting." and watches the friend ' + JSON.stringify(r));
-  pass(await waitFor(G, () => /Alex<\/b> blamed you|Alex blamed you/.test(document.getElementById('hint').innerHTML), 6000), 'guest: "Alex blamed you!"');
+  pass(await waitFor(G, () => window.hints.some((h) => /Alex<\/b> blamed you/.test(h)), 6000), 'guest: "Alex blamed you!"');
   // the friend gets the same choice on their own screen
   await H.evaluate(() => { const g = game; atBoard(); const bo = g.players.find((p) => p.name === 'Bo'); bo.heat = 0; g.interrupt(g.askWhoDidIt(bo, 'prank')); });
   const boAsked = await stepUntil(() => !!game.players.find((p) => p.name === 'Bo').choice, 700);
-  pass(boAsked && await waitFor(G, () => document.querySelectorAll('#choices-list button').length === 4 && /Point at Alex/.test(document.getElementById('choices-list').innerText), 8000), 'guest: four answers on their screen (Point at Alex)');
+  const four = boAsked && await waitFor(G, () => document.querySelectorAll('#choices-list button').length === 4 && /Point at Alex/.test(document.getElementById('choices-list').innerText), 8000);
+  pass(four, 'guest: four answers on their screen (Point at Alex)' + (four ? '' : ' ' + JSON.stringify([boAsked, await H.evaluate(() => { const g = game, bo = g.players.find((p) => p.name === 'Bo'); return { labels: bo.choice && bo.choice.labels, busy: g.blameBusy, said: said.slice(-4), me: { out: g.me.out, ghost: !!g.me.ghost } }; }),
+    await G.evaluate(() => ({ list: document.getElementById('choices-list').innerText.replace(/\n/g, ' | '), hidden: document.getElementById('choices').classList.contains('hidden') }))])));
   await G.keyboard.press('2');
   await stepUntil(() => !game.players.find((p) => p.name === 'Bo').choice && !game.blameBusy, 500);
   await waitFor(G, () => document.getElementById('choices').classList.contains('hidden'), 6000);

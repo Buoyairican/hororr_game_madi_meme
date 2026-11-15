@@ -329,4 +329,7 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   SNIPER, THE SNEAK, THE MAILMAN, THE DECOY...; every title once, the biggest pair first; nobody: THE ANGEL).
   The host sends everybody's numbers; each browser builds the board (only numbers and names are taken).
   The report card also grades `chain_pass`, `blame_friend`, `ghost_haunt`, `team_distract`, `mic_noise`.
-  10 voice lines, 2 sounds (`gen_sfx.py p7`). Tests: `tests/extras.js`, `tests/mp_extras.js`.
+  10 voice lines, 2 sounds (`gen_sfx.py p7`). Tests: `tests/extras.js`, `tests/mp_extras.js`. The online tests of
+  other phases set `game.extrasAuto = false` (no note going round by itself, no ghost after a strike, no decoy
+  hints), like `dreadAuto`; `mp`, `mp_chaos` and the network tests keep them on. In a page that allows no
+  microphone (an embed or a preview: the permissions policy says no) the setting says so and stays off.

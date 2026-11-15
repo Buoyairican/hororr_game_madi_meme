@@ -113,6 +113,7 @@ export class Game {
     this.setupDread();
     this.setupMorePranks(); this.setupSecrets(); this.setupReplay(); // Phase 6: unlocked pranks, the closet, report cards / notes / the daily class
     this.setupGhost(); this.setupMic(); // Phase 7: the ghost kid's corner (the spare chair), the microphone
+    this.extrasAuto = true; // Phase 7 online: the note going round by itself, a ghost after a strike, the decoy hints (tests of other things turn them off)
     this.reset('free', 0);
   }
 

@@ -15,7 +15,7 @@ export const TeamMixin = {
 
   /** host: a friend just left their chair: tell the others in their seats to keep him busy */
   decoyCall(p) {
-    if (!this.mp || this.players.length < 2) return;
+    if (!this.mp || this.players.length < 2 || !this.extrasAuto) return;
     for (const q of this.players) {
       if (q === p || q.out || q.slipK > 0 || q.ghost || this.t < (q.decoyHintAt || 0)) continue;
       q.decoyHintAt = this.t + TEAM.decoy.hintCd;

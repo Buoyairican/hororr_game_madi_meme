@@ -66,7 +66,7 @@ export const GhostMixin = {
 
   /** host / solo, right after a strike (not the last one): online, that player becomes a ghost */
   ghostAfterBust(p) {
-    if (this.role === 'guest' || !this.mp || this.mode !== 'free' || this.state !== 'playing' || this.ending) return;
+    if (this.role === 'guest' || !this.mp || this.mode !== 'free' || this.state !== 'playing' || this.ending || !this.extrasAuto) return;
     if (!this.players.includes(p) || p.ghost || this.strikes >= this.maxStrikes) return;
     if (this.players.filter((q) => q !== p && !q.ghost).length < GHOST.minPlayers - 1) return;
     p.ghost = { t0: this.t, until: this.t + GHOST.time, cd: GHOST.haunts.map(() => 0), out: false };
