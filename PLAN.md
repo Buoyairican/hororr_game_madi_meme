@@ -230,12 +230,53 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   (two may have swapped seats); a breath heard on Hard gets "I can... hear you.". `tests/fuzz.js` holds
   its breath when he leans over and checks the breath, the lean and the creep never get stuck.
 
-### [ ] Phase 6: Reasons to replay (idea 9)
+### [x] Phase 6: Reasons to replay (idea 9)
 - Report card after every class (A to F) built from `game.track`.
 - Unlocks (new pranks, phone themes, a third phone app), 12 hidden Mr. Hale notes and a
   notebook screen, 2 secret endings.
 - Daily challenge: the same events and quirks for everyone that day (seeded setup only, not
   every dice roll), with a best score.
+- Shipped: `src/replay.js` (report card, unlocks, notes, daily class), `src/morepranks.js`, `src/psst.js`,
+  `src/secrets.js`, `src/profile.js` (what the browser keeps: one `localStorage` key, kept in memory
+  when storage is blocked), `src/notebook.js`. Tables in `src/data.js`: `REPORT`, `UNLOCKS`,
+  `PHONE_THEMES`, `PRANK_MORE`, `HALE_NOTES`, `SECRETS`, `DAILY`.
+  **Report card**: its own block on every end screen (`#end-report`; in landscape it sits to the right, so
+  the buttons stay in reach, and there is room for more blocks). Seven subjects, his comment for each,
+  a stamped grade and his line ("A... for... awful." ... "F... for... favorite."). `REPORT.rows` is
+  `[subject, stat key, points each, cap, comment]`: a key nobody counts yet is worth nothing, so later
+  phases just add rows (blames, crawling, breath holds, events). The final grade is the average of the
+  best 4 subjects (+6 on Hard). Online the host sends every player their own numbers and each browser
+  builds its own card (only numbers are trusted from the network).
+  **Unlocks** (8): SPITBALL (a C), RUBBER BAND (3 hits on him in one class), WATER BALLOON (an A), the
+  phone app PSST! (3 classes), four phone themes. Shown on the end screen when earned, listed in the
+  notebook. The pranks join Phase 1's selector through small hooks in `src/pranks.js` (`PAPER_KINDS`,
+  `PAPER_MESH`, `nextPrank`, `morePaperRoom` / `morePaperPerson`), so a friend online can throw what only
+  they unlocked. New counters: `glassesOff`, `soaked`, `trickShots`, `notesFound`; new log events:
+  `text`, `haleNote`, `secret`, `daily`.
+  **Mr. Hale's notes**: 12, each found by something you do in class; the find conditions are the `find`
+  field of `HALE_NOTES` (`look` at a place for some seconds, a `stat`, a class counter, an `event` from
+  the class log, your own phone), so later phases add triggers by adding rows (and places to
+  `NOTE_PLACES`). The host checks them for every player; a note lands in that player's own browser.
+  **Secret endings**: CLASS CANCELLED (Free Class, also online: three papers on his head break his
+  glasses) and MR. HALE (story: after the true ending something knocks at the back; look at the supply
+  closet and knock three times with E / TALK). The closet door is new in the room (right wall, at the back).
+  **Daily class**: the seed is the UTC date as a number (`20261114`), passed as `opts.seed` to
+  `game.start(mode, chapter, opts)` (stored as `game.nextSetup`, which Phase 2 turns into `game.setup`).
+  From the seed: Easy or Hard, and today's special (a group of counters worth double in the daily
+  score). A best score per day, DAILY CLASS in the menu with today's date and your best, DAILY in the
+  host's lobby. `seededRng` and `hashStr` in `src/util.js`.
+  Tests: `tests/replay.js`, `tests/replay_touch.js`, `tests/secrets.js`, `tests/mp_replay.js`.
+- Built in another session without Phases 2-5, then merged on top of them here. To fit them: the
+  report card grades Phases 3-5 too (new `REPORT.rows`: `blamed`, `lies`, `kickme`, `confessed` (a
+  little off), `glasses`, `cushions`, `woke` in Behaviour; `sneaks`, `sneakTime` in Gym; `paws`,
+  `clocks` in Science; `secrets` in Media Studies; `breath_hold`, `dread_spotted` in Drama; still seven
+  subjects). Phase 4's laptop texts are `LAPTOP_SECRETS` (the endings keep `SECRETS`). X / SWAP cycles
+  every tool you have: paper ball, plane, the unlocked pranks, then the laser and the note (`toolKinds`,
+  src/blame.js), with a short tip for each new prank. The water balloon soaks whoever is near across the
+  room (not measured to heads, so a balloon on the floor wets the kid sitting above it). Note 8 ("my
+  spare glasses are missing") also comes from taking his glasses from his desk (`alt` in `HALE_NOTES`:
+  a second way to find a note). The daily seed goes through Phase 2's class setup (`game.setup.seed`):
+  the same events, quirks and plan for everyone that day. One `seededRng` / `hashStr` in `src/util.js`.
 
 ### [ ] Phase 7: Online extras
 - Teamwork missions: one asks a question to distract him while another sneaks to his desk;

@@ -50,8 +50,13 @@ function paperParts() {
   GEO = { ball, plane };
   MAT = new THREE.MeshStandardMaterial({ color: 0xece6d6, roughness: 0.95, flatShading: true, side: THREE.DoubleSide });
 }
+/** every kind of thing a player can throw, in the order the network numbers them (other files add theirs: src/morepranks.js) */
+export const PAPER_KINDS = ['ball', 'plane'];
+/** meshes for the kinds other files add: kind -> () => mesh */
+export const PAPER_MESH = {};
 /** a paper ball or plane mesh (shared geometry) */
 export function makePaperMesh(kind) {
+  if (PAPER_MESH[kind]) return PAPER_MESH[kind]();
   paperParts();
   const m = new THREE.Mesh(kind === 'plane' ? GEO.plane : GEO.ball, MAT);
   m.castShadow = false;
@@ -74,8 +79,9 @@ export function stepFlight(s, dt) {
     const f = Math.exp(-0.3 * dt);
     v.x *= f; v.y *= f; v.z *= f;
   } else {
-    v.y -= GRAV * dt;
-    const f = Math.exp(-0.08 * dt);
+    const k = PRANK.flight && PRANK.flight[s.kind]; // other things to throw have their own weight and drag (src/morepranks.js)
+    v.y -= GRAV * (k ? k.grav : 1) * dt;
+    const f = Math.exp(-(k ? k.drag : 0.08) * dt);
     v.x *= f; v.y *= f; v.z *= f;
   }
   s.pos.x += v.x * dt; s.pos.y += v.y * dt; s.pos.z += v.z * dt;
@@ -269,8 +275,9 @@ export const PrankMixin = {
 
   /** the next thing to hold up: paper ball, paper plane, then the laser pointer and the KICK ME note once you have them */
   swapPaper(p) {
-    const list = this.toolKinds(p);
+    const list = this.toolKinds(p); // (paper ball, plane, what you unlocked, the laser and the note: src/blame.js, src/morepranks.js)
     p.prankKind = list[(list.indexOf(p.prankKind) + 1) % list.length];
+    if (this.prankTip) this.prankTip(p, p.prankKind);
     if (p.aim) { p.aim.kind = p.prankKind; p.aim.curve = this.newCurve(); }
     if (!p.local) return;
     this.audio.play('page', { vol: 0.35, local: true, reverb: 0 });
@@ -291,7 +298,7 @@ export const PrankMixin = {
       if (!hp.visible) return;
     }
     const kind = a ? a.kind : me.prankKind;
-    const paper = kind === 'ball' || kind === 'plane';
+    const paper = kind !== 'laser' && kind !== 'note'; // (the laser and the note need no folding / refilling)
     const ready = !paper || me.foldT <= 0;
     for (const k in this.heldMeshes) this.heldMeshes[k].visible = k === kind;
     hp.visible = true;
@@ -417,7 +424,7 @@ export const PrankMixin = {
     if (p.local ? p.foldT > 0 : p.foldT > 0.35) return false; // still folding (a little slack for the network)
     const yaw = Number(req.yaw), pitch = Number(req.pitch), power = Number(req.power);
     if (![yaw, pitch, power].every(Number.isFinite)) return false;
-    const kind = req.kind === 'plane' ? 'plane' : 'ball';
+    const kind = PRANK.fold[req.kind] ? req.kind : 'ball';
     const curve = kind === 'plane' ? clamp(Number(req.curve) || 0, -1, 1) : 0;
     const eye = p.local ? this.camPos : new THREE.Vector3(p.eye.x - Math.sin(yaw) * 0.07, p.eye.y, p.eye.z + (1 - Math.cos(yaw)) * 0.05);
     const pos = new THREE.Vector3(), vel = new THREE.Vector3();
@@ -431,8 +438,9 @@ export const PrankMixin = {
     this.audio.play('prank_swish', { pos, vol: 0.55, ref: 1, reverb: 0.05 });
     // and you start making the next one (paper is not quiet)
     this.timers.after(0.25, () => {
-      if (this.state === 'playing') this.audio.play(kind === 'plane' ? 'prank_fold' : 'prank_crumple', { pos: this.headOf(p, new THREE.Vector3()).add(_c.set(0, -0.35, -0.1)), vol: 0.45, ref: 0.8, reverb: 0.05 });
+      if (this.state === 'playing') this.audio.play(kind === 'plane' ? 'prank_fold' : (PRANK.refill && PRANK.refill[kind]) || 'prank_crumple', { pos: this.headOf(p, new THREE.Vector3()).add(_c.set(0, -0.35, -0.1)), vol: 0.45, ref: 0.8, reverb: 0.05 });
     });
+    if (this.morePrankThrown) this.morePrankThrown(p, kind, pos); // its own sound, how long your arm stays up (src/morepranks.js)
     return true;
   },
 
@@ -504,6 +512,7 @@ export const PrankMixin = {
   },
 
   paperHitsRoom(pr, h) {
+    if (this.morePaperRoom && this.morePaperRoom(pr, h)) return; // spitballs stick, rubber bands bounce on, water balloons burst (src/morepranks.js)
     const sp = pr.vel.length();
     const type = h.type;
     bounce(pr, h);
@@ -515,6 +524,7 @@ export const PrankMixin = {
   },
 
   paperHitsPerson(pr, h) {
+    if (this.morePaperPerson && this.morePaperPerson(pr, h)) return; // (src/morepranks.js)
     pr.hitDone = true;
     pr.dead = true;
     pr.pos.copy(pr.prev);
@@ -553,6 +563,7 @@ export const PrankMixin = {
     if (part === 'back') this.completeObjective('prankBack'); // Sam's dare: "Hit his back"
     this.mischief += PRANK.mischief[part];
     this.addLaugh(PRANK.laugh[part], at, p);
+    if (part === 'head' && this.glassesHit && this.glassesHit(p, at)) return; // three times in one Free Class: they break (src/secrets.js)
     if (p.local && part !== 'front') {
       const f = pick(this.friends.filter((x) => !x.gone && !x.call));
       if (f) this.timers.after(1.3, () => { if (this.state === 'playing' && !this.cutscene && !this.watching) this.friendSay(f, f.kind === 'sam' ? 's_hit' : 'n_hit', 0.2); });
@@ -839,7 +850,7 @@ export const PrankMixin = {
   /** host: the papers in the air (and on the floor) for the snapshot */
   paperSnap() {
     const r2 = (x) => Math.round(x * 100) / 100;
-    return this.papers.map((pr) => [pr.id, pr.kind === 'plane' ? 1 : 0, r2(pr.pos.x), r2(pr.pos.y), r2(pr.pos.z),
+    return this.papers.map((pr) => [pr.id, Math.max(0, PAPER_KINDS.indexOf(pr.kind)), r2(pr.pos.x), r2(pr.pos.y), r2(pr.pos.z),
       r2(pr.vel.x), r2(pr.vel.y), r2(pr.vel.z), pr.state === 'fly' ? 1 : 0, r2(pr.curve || 0)]);
   },
 
@@ -852,7 +863,7 @@ export const PrankMixin = {
       seen.add(id);
       let n = this.netPapers.get(id);
       if (!n) {
-        const kind = k === 1 ? 'plane' : 'ball';
+        const kind = PAPER_KINDS[k] || 'ball';
         n = { kind, mesh: makePaperMesh(kind), base: new THREE.Vector3(x, y, z), vel: new THREE.Vector3(), pos: new THREE.Vector3(x, y, z), age: 0, fly: true, curve: 0,
           spin: new THREE.Vector3(rand(-14, 14), rand(-14, 14), rand(-14, 14)) };
         n.mesh.position.set(x, y, z);

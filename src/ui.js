@@ -8,7 +8,7 @@ export class UI {
       'subtitle', 'toast', 'blackout', 'flash', 'note', 'note-text', 'title', 'loading', 'load-fill', 'load-text', 'menu', 'how', 'settings',
       'pause', 'end', 'end-title', 'end-text', 'end-stats', 'rotate', 'err', 'crosshair', 'objectives', 'strikes', 'bully', 'echo-cue', 'echo-bar',
       'choices', 'choices-title', 'choices-list', 'choices-bar', 'card', 'card-time', 'card-title', 'card-sub', 'chapters', 'chapter-list', 'btn-again', 'btn-echo', 'mp',
-      'laugh', 'laugh-fill', 'laugh-mult', 'aim-hud', 'aim-kind', 'aim-pow-fill', 'quirks', 'ev-now', 'sneak-hud', 'sneak-label', 'sneak-fill']) this.el[id] = $(id);
+      'laugh', 'laugh-fill', 'laugh-mult', 'aim-hud', 'aim-kind', 'aim-pow-fill', 'quirks', 'ev-now', 'sneak-hud', 'sneak-label', 'sneak-fill', 'notebook']) this.el[id] = $(id);
     this.subTimer = 0;
     this.hintTimer = 0;
     this.toastTimer = 0;
@@ -34,7 +34,7 @@ export class UI {
     this.lobbyTimer = setTimeout(() => el.classList.remove('on'), dur * 1000);
   }
   screen(id) {
-    for (const s of ['title', 'how', 'settings', 'pause', 'end', 'chapters', 'mp']) this.show(s, s === id);
+    for (const s of ['title', 'how', 'settings', 'pause', 'end', 'chapters', 'mp', 'notebook']) this.show(s, s === id);
   }
 
   /** only touch the DOM when a value actually changes */
@@ -236,14 +236,15 @@ export class UI {
             + ' · <kbd>X</kbd> / wheel: switch · <kbd>E</kbd> put it away';
         }
         if (T) T.textContent = 'DROP';
-        if (A) A.textContent = { plane: 'PLANE', laser: 'LASER', note: 'NOTE' }[kind] || 'BALL';
+        if (A) A.textContent = { ball: 'BALL', plane: 'PLANE', laser: 'LASER', note: 'NOTE' }[kind] || kind.toUpperCase(); // (unlocked pranks: SPIT, BAND, BOMB)
         if (E) E.textContent = 'SWAP';
         return;
       }
       if (lg) {
         lg.innerHTML = mode === 'game' ? '<kbd>E</kbd> / <kbd>SPACE</kbd> / click: fly · <kbd>T</kbd> meme app · let go of <kbd>Q</kbd> to hide it'
-          : mode === 'memes' ? '<kbd>E</kbd> next video · <kbd>R</kbd> show the friend you look at · <kbd>T</kbd> game app'
-            : 'let go of <kbd>Q</kbd> to hide it';
+          : mode === 'memes' ? '<kbd>E</kbd> next video · <kbd>R</kbd> show the friend you look at · <kbd>T</kbd> next app'
+            : mode === 'psst' ? '<kbd>E</kbd> / <kbd>SPACE</kbd> / click: pass the note · <kbd>T</kbd> game app · let go of <kbd>Q</kbd> to hide it'
+              : 'let go of <kbd>Q</kbd> to hide it';
       }
       if (T) T.textContent = mode === 'memes' ? 'NEXT' : 'TAP';
       if (A) A.textContent = 'APP';
@@ -267,6 +268,14 @@ export class UI {
     this.el['btn-again'].textContent = primary || '';
     this.show('btn-again', !!primary);
     this.screen('end');
+  }
+
+  /** the report card block on the end screen (src/replay.js). It is this player's own: null clears it. */
+  report(html) {
+    const el = $('end-report');
+    if (!el) return;
+    el.innerHTML = html || '';
+    el.parentElement.classList.toggle('p6-card', !!html);
   }
 
   error(msg) { this.el.err.textContent = msg; this.show('err', true); }

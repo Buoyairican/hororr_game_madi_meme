@@ -969,6 +969,86 @@
   "text": "Who... did... this?",
   "dur": 3.344
  },
+ "t_gradeA": {
+  "who": "teacher",
+  "text": "A... for... awful.",
+  "dur": 3.291
+ },
+ "t_gradeB": {
+  "who": "teacher",
+  "text": "B... for... bad.",
+  "dur": 3.291
+ },
+ "t_gradeC": {
+  "who": "teacher",
+  "text": "C... I... see... you.",
+  "dur": 4.754
+ },
+ "t_gradeD": {
+  "who": "teacher",
+  "text": "D... for... dull.",
+  "dur": 3.265
+ },
+ "t_gradeF": {
+  "who": "teacher",
+  "text": "F... for... favorite.",
+  "dur": 3.657
+ },
+ "t_daily": {
+  "who": "teacher",
+  "text": "Today... is... a special... day.",
+  "dur": 5.146
+ },
+ "t_roof": {
+  "who": "teacher",
+  "text": "The roof... is... leaking.",
+  "dur": 3.657
+ },
+ "t_notrain": {
+  "who": "teacher",
+  "text": "That... is not... rain.",
+  "dur": 3.631
+ },
+ "t_ow": {
+  "who": "teacher",
+  "text": "Ow.",
+  "dur": 0.627
+ },
+ "t_wet": {
+  "who": "teacher",
+  "text": "I am... wet.",
+  "dur": 2.116
+ },
+ "t_lesson": {
+  "who": "teacher",
+  "text": "My... lesson.",
+  "dur": 2.299
+ },
+ "t_broken": {
+  "who": "teacher",
+  "text": "They are... broken.",
+  "dur": 2.508
+ },
+ "t_noclass": {
+  "who": "teacher",
+  "text": "I cannot... see... the class.",
+  "dur": 4.284
+ },
+ "t_isthere": {
+  "who": "teacher",
+  "text": "Is there... a class?",
+  "dur": 2.691
+ },
+ "t_notteacher": {
+  "who": "teacher",
+  "text": "Then... I am not... a teacher.",
+  "dur": 4.049
+ },
+ "t_lookup": {
+  "who": "teacher",
+  "text": "I will... look it up.",
+  "dur": 2.664
+ },
  "tw_turn": {
   "who": "teacher",
   "text": "Turn... around.",
@@ -1431,6 +1511,24 @@
   "whisper": true,
   "dur": 2.664
  },
+ "s_broke": {
+  "who": "sam",
+  "text": "Bro. You broke his glasses.",
+  "whisper": true,
+  "dur": 1.933
+ },
+ "s_knock": {
+  "who": "sam",
+  "text": "Did you hear that? At the back.",
+  "whisper": true,
+  "dur": 1.776
+ },
+ "s_kevinback": {
+  "who": "sam",
+  "text": "Kevin?! Dude, where were you?",
+  "whisper": true,
+  "dur": 1.776
+ },
  "n_free": {
   "who": "nora",
   "text": "Maybe we get a free period.",
@@ -1833,6 +1931,18 @@
   "whisper": true,
   "dur": 2.586
  },
+ "n_cantsee": {
+  "who": "nora",
+  "text": "He can't see us. He can't see anything.",
+  "whisper": true,
+  "dur": 2.482
+ },
+ "n_hale": {
+  "who": "nora",
+  "text": "That's Mister Hale. That's his voice!",
+  "whisper": true,
+  "dur": 2.299
+ },
  "s_hey": {
   "who": "sam",
   "text": "HEY! ARE YOU EVEN LISTENING?",
@@ -1994,6 +2104,41 @@
   "who": "you",
   "text": "It was me.",
   "dur": 0.679
+ },
+ "h_who": {
+  "who": "hale",
+  "text": "Hello? Is somebody out there?",
+  "dur": 2.299
+ },
+ "h_late": {
+  "who": "hale",
+  "text": "Sorry I'm late, class.",
+  "dur": 1.646
+ },
+ "h_never": {
+  "who": "hale",
+  "text": "Thirty years. And I finally missed a day.",
+  "dur": 2.743
+ },
+ "h_roll": {
+  "who": "hale",
+  "text": "Kevin?",
+  "dur": 0.496
+ },
+ "h_glasses": {
+  "who": "hale",
+  "text": "Has anyone seen my glasses?",
+  "dur": 1.672
+ },
+ "h_dismissed": {
+  "who": "hale",
+  "text": "Class dismissed. Go home. All of you.",
+  "dur": 3.213
+ },
+ "k_here": {
+  "who": "kid",
+  "text": "Um. Here.",
+  "dur": 1.045
  },
  "m_bruh_b": {
   "who": "kid",
@@ -2234,6 +2379,18 @@
   "text": "What?! Me?!",
   "meme": true,
   "dur": 0.914
+ },
+ "k_ew_b": {
+  "who": "kid",
+  "text": "Ewww! Gross!",
+  "meme": true,
+  "dur": 1.097
+ },
+ "k_ew_g": {
+  "who": "kid",
+  "text": "Ewww! Gross!",
+  "meme": true,
+  "dur": 1.123
  },
  "pa_hale": {
   "who": "pa",

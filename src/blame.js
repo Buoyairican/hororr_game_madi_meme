@@ -125,7 +125,7 @@ export const BlameMixin = {
 
   /** what you can hold up: paper (ball, plane), and the laser pointer and the note once you have them */
   toolKinds(p = this.me) {
-    const l = ['ball', 'plane'];
+    const l = this.prankKinds ? this.prankKinds(p) : ['ball', 'plane']; // (paper ball, plane, and the pranks you unlocked: src/morepranks.js)
     if (this.role === 'guest') {
       const b = (this.mp && this.mp.snap && this.mp.snap.tl) | 0;
       if (b & 1) l.push('laser');

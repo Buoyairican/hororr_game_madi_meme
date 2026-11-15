@@ -14,6 +14,7 @@ import { preloadModels, instantiate } from './models.js';
 import { CHAPTERS, ONLINE } from './data.js';
 import { MP, cleanName } from './mp.js';
 import { cleanCode } from './net.js';
+import { initNotebook, renderNotebook } from './notebook.js';
 
 const ui = new UI();
 window.addEventListener('error', (e) => {
@@ -158,7 +159,8 @@ async function boot() {
     ui.show('rotate', false);
     musicOn = false;
     game.difficulty = settings.difficulty === 'hard' ? 'hard' : 'easy';
-    game.start(mode, ch);
+    if (mode === 'daily') game.startDaily(); // the daily class: the day decides Easy or Hard (src/replay.js)
+    else game.start(mode, ch);
   };
   const buildChapters = () => {
     const p = progress();
@@ -211,8 +213,14 @@ async function boot() {
   $('btn-pause').addEventListener('touchend', (e) => { e.preventDefault(); pause(); });
   $('btn-resume').onclick = resume;
   $('btn-pause-settings').onclick = () => { backTo = 'pause'; go('settings'); };
-  $('btn-restart').onclick = () => { if (audio.ctx) audio.ctx.resume(); go(null); game.start(game.mode, game.chapter); };
+  $('btn-restart').onclick = () => { if (audio.ctx) audio.ctx.resume(); go(null); if (game.daily) game.startDaily(game.daily); else game.start(game.mode, game.chapter); };
   $('btn-again').onclick = () => { go(null); if (!game.endPrimary()) toTitle(); };
+  // ---------------- Phase 6: the daily class and the notebook (src/replay.js, src/notebook.js) ----------------
+  initNotebook(game);
+  const openNotebook = (from) => { backTo = from; renderNotebook(game); go('notebook'); };
+  $('btn-daily').onclick = () => launch('daily');
+  $('btn-notebook').onclick = () => { audio.unlock(); openNotebook('title'); };
+  $('btn-pause-notebook').onclick = () => openNotebook('pause');
   // ---------------- multiplayer ----------------
   let mp = null;
   let joining = null;          // the class you are trying to get into (JOIN turns into CANCEL meanwhile)
@@ -418,8 +426,18 @@ async function boot() {
   };
   $('btn-mp-go').onclick = () => {
     if (!mp || mp.role !== 'host') return;
-    launch('free', 0); // online play is Free Class
+    launch(mpDaily ? 'daily' : 'free', 0); // online play is Free Class (or today's daily class, for everyone)
   };
+  // the host can make it the daily class: the day decides Easy or Hard
+  let mpDaily = false;
+  const showMpDaily = () => {
+    $('mp-daily').classList.toggle('on', mpDaily);
+    $('btn-mp-go').textContent = mpDaily ? 'START DAILY CLASS' : 'START FREE CLASS';
+    if (!mpDaily) return;
+    $('mp-easy').classList.remove('on'); $('mp-hard').classList.remove('on');
+    $('mp-diff-note').textContent = game.replayMenu().dailyLong;
+  };
+  $('mp-daily').onclick = () => { mpDaily = !mpDaily; showDifficulty(); showMpDaily(); };
   // ---------------- difficulty (title screen and the host's lobby) ----------------
   const DIFF_NOTES = { easy: 'Easy: 3 strikes. He warns you before he comes over.', hard: 'Hard: one strike and you\'re out. If he SEES you whispering or on your phone, he comes right away.' };
   const showDifficulty = () => {
@@ -428,9 +446,11 @@ async function boot() {
     $('diff-note').textContent = DIFF_NOTES[d];
     $('mp-diff-note').textContent = DIFF_NOTES[d];
     if (mp && mp.role === 'host') { mp.difficulty = d; mp.sendLobby(); }
+    if (mpDaily) showMpDaily(); // (the daily class brings its own difficulty)
   };
   const setDifficulty = (d) => { settings.difficulty = d; saveSettings(settings); showDifficulty(); };
   for (const [id, v] of [['btn-easy', 'easy'], ['btn-hard', 'hard'], ['mp-easy', 'easy'], ['mp-hard', 'hard']]) $(id).onclick = () => setDifficulty(v);
+  for (const id of ['mp-easy', 'mp-hard']) $(id).addEventListener('click', () => { mpDaily = false; showMpDaily(); }); // picking Easy / Hard: not the daily class
   showDifficulty();
 
   $('btn-mp-leave').onclick = () => { if (joining) stopJoining(); if (mp) { mp.leave(); mp = null; } seen = null; labels(); go('title'); };
