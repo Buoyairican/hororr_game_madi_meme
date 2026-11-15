@@ -187,7 +187,8 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   pass(r.ev.join() === 'spit' && r.stat === 1 && r.fold < 0.5, 'letting go throws the spitball (counted, quick to make the next one) ' + JSON.stringify(r));
   await page.close();
 
-  r = await run('mode=free', new Function(H + `
+  r = await run('mode=free&events=none&quirks=none', new Function(H + `
+    g.dreadAuto = false; // (no surprises: no events, habits or dread in the middle of these reactions)
     quiet(); step(240); blind(true); atBoard(); step(10);
     g.allowBlame = false; // his own reactions only: "You. Who did it?" (Phase 3) is tested in blame.js
     const T = g.teacher, out = {}, me = g.me, said = [];
