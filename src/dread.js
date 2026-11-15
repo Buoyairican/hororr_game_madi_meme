@@ -246,8 +246,9 @@ export const DreadMixin = {
     _f.set(-Math.sin(yaw) * cp, Math.sin(pitch), -Math.cos(yaw) * cp);
     _r.set(Math.cos(yaw), 0, -Math.sin(yaw));
     _u.crossVectors(_r, _f);
+    const eye = p.slipK > 0 ? p.view : p.camPos; // (off your chair you see from where you are, src/sneak.js)
     for (const pt of pts) {
-      _d.subVectors(pt, p.camPos);
+      _d.subVectors(pt, eye);
       const z = _d.dot(_f);
       if (z < 0.05) continue;
       if (Math.abs(_d.dot(_r)) < z * tx * pad + 0.12 && Math.abs(_d.dot(_u)) < z * ty * pad + 0.12) return true;
@@ -297,7 +298,7 @@ export const DreadMixin = {
     // only from the board, with his back to the class
     if (T.pos.z > -4.2 || Math.abs(wrapAngle(T.facing - Math.PI)) > 0.9) return;
     let who = null;
-    for (const p of this.players) if (p.phoneUp && p.phoneT >= p.creepAt && !p.watching && !p.choice && (!who || p.phoneT > who.phoneT)) who = p;
+    for (const p of this.players) if (p.phoneUp && !p.out && p.phoneT >= p.creepAt && !p.watching && !p.choice && (!who || p.phoneT > who.phoneT)) who = p;
     if (who) this.startCreep(who);
   },
 
@@ -320,6 +321,8 @@ export const DreadMixin = {
     const W = this.world;
     return this.state === 'playing' && this.present && this.teacher.root.visible && this.brainIdle && !this.cutscene && !this.ending && !this.eventLock
       && !this.memeBusy && !this.echoBusy && !this.searching && !this.prankBusy && !this.blind && !this.typing && !this.choice && !this.players.some((p) => p.choice)
+      // (none of his other scenes: an event, a habit, "Who did it?", the red dot, looking for an empty chair, sitting on his chair)
+      && !this.classEvent && !this.quirkBusy && !this.dozing && !this.dancing && !this.away && !this.blameBusy && !this.cat && !this.sneakBusy && !this.sitting
       && this.blackout < 0.3 && W.master > 0.6 && !this.vidJob && !this.noteJob && !this.buzz && !this.ui.noteOpen && !this.shows.some((s) => !s.over);
   },
 
@@ -432,12 +435,16 @@ export const DreadMixin = {
   dreadVisits() {
     const D = this.dread;
     if (!this.dreadAuto || D.creep || D.lean || this.t < D.nextLean || !this.dreadOpen('lean') || !this.dreadIdle() || this.anger >= DREAD.creep.calm) return;
-    const p = chance(0.6) && this.players.includes(this.focus) ? this.focus : pick(this.players);
+    // (only somebody in their chair: he does not come to listen at an empty one, src/sneak.js)
+    const seated = this.players.filter((q) => !q.out && !(q.slipK > 0));
+    if (!seated.length) return;
+    const p = chance(0.6) && seated.includes(this.focus) ? this.focus : pick(seated);
     this.interrupt(this.dreadLean(p, { from: 'visit' }));
   },
 
   /** what he hears while he listens at this player's desk: '' or why he noticed */
   dreadHeard(p, L) {
+    if (p.out || p.slipK > 0) return 'moved'; // (off the chair, src/sneak.js)
     if (p.talk || p.phoneUp || p.aiming || p.failT > 0 || p.shoutT > 0) return 'noise';
     if (p.gaspT > 0) return 'air';
     if (!p.holding) return p.local && this.dread.slack > 0 ? '' : 'breath';
@@ -750,7 +757,8 @@ export const DreadMixin = {
     for (const w of D.watch) for (const p of this.players) {
       if (w.seen.has(p.id)) continue;
       let looking = false;
-      for (const pt of w.pts) { if (p.camFwd.dot(_d.subVectors(pt, p.camPos).normalize()) > N.cos) { looking = true; break; } }
+      const eye = p.slipK > 0 ? p.view : p.camPos;
+      for (const pt of w.pts) { if (p.camFwd.dot(_d.subVectors(pt, eye).normalize()) > N.cos) { looking = true; break; } }
       const t = looking ? (w.look.get(p.id) || 0) + dt : 0;
       w.look.set(p.id, t);
       if (t < N.time) continue;

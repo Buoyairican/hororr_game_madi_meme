@@ -41,7 +41,7 @@ const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), v3 = new THREE.Vector3
 // what he says when he catches you, by what you did (noise: one of three)
 const BUST_LINE = {
   echo: 't_iknow', questions: 't_toomany', note: 't_readnote', video: 't_nophones', prank: 't_paper',
-  lie: 't_bl_lie', confess: 't_iknow', laser: 't_lz_give', kickme: 't_bl_watch', seat: 't_sn_seat',
+  lie: 't_bl_lie', confess: 't_iknow', laser: 't_lz_give', kickme: 't_bl_watch', seat: 't_sn_seat', breath: 't_hear',
 };
 
 function wpick(list) {

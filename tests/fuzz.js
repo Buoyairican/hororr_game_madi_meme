@@ -22,7 +22,7 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
       const ROWS = [-2.05, -0.35, 1.35, 3.05], COLS = [-3.0, -1.5, 0, 1.5, 3.0];
       let reckless = false, intent = 'idle', yawT = 0, choiceDelay = -1, noteT = 0;
       let cutT = 0, memeT = 0, lockT = 0, choiceT = 0, blackT = 0, blameT = 0, catT = 0, lastSub = '', subs = [], memes = 0, wasMeme = false;
-      let sneakT = 0, sitT = 0, huntT = 0, outT = 0, moveT = 0;
+      let sneakT = 0, sitT = 0, huntT = 0, outT = 0, moveT = 0, leanT = 0, creepT = 0;
       const maxT = 1100;
       while (g.state === 'playing' && g.t < maxT) {
         // ---- random player
@@ -73,6 +73,10 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
         }
         else { g.yaw *= 0.97; }
         if (g.buzz && Math.random() < 0.01) g.input.keys.phone = true;
+        // Phase 5: he leans over your desk: usually hold your breath and keep still (now and then not)
+        const lean = g.dreadLeanOn && g.dreadLeanOn(g.me);
+        if (lean) { if (!reckless) { g.input.keys.talk = g.input.keys.phone = g.input.keys.prank = false; } g.input.keys.breath = !reckless || Math.random() < 0.5; }
+        else g.input.keys.breath = Math.random() < 0.002 ? true : g.input.keys.breath && Math.random() < 0.97;
         if (g.choice) {
           if (choiceDelay < 0) choiceDelay = Math.random() < 0.15 ? 99 : Math.random() * 6;
           choiceDelay -= 0.05;
@@ -121,10 +125,18 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
         sneakT = g.sneakBusy ? sneakT + 0.05 : 0; if (sneakT > 60) issue('sneakBusy', 'sneakBusy stuck > 60 s');
         sitT = g.sitting ? sitT + 0.05 : 0; if (sitT > 30) issue('sit', 'sitting > 30 s');
         huntT = g.glassesHunt ? huntT + 0.05 : 0; if (huntT > 60) issue('hunt', 'hunting his glasses > 60 s');
+        // Phase 5: real dread
+        const D = g.dread;
+        if (!(me.breath >= 0 && me.breath <= 1)) issue('breath', 'breath out of range: ' + me.breath);
+        leanT = D && D.lean ? leanT + 0.05 : 0; if (leanT > 45) issue('lean', 'he leaned over a desk > 45 s');
+        creepT = D && D.creep ? creepT + 0.05 : 0; if (creepT > 45) issue('creep', 'creeping > 45 s');
+        if (g.dreadSilent && !(D && D.creep)) issue('silent', 'no footsteps without a creep');
+        if (D && D.lean && (D.lean.p.out || D.lean.p.slipK > 0) && D.lean.phase === 'hold') issue('leanout', 'listening at an empty chair');
       }
       if (g.state === 'playing') issue('nofinish', `did not finish by ${maxT}s: clock=${document.getElementById('clock-hud').innerText} script=${!!g.script} brainIdle=${g.brainIdle} cut=${g.cutscene} memeBusy=${g.memeBusy} objs=${g.objectives.map((o) => o.id + (o.done ? '+' : '-')).join(' ')}`);
-      const out = { mode, ch, t: +g.t.toFixed(0), end: document.getElementById('end-title').innerText, strikes: g.strikes, memes, throws: g.stats.throws, hitHim: g.stats.hitHim, sneaks: g.stats.sneaks, deskThings: g.stats.glasses + g.stats.secrets + g.stats.clocks + g.stats.cushions, issues };
-      g.input.keys.talk = g.input.keys.phone = g.input.keys.prank = false;
+      const out = { mode, ch, t: +g.t.toFixed(0), end: document.getElementById('end-title').innerText, strikes: g.strikes, memes, throws: g.stats.throws, hitHim: g.stats.hitHim, sneaks: g.stats.sneaks, deskThings: g.stats.glasses + g.stats.secrets + g.stats.clocks + g.stats.cushions,
+        dread: { changes: g.dread ? g.dread.changes : 0, leans: g.track.of(g.me).dread_lean, creeps: g.track.of(g.me).dread_creep }, caughtFor: g.track.of(g.me).caughtFor, issues };
+      g.input.keys.talk = g.input.keys.phone = g.input.keys.prank = g.input.keys.breath = false;
       g.input.stopMove();
       if (g.state === 'end' || g.state === 'playing') { g.state = 'title'; g.audio.stopAll(); }
       return out;
