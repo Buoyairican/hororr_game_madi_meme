@@ -575,6 +575,7 @@ export const SneakMixin = {
     T.setPose('wipe', { stage: 'reach' });
     yield* this.wait(0.8);
     T.takeGlasses();
+    this.blind = true; // (glasses off: he sees nothing until he has rubbed his eyes)
     T.setPose('wipe', { stage: 'hold' });
     yield* this.wait(0.4);
     T.leanTarget = 0.35;

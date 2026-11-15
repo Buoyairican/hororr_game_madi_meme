@@ -2149,6 +2149,8 @@ export class Game {
       const cp = this.cp;
       T.facePoint(cp, 10); T.lookAt(cp, 30);
       const start = T.pos.clone();
+      // (between the desks, e.g. right after a search: the blinks start from the front of his aisle, not through the desks)
+      if (region(start.z) !== 0) start.set(nearestAisle(start.x), 0, FRONT_Z - 0.2);
       const end = new THREE.Vector3(clamp(cp.x * 0.4, -1, 1), 0, -3.1);
       const steps = 4;
       for (let i = 1; i <= steps; i++) {
