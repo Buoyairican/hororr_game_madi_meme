@@ -109,7 +109,8 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await H.evaluate(() => { game.seatNow(game.me); });
 
   // ---- he sees the friend: caught, carried back to their chair
-  await H.evaluate(() => { game.sneakVisible = game.sneakVisibleReal; stand(-2.0, -6.2, Math.PI / 2, null); const p = window.bo(); p.emptyCool = 99; game.teacher.lookAt(p.view, 30); });
+  // (without his glasses he only sees what is close: he stands next to his desk)
+  await H.evaluate(() => { game.sneakVisible = game.sneakVisibleReal; const p = window.bo(); stand(-1.9, -5.0, -Math.PI / 2, p.view); p.emptyCool = 99; });
   await expect(G, 'friend: the bar fills (HE SEES YOU)', () => game.me.spotT > 0.5 && /SEE/.test(document.getElementById('sneak-label').textContent), 5000);
   await expect(H, 'host: caught (seat), he takes the friend by the collar', () => window.bo().carried && (game.track.of(window.bo()).caughtFor.seat || 0) === 1, 15000);
   await expect(G, 'friend: carried (eyes up off the floor, the bar says CAUGHT)', () => game.me.carried && game.camera.position.y > 0.9 && /CAUGHT/.test(document.getElementById('sneak-label').textContent), 6000);
@@ -119,8 +120,9 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await expect(H, 'host: "And these are mine." (the glasses back), one strike', () => !window.bo().hasGlasses && game.glassesAt === 'face' && game.strikes === 1, 20000);
 
   // ---- the friend's whoopee cushion: he sits on it, "Who did it?" on the friend's screen
-  await H.waitForTimeout(3000);
+  await waitFor(H, () => !game.cutscene, 30000);
   await H.evaluate(() => { stand(1.5, -6.3, Math.PI); });
+  await waitFor(G, () => !game.cutscene && game.me.slipK === 0, 10000);
   await G.evaluate(() => { game.input.pressed.seat = true; });
   await expect(H, 'host: the friend is off their chair again', () => window.bo().out && window.bo().slipK > 0.9, 6000);
   await H.evaluate(() => { game.sneakVisible = () => false; });
@@ -128,7 +130,9 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await expect(H, 'host: the friend is at his chair', () => game.deskNear(window.bo()) === 'cushion', 8000);
   await G.evaluate(() => { game.input.keys.talk = true; });
   await expect(G, 'friend: the cushion is on his chair', () => game.cushionShown && game.cushionMesh.visible, 6000);
-  await G.evaluate(() => { game.input.keys.talk = false; game.seatNow(game.me); });
+  await G.evaluate(() => { game.input.keys.talk = false; });
+  await goTo([[-1.5, -6.2], [-1.5, -3.0], [-2.25, -3.0], [-2.25, 0.2]]);
+  await G.evaluate(() => { game.input.pressed.seat = true; });
   await expect(H, 'host: the friend is back on their chair', () => !window.bo().out && window.bo().slipK === 0, 6000);
   await H.evaluate(() => { game.allowBlame = true; game.anger = 0; game.interrupt(game.actSit()); });
   await expect(H, 'host: he sits on it: the class laughs, counted for the friend', () => game.track.of(window.bo()).cushions === 1 && game.laugh > 30, 20000);

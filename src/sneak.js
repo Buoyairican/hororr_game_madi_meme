@@ -245,9 +245,12 @@ export const SneakMixin = {
     if (i.so && !p.out && !p.carried && this.canLeave(p)) {
       const side = i.sx < p.desk.x ? -1 : 1;
       this.startOut(p, side); this.onOut(p);
-    } else if (!i.so && p.out && !p.carried && (this.canSit(p) || flat(p.pos, p.desk.x, p.desk.z + 0.55) < 1.6)) {
-      this.sitDown(p); this.onSit(p);
+    } else if (!i.so && p.out && !p.carried) {
+      // back on their chair (on their screen they sat down next to it; if the two ever disagree, theirs wins after a moment)
+      p.sitWait = (p.sitWait || 0) + dt;
+      if (this.canSit(p) || flat(p.pos, p.desk.x, p.desk.z + 0.55) < 1.6 || p.sitWait > 2) { this.sitDown(p); this.onSit(p); p.sitWait = 0; }
     }
+    if (i.so) p.sitWait = 0;
     if (!p.out || p.carried || p.slipK < 0.99 || !Number.isFinite(i.sx) || !Number.isFinite(i.sz)) { p.moving = false; return; }
     const dx = i.sx - p.pos.x, dz = i.sz - p.pos.z, d = Math.hypot(dx, dz);
     const max = SNEAK.speed * 1.6 * dt + 0.01;
@@ -324,6 +327,8 @@ export const SneakMixin = {
   updateSneak(dt) {
     const T = this.teacher, S = SNEAK.see;
     const free = !this.cutscene && !this.ending && !this.eventLock && !this.lockBully && !this.choice;
+    // (in a cutscene nobody's controls run: a slide off or onto a chair still finishes)
+    if (this.cutscene) for (const p of this.players) this.animSlip(p, dt);
     for (const p of this.players) {
       // the noise you make: the chair, your knees on the floor
       if (p.slipNoiseT > 0) { p.slipNoiseT -= dt; p.noise = Math.max(p.noise, SNEAK.slipNoise); }
@@ -384,7 +389,7 @@ export const SneakMixin = {
     const at = p.view.clone();
     if (!this.brainIdle || this.sneakBusy || this.classEvent || this.quirkBusy || this.blameBusy || this.cat || this.memeBusy || !this.present) this.fx.push(this.sneakGlance(at));
     else this.interrupt(this.sneakLook(p, at));
-    if (p.out) this.friendQuip(chance(0.5) ? 'nora' : 'sam', chance(0.5) ? 'n_sn_hide' : 's_sn_down', 0.1);
+    if (p.out) { const [who, id] = chance(0.5) ? ['nora', 'n_sn_hide'] : ['sam', 's_sn_down']; this.friendQuip(who, id, 0.1); }
   },
   /** a look without stopping what he is doing */
   *sneakGlance(at) {
