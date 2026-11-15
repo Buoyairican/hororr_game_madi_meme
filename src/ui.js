@@ -8,7 +8,7 @@ export class UI {
       'subtitle', 'toast', 'blackout', 'flash', 'note', 'note-text', 'title', 'loading', 'load-fill', 'load-text', 'menu', 'how', 'settings',
       'pause', 'end', 'end-title', 'end-text', 'end-stats', 'rotate', 'err', 'crosshair', 'objectives', 'strikes', 'bully', 'echo-cue', 'echo-bar',
       'choices', 'choices-title', 'choices-list', 'choices-bar', 'card', 'card-time', 'card-title', 'card-sub', 'chapters', 'chapter-list', 'btn-again', 'btn-echo', 'mp',
-      'laugh', 'laugh-fill', 'laugh-mult', 'aim-hud', 'aim-kind', 'aim-pow-fill', 'quirks', 'ev-now', 'sneak-hud', 'sneak-label', 'sneak-fill', 'notebook']) this.el[id] = $(id);
+      'laugh', 'laugh-fill', 'laugh-mult', 'aim-hud', 'aim-kind', 'aim-pow-fill', 'quirks', 'ev-now', 'sneak-hud', 'sneak-label', 'sneak-fill', 'notebook', 'ghost-hud', 'ghost-veil', 'ghost-left', 'ghost-haunts']) this.el[id] = $(id);
     this.subTimer = 0;
     this.hintTimer = 0;
     this.toastTimer = 0;
@@ -99,6 +99,22 @@ export class UI {
     this.set('snCls', st.cls, (c) => { el.className = 'show ' + c; });
     this.set('snLabel', st.label, (x) => (this.el['sneak-label'].textContent = x));
     this.set('snK', Math.round(st.k * 50), (x) => (this.el['sneak-fill'].style.width = x * 2 + '%'));
+  }
+  /** a ghost in the corner (src/ghost.js): { left, back, h: [{ name, wait }] }, or null */
+  ghost(st) {
+    const on = !!st;
+    this.set('ghOn', on, () => { this.el['ghost-hud'].classList.toggle('show', on); this.el['ghost-veil'].classList.toggle('show', on); document.body.classList.toggle('ghosting', on); });
+    if (!on) return;
+    this.set('ghLeft', st.back ? -1 : st.left, (x) => (this.el['ghost-left'].textContent = x < 0 ? '· back to your seat' : `0:${String(x).padStart(2, '0')}`));
+    const key = st.h.map((h) => h.wait).join(',');
+    this.set('ghH', key, () => {
+      this.el['ghost-haunts'].innerHTML = st.h.map((h, i) => `<span class="h${h.wait !== 0 ? ' wait' : ''}"><kbd class="desk-only">${i + 1}</kbd>${h.name}${h.wait > 0 ? ' ' + h.wait : ''}</span>`).join('');
+    });
+  }
+  /** the chaos scoreboard on the end screen (online; null clears it) */
+  chaos(html) {
+    const el = $('end-chaos');
+    if (el) el.innerHTML = html || '';
   }
   /** the SEAT / SIT button on a phone ('' hides it) */
   seatButton(label) {
@@ -216,7 +232,13 @@ export class UI {
       const T = document.getElementById('btn-talk'), A = document.getElementById('btn-ask'), E = document.getElementById('btn-echo');
       if (lg && this.legendHtml == null) this.legendHtml = lg.innerHTML;
       const tb = document.getElementById('touch-buttons');
-      if (tb) tb.classList.toggle('out', mode === 'out');
+      if (tb) { tb.classList.toggle('out', mode === 'out'); tb.classList.toggle('ghost', mode === 'ghost'); }
+      if (mode === 'ghost') {
+        // a ghost in the corner (src/ghost.js): ECHO / ASK / TALK are the three haunts
+        if (lg) lg.innerHTML = '<kbd>1</kbd> lights · <kbd>2</kbd> the chair · <kbd>3</kbd> the book · look around';
+        if (T) T.textContent = 'BOOK'; if (A) A.textContent = 'CHAIR'; if (E) E.textContent = 'LIGHT';
+        return;
+      }
       if (mode === 'out') {
         // off your chair: the stick crawls, TALK is USE (his desk), SIT sits you back down
         if (lg) lg.innerHTML = '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> crawl · hold <kbd>E</kbd> use · <kbd>C</kbd> at your desk: sit down';

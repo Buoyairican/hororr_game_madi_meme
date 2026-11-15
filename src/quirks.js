@@ -311,7 +311,7 @@ export const QuirkMixin = {
       const heads = [];
       for (const k of this.allKids()) if (!k.gone) heads.push({ row: k.seat.row, x: k.seat.x, head: () => k.headWorld(new V()) });
       // (off their chair: he points at the chair; he sees it is empty, src/sneak.js)
-      for (const p of this.players) heads.push({ row: p.desk.row, x: p.desk.x, player: p, head: () => (p.slipK > 0 ? p.camPos.clone() : this.headOf(p, new V())) });
+      for (const p of this.players) if (!p.ghost) heads.push({ row: p.desk.row, x: p.desk.x, player: p, head: () => (p.slipK > 0 ? p.camPos.clone() : this.headOf(p, new V())) });
       const kevin = this.kevin;
       const empty = !kevin || kevin.gone;
       if (empty && W.kevinSeat) heads.push({ row: 1, x: W.kevinSeat.x, empty: true, head: () => W.kevinSeat.clone() });

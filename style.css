@@ -360,6 +360,40 @@ body.touch .desk-only { display: none !important; }
 #sneak-hud.warm #sneak-label { color: #f0c27a; } #sneak-hud.warm #sneak-fill { background: #f0c27a; }
 #sneak-hud.hot #sneak-label, #sneak-hud.caught #sneak-label { color: var(--blood-hi); } #sneak-hud.hot #sneak-fill, #sneak-hud.caught #sneak-fill { background: var(--blood-hi); box-shadow: 0 0 8px rgba(255,60,40,.6); }
 #btn-seat.hidden { display: none; }
+
+/* Phase 7: a ghost in the corner (src/ghost.js) */
+#ghost-veil { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s;
+  background: radial-gradient(ellipse at center, rgba(160,215,255,0) 45%, rgba(150,205,255,.28) 100%); mix-blend-mode: screen; }
+#ghost-veil.show { opacity: 1; }
+#ghost-hud { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .3s; pointer-events: none; }
+#ghost-hud.show { opacity: 1; }
+#ghost-title { font-size: 13px; letter-spacing: 4px; color: #bfe4ff; text-shadow: 0 0 8px rgba(120,190,255,.9), 0 0 2px #000; margin-bottom: 6px; }
+#ghost-haunts { display: flex; gap: 8px; justify-content: center; }
+#ghost-haunts .h { min-width: 74px; padding: 4px 8px; border: 1px solid rgba(190,228,255,.55); color: #e4f4ff; font-size: 11px; letter-spacing: 2px; background: rgba(10,20,30,.45); }
+#ghost-haunts .h.wait { opacity: .45; }
+#ghost-haunts .h kbd { margin-right: 4px; }
+#touch-buttons.ghost #btn-phone, #touch-buttons.ghost #btn-prank, #touch-buttons.ghost #btn-seat, #touch-buttons.ghost #joy { display: none; }
+body.ghosting #btn-breath, body.ghosting #breath-hud { display: none; }
+
+/* Phase 7: the chaos scoreboard on the online end screen (src/scoreboard.js) */
+#end-chaos:empty { display: none; }
+#end-chaos { margin: 2px 0 14px; text-align: left; }
+#end-chaos .chaos-h { font-size: 12px; letter-spacing: 3px; color: var(--dim); margin-bottom: 6px; text-align: center; }
+#end-chaos .chaos-row { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto 3.2em; column-gap: 8px; align-items: baseline; padding: 3px 0; border-top: 1px solid rgba(255,255,255,.08); font-size: 14px; }
+#end-chaos .chaos-row.me { color: #f3ecd6; }
+#end-chaos .chaos-rank { color: var(--dim); }
+#end-chaos .chaos-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#end-chaos .chaos-title { color: #f0c27a; font-size: 12px; letter-spacing: 1px; }
+#end-chaos .chaos-pts { text-align: right; font-variant-numeric: tabular-nums; }
+#end-chaos .chaos-why { grid-column: 2 / -1; font-size: 11px; color: var(--dim); font-style: italic; }
+
+/* Phase 7: the microphone setting (src/mic.js) */
+#set-mic-row { margin: -2px 0 10px 26px; font-size: 12px; }
+#set-mic-meter { width: 160px; height: 5px; background: rgba(255,255,255,.12); display: none; margin: 4px 0; }
+#set-mic-meter.on { display: block; }
+#set-mic-fill { height: 100%; width: 0%; background: #9fd8b4; }
+#set-mic-note { margin: 2px 0 0; }
+#set-mic-note:empty { display: none; }
 #joy { display: none; pointer-events: auto; width: 132px; height: 132px; border-radius: 50%; border: 2px solid rgba(240,232,210,.35); background: rgba(10,12,11,.35); position: relative; align-self: flex-end; }
 #joy-knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: rgba(240,232,210,.4); pointer-events: none; }
 #joy.active { border-color: rgba(255,140,120,.7); }

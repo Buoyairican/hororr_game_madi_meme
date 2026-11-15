@@ -14,7 +14,7 @@ TESTS_DIR="$PWD"
 ROOT_DIR="$(cd .. && pwd)"
 mkdir -p out
 
-QUICK="features beats ui touch touch_phone pranks events blame sneak dread replay replay_touch secrets turn_api mp mp_video mp_prank mp_blame mp_sneak mp_dread mp_replay mp_net mp_lobby"
+QUICK="features beats ui touch touch_phone pranks events blame sneak dread replay replay_touch secrets extras turn_api mp mp_video mp_prank mp_blame mp_sneak mp_dread mp_replay mp_extras mp_net mp_lobby"
 FULL="$QUICK story1 story2 story3 story4 hard fuzz mp_events mp_edge mp_fail mp_chaos"
 case "${1:-quick}" in
   quick) NAMES="$QUICK" ;;

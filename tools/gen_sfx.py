@@ -1755,6 +1755,28 @@ def make_p6():
     save("p6_pass", x, 0.4)
 
 
+def make_p7():
+    """Phase 7 (online extras): becoming a ghost in the corner, and a ghost's haunt.
+    Uses its own random numbers, so building only this group gives the same files."""
+    r = np.random.default_rng(707)
+
+    def nz(d):
+        return r.standard_normal(int(d * SR))
+
+    # a ghost: a cold breath of air rising and falling, a glassy tone bending up under it
+    d = 2.2; t = t_axis(d)
+    env = np.sin(np.pi * np.clip(t / d, 0, 1)) ** 1.5
+    air = svf(nz(d), 500 + 2600 * np.sin(np.pi * t / d) ** 2, 1.6, "bp") * env * 0.8
+    tone = (osc_sin(620 + 260 * (t / d) + 9 * np.sin(2 * np.pi * 5.5 * t)) + 0.35 * osc_sin(1244 + 520 * (t / d))) * env * 0.22
+    save("gh_float", reverb(air + tone, 0.45, dur=1.8, decay=0.6), 0.6)
+    # a haunt: a low swell with a beating pair of tones and a whisper of air
+    d = 1.8; t = t_axis(d)
+    env = (1 - np.exp(-t / 0.35)) * np.exp(-np.maximum(0, t - 0.9) / 0.35)
+    low = (osc_sin(np.full(len(t), 98.0)) + osc_sin(np.full(len(t), 101.5)) + 0.4 * osc_sin(np.full(len(t), 196.0))) * env * 0.4
+    hiss = biquad(nz(d), "bp", 1800, 1.2) * env * 0.25
+    save("gh_haunt", reverb(low + hiss, 0.5, dur=2.0, decay=0.65), 0.65)
+
+
 if __name__ == "__main__":
     import sys
     print("Synthesising sound effects ->", OUT)
@@ -1766,6 +1788,9 @@ if __name__ == "__main__":
         raise SystemExit(0)
     if "p6" in sys.argv:  # Phase 6: the report card, unlocks, notes, the unlocked pranks, PSST!, the secret endings
         make_p6()
+        raise SystemExit(0)
+    if "p7" in sys.argv:  # Phase 7: the ghost kid
+        make_p7()
         raise SystemExit(0)
     if "v7" in sys.argv:
         make_v7()

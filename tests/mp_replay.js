@@ -70,7 +70,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await H.evaluate(() => {
     const g = game, T = g.teacher;
     g.post.render = () => {};
-    g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {}; g.startMeme = () => false;
+    g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {}; g.extrasAuto = false; // (Phase 7's note chain, ghosts and decoy hints: tests/mp_extras.js) g.startMeme = () => false;
     const uw = g.updateWatching.bind(g); g.updateWatching = function () { uw(); for (const p of g.players) { p.watching = false; p.lookDot = -1; } };
     window.atBoard = () => { g.interrupt((function* () { T.place(0.3, -6.2, Math.PI); T.lookAt(null); T.setPose('rest'); for (;;) yield; })()); g.prankBusy = false; g.anger = 0; for (const p of g.players) { p.prankStreak = 0; p.lastPrankHit = -99; } };
     atBoard();

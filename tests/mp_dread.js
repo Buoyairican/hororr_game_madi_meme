@@ -66,7 +66,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
     const g = game, T = g.teacher;
     g.script = null;
     g.idleKind = 'lesson'; g.memesOn = true; g.allowEcho = g.allowAsk = g.allowPrank = true;
-    g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {};
+    g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {}; g.extrasAuto = false; // (Phase 7's note chain, ghosts and decoy hints: tests/mp_extras.js)
     g.startMeme = () => false;
     g.idleBrain = function* () { T.lookAt(null); T.faceTo(Math.PI, 6); T.setPose('rest'); for (;;) yield; };
     g.interrupt((function* () { T.place(0.5, -6.3, Math.PI); yield; })());

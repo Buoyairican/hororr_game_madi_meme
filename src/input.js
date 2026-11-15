@@ -69,7 +69,7 @@ export class Input {
       if (this.enabled && k === 'b') this.keys.breath = true;
       if (this.enabled && k === 'r') this.pressed.echo = true;
       if (this.enabled && k === 't') this.pressed.ask = true;
-      if (this.enabled && k >= '1' && k <= '3') this.choiceKey = Number(k) - 1;
+      if (this.enabled && k >= '1' && k <= '4') this.choiceKey = Number(k) - 1; // (a fourth answer: blaming a friend online)
       if ((k === 'escape' || k === 'p') && this.enabled && this.onPause) this.onPause();
       if (this.enabled && this.onAnyInput) this.onAnyInput();
     });

@@ -40,7 +40,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   // the host: nothing random; he stands where the test puts him, doing nothing
   await H.evaluate(() => {
     const g = game;
-    g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {};
+    g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {}; g.extrasAuto = false; // (Phase 7's note chain, ghosts and decoy hints: tests/mp_extras.js)
     g.startMeme = () => false;
     // no events and no quirks today (an online class draws its own; the friend gets the same)
     g.eventsOn = false; g.setup.plan = []; g.quirks = new Set();

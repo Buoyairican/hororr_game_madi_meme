@@ -516,7 +516,7 @@ function chair(B, M, x, z, ry, s) {
   chairParts((g, m, p, r, sc, rx = 0) => B.add(g, m, mtx(p[0], p[1], p[2], rx, r, 0, sc[0], sc[1], sc[2])), M, x, z, ry, s);
 }
 
-function dynamicChair(scene, M, x, z) {
+export function dynamicChair(scene, M, x, z) {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
   chairParts((geo, m, p, r, sc, rx = 0) => {

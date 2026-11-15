@@ -48,6 +48,9 @@
   <div id="prompt"></div>
   <div id="aim-hud"><div id="aim-kind"></div><div id="aim-pow"><div id="aim-pow-fill"></div></div></div>
   <div id="sneak-hud"><div id="sneak-label">HIDDEN</div><div id="sneak-bar"><div id="sneak-fill"></div></div></div>
+  <!-- Phase 7: a ghost in the corner (src/ghost.js): seconds left, the three haunts -->
+  <div id="ghost-veil"></div>
+  <div id="ghost-hud"><div id="ghost-title">GHOST <span id="ghost-left"></span></div><div id="ghost-haunts"></div></div>
   <div id="hint"></div>
   <div id="echo-cue"><span class="key">R</span> repeat him<div id="echo-bar"></div></div>
   <div id="call-left" class="call">psst!</div>
@@ -199,6 +202,8 @@
     <label class="row chk"><input id="set-shadows" type="checkbox" checked> Shadows (slower on old phones)</label>
     <label class="row chk"><input id="set-meter" type="checkbox"> Helper HUD (shows when he is watching + his anger)</label>
     <label class="row chk"><input id="set-subs" type="checkbox" checked> Subtitles</label>
+    <label class="row chk"><input id="set-mic" type="checkbox"> Microphone: he hears you laugh for real (off every time you start; only how loud you are is measured, nothing is recorded or sent)</label>
+    <div id="set-mic-row" class="dim"><div id="set-mic-meter"><div id="set-mic-fill"></div></div><p id="set-mic-note" aria-live="polite"></p></div>
     <button class="back">BACK</button>
   </div>
 </div>
@@ -232,6 +237,8 @@
     <h2 id="end-title">DETENTION</h2>
     <p id="end-text"></p>
     <div id="end-stats"></div>
+    <!-- Phase 7: online, who caused the most chaos (src/scoreboard.js) -->
+    <div id="end-chaos"></div>
     <!-- Phase 6: your report card (its own block; in landscape it sits to the right of the rest) -->
     <div id="end-report"></div>
     <button id="btn-again" class="big">TRY AGAIN</button>

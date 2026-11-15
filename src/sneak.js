@@ -110,7 +110,7 @@ export const SneakMixin = {
 
   // ---------------------------------------------------------------- off the chair, back on it
   canLeave(p) {
-    return !!this.allowSneak && this.state === 'playing' && !p.out && p.slipK <= 0.01 && !this.cutscene && !this.ending && !this.lockBully && !this.eventLock
+    return !!this.allowSneak && this.state === 'playing' && !p.out && p.slipK <= 0.01 && !p.ghost && !this.cutscene && !this.ending && !this.lockBully && !this.eventLock
       && !p.choice && !(p.local && this.choice) && !p.talk && !p.phoneUp && !p.aim && !p.aiming && !(p.handT > 0) && !p.qBusy && !p.showWatch
       && !this.blameBusy && !(this.cat && this.cat.p === p) && !(this.dread && (this.dread.lean || (this.dread.creep && this.dread.creep.p === p)));
   },
@@ -133,6 +133,7 @@ export const SneakMixin = {
     this.note(p, 'sneaks');
     this.track.event(this.t, p, 'out');
     if (!this.sneakQuipped) { this.sneakQuipped = true; this.friendQuip('sam', 's_sn_go', 0.9); }
+    this.decoyCall(p); // online: the others are told to keep him busy (src/team.js)
   },
   sitDown(p) { p.out = false; p.carried = false; p.satAt = this.t; p.deskJob = null; p.standK = 0; },
   onSit(p) {
@@ -146,7 +147,10 @@ export const SneakMixin = {
     p.pos.set(p.eye.x, 0, p.eye.z);
     if (p.local) this.sneakUi(null);
   },
-  allSeated() { for (const p of this.players) if (p.out || p.slipK > 0) this.seatNow(p); },
+  allSeated() {
+    for (const p of this.players) if (p.out || p.slipK > 0) this.seatNow(p);
+    if (this.allGhostsBack) this.allGhostsBack(); // (and the ghosts in the corner, src/ghost.js)
+  },
   /** the chair <-> the floor, over SNEAK.slip seconds (carried: up off the floor) */
   animSlip(p, dt) {
     p.slipK = p.out || p.carried ? Math.min(1, p.slipK + dt / SNEAK.slip) : Math.max(0, p.slipK - dt / SNEAK.slip);
@@ -542,6 +546,7 @@ export const SneakMixin = {
       this.track.event(this.t, p, 'cushionSet');
       this.uiTo(p, 'toast', 'Now wait for him to sit down', 2.4);
     }
+    this.decoyCredit(p); // online: a friend's question kept him busy meanwhile (src/team.js)
   },
   /** Free Class: how many seconds of class the clock skips (the bell rings when it says 12:30) */
   clockMinutes() { return this.mode === 'free' ? this.clockAhead : 0; },

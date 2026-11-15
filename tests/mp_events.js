@@ -81,7 +81,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   // the host: nothing random (no calls, texts, scares, class clowns, habits unless a check starts one)
   await H.evaluate(() => {
     const g = game;
-    g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {};
+    g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {}; g.extrasAuto = false; // (Phase 7's note chain, ghosts and decoy hints: tests/mp_extras.js)
     g.startMeme = () => false;
     window.quiet = () => { g.quirkNext = {}; g.slangNext = 1e9; g.deafNext = 1e9; g.deafTell = 1e9; g.nextSit = g.nextDeskGlasses = 1e9; };
     window.calm = () => { g.anger = 0; g.flags = { r40: true, r70: true }; for (const p of g.players) { p.heat = 0; p.prankSeenT = 0; p.prankStreak = 0; } g.lastEventEnd = -99; };
