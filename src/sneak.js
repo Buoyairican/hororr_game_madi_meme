@@ -99,12 +99,13 @@ export const SneakMixin = {
     p.pos.set(p.eye.x, 0, p.eye.z);
     p.view.copy(p.eye);
   },
-  /** from now on you can leave your seat (period 4, Free Class) */
-  giveSneak() {
+  /** from now on you can leave your seat (period 4, Free Class); his new habits (his chair, his glasses on the desk)
+   *  start `later` seconds from now at the earliest (Free Class: after the hint that tells you about it) */
+  giveSneak(later = 0) {
     if (this.allowSneak) return;
     this.allowSneak = true;
-    this.nextSit = this.t + rand(SNEAK.sit.first[0], SNEAK.sit.first[1]);
-    this.nextDeskGlasses = this.t + rand(SNEAK.glasses.first[0], SNEAK.glasses.first[1]);
+    this.nextSit = this.t + later + rand(SNEAK.sit.first[0], SNEAK.sit.first[1]);
+    this.nextDeskGlasses = this.t + later + rand(SNEAK.glasses.first[0], SNEAK.glasses.first[1]);
   },
 
   // ---------------------------------------------------------------- off the chair, back on it

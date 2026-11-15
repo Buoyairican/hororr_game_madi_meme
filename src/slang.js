@@ -127,7 +127,7 @@ export const SlangMixin = {
           yield* this.say('t_veryfunny', 0.4);
         }
       }
-      if (!this.slangQuipped) { this.slangQuipped = true; this.friendQuip(chance(0.5) ? 'sam' : 'nora', chance(0.5) ? 's_slang' : 'n_slang', 0.6); }
+      if (!this.slangQuipped) { this.slangQuipped = true; this.friendQuip(...(chance(0.5) ? ['sam', 's_slang'] : ['nora', 'n_slang']), 0.6); }
       yield* this.actStare(1.3);
     } finally { this.quirkBusy = false; T.setPose('rest'); }
   },

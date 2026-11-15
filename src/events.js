@@ -554,7 +554,7 @@ export const EventMixin = {
       const canHit = this.prankOpen();
       this.firstHint('ev:fly', canHit ? E.hintPrank : E.hint);
       if (canHit) this.addObjective({ id: 'fly', text: touch && this.role === 'solo' ? E.taskTouch : E.task }); // (online every player has their own controls)
-      this.friendQuip(chance(0.5) ? 'sam' : 'nora', chance(0.5) ? 's_fly' : 'n_fly', 1.0);
+      this.friendQuip(...(chance(0.5) ? ['sam', 's_fly'] : ['nora', 'n_fly']), 1.0);
       for (let i = 0; i < E.tries; i++) {
         if (!this.fly || this.fly.mode === 'dead') break;
         if (i > 0 && this.classEvent && this.t - this.classEvent.t0 > E.maxLen) break; // (a hunt never drags on: then it gets away)

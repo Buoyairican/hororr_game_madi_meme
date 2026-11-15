@@ -3236,7 +3236,7 @@ export class Game {
     this.idleKind = 'none';
     this.allowEcho = true; this.allowAsk = true; this.allowPrank = true;
     this.giveTools(); // the laser pointer, KICK ME notes, and "Who did it?" (src/blame.js)
-    this.giveSneak(); // leave your seat (src/sneak.js)
+    this.giveSneak(100); // leave your seat (src/sneak.js); his new habits after the hint at 100 s
     const touch = this.input.touch;
     const h = this.hintControls();
     h(8, touch ? 'Look at Sam (left) or Nora (right) and hold <b>TALK</b> to whisper. Hold <b>PHONE</b> to play.' : 'Look at Sam or Nora and hold <b>E</b> to whisper. Hold <b>Q</b> to play on your phone.', 7);

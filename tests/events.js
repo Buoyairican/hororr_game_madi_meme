@@ -28,7 +28,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
       window.until = (fn, max, each) => { let n = 0; while (!fn() && n < max * 20 && g.state === 'playing') { if (each) each(); g.playTick(0.05); g.ui.update(0.05); n++; } return !!fn(); };
       // nothing random in the way: no calls, texts, scares, videos, class clowns
       // (and his habits only when a check starts one)
-      window.quiet = () => { g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {}; g.__startMeme = g.startMeme; g.startMeme = () => false; g.quirkNext = {}; g.slangNext = 1e9; };
+      window.quiet = () => { g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {}; g.__startMeme = g.startMeme; g.startMeme = () => false; g.quirkNext = {}; g.slangNext = 1e9; g.nextSit = g.nextDeskGlasses = 1e9; };
       window.calm = () => { g.anger = 0; g.flags = { r40: true, r70: true }; for (const p of g.players) { p.heat = 0; p.prankSeenT = 0; p.prankStreak = 0; } g.lastEventEnd = -99; };
       // what a player hears, reads and is told
       window.played = []; const ap = g.audio.play.bind(g.audio); g.audio.play = (n, o) => { played.push(n); return ap(n, o); };

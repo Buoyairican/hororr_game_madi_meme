@@ -221,7 +221,7 @@ export const QuirkMixin = {
       this.dozing = true; slept = true;
       T.eyeGlow = 0;
       this.noticeQuirk('doze');
-      this.friendQuip(chance(0.5) ? 'sam' : 'nora', chance(0.5) ? 's_asleep' : 'n_asleep', 2.2);
+      this.friendQuip(...(chance(0.5) ? ['sam', 's_asleep'] : ['nora', 'n_asleep']), 2.2);
       const dur = rand(Q.dur[0], Q.dur[1]);
       let t = 0, snore = 0.4;
       while (t < dur) {
