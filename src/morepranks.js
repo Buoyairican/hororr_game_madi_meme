@@ -218,8 +218,8 @@ export const MorePranksMixin = {
     this.audio.play('p6_splash', { pos: at, vol: 1.0, ref: 2.2, reverb: 0.2 });
     this.world.chalkBurst(at, 70, 1.3);
     if (this.cutscene || this.ending || !by || !this.players.includes(by)) return;
-    const r2 = m.splash * m.splash;
-    const near = (pt) => pt.distanceToSquared(at) < r2;
+    // (the water runs along the floor and the desks: near = close across the room, and not far above or below)
+    const near = (pt) => Math.hypot(pt.x - at.x, pt.z - at.z) < m.splash && Math.abs(pt.y - at.y) < 1.6;
     this.note(by, 'hits');
     let wet = 0, laugh = m.laugh.floor, said = false;
     this.mischief += m.mischief.floor;

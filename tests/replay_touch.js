@@ -79,7 +79,8 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   const labels = [];
   for (let i = 0; i < 5; i++) { labels.push(await page.evaluate(() => document.getElementById('btn-ask').textContent)); await touch('#btn-echo', 'touchstart'); await page.waitForTimeout(250); }
   pass(labels.join('/') === 'BALL/PLANE/SPIT/BAND/BOMB', 'hold PRANK, tap SWAP: BALL / PLANE / SPIT / BAND / BOMB on the button (' + labels.join('/') + ')');
-  await touch('#btn-echo', 'touchstart'); await page.waitForTimeout(200); await touch('#btn-echo', 'touchstart'); await page.waitForTimeout(200); await touch('#btn-echo', 'touchstart'); await page.waitForTimeout(250);
+  // (after BOMB come the laser and the KICK ME note of Phase 3: tap on round to the rubber band)
+  for (let i = 0; i < 8 && (await page.evaluate(() => game.me.aim && game.me.aim.kind)) !== 'band'; i++) { await touch('#btn-echo', 'touchstart'); await page.waitForTimeout(200); }
   r = await page.evaluate(() => ({ kind: game.me.aim && game.me.aim.kind, fits: (() => { const b = document.getElementById('btn-ask'); return b.scrollWidth <= b.clientWidth + 1; })() }));
   await page.screenshot({ path: shot('replay_touch_aim.png') });
   await touch('#btn-prank', 'touchend');

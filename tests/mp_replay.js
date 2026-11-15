@@ -59,7 +59,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await H.click('#mp-daily'); await H.waitForTimeout(100);
   await H.click('#btn-mp-go');
   await waitFor(G, () => game.state === 'playing' && game.mp.snap, 20000);
-  r = await H.evaluate(async () => { const R = await import('/src/replay.js'); const g = game; return { daily: g.daily, day: R.dailyInfo(), seed: g.nextSetup && g.nextSetup.seed, hard: g.hard, max: g.maxStrikes, n: g.players.length }; });
+  r = await H.evaluate(async () => { const R = await import('/src/replay.js'); const g = game; return { daily: g.daily, day: R.dailyInfo(), seed: g.setup && g.setup.seed, hard: g.hard, max: g.maxStrikes, n: g.players.length }; });
   pass(r.daily && r.daily.date === today && r.seed === Number(today.replace(/-/g, '')) && r.hard === (r.day.difficulty === 'hard') && r.max === (r.hard ? 1 : 4), `host: the daily class for everyone (seed ${r.seed}, ${r.day.difficulty}, ${r.max} strikes for 2 players)`);
   pass(await waitFor(G, () => /DAILY CLASS/.test(document.getElementById('card-title').innerText), 8000), 'guest: sees the DAILY CLASS title card');
   // nothing random on the host: he stands at the board with his back to the class and sees nobody

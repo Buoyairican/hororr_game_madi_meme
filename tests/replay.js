@@ -162,7 +162,8 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   const names = [];
   for (let i = 0; i < 5; i++) { names.push(await page.evaluate(() => game.me.aim && game.me.aim.kind + ':' + document.getElementById('aim-kind').textContent + ':' + game.heldMeshes[game.me.aim.kind].visible)); await page.keyboard.press('x'); await page.waitForTimeout(250); }
   pass(names.join(' ') === 'ball:PAPER BALL:true plane:PAPER PLANE:true spit:SPITBALL:true band:RUBBER BAND:true bomb:WATER BALLOON:true', 'hold G, X: paper ball, paper plane, spitball, rubber band, water balloon (in your hand, named on screen): ' + names.join(' '));
-  await page.keyboard.press('x'); await page.keyboard.press('x'); await page.waitForTimeout(300); // -> spitball
+  // (after the water balloon come the laser and the KICK ME note of Phase 3: on round to the spitball)
+  for (let i = 0; i < 8 && (await page.evaluate(() => game.me.aim && game.me.aim.kind)) !== 'spit'; i++) { await page.keyboard.press('x'); await page.waitForTimeout(150); }
   await page.screenshot({ path: shot('replay_aim_spit.png') });
   await page.keyboard.up('g');
   await page.waitForFunction(() => game.track.log.some((e) => e.type === 'throw'), null, { timeout: 5000 }).catch(() => {});
@@ -424,7 +425,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   await page.waitForTimeout(600);
   r = await page.evaluate(async () => {
     const R = await import('/src/replay.js'), g = game, day = R.dailyInfo();
-    return { daily: g.daily, day, seed: g.nextSetup && g.nextSetup.seed, shown: g.classSeed(), mode: g.mode, diff: g.difficulty, hard: g.hard, max: g.maxStrikes,
+    return { daily: g.daily, day, seed: g.setup && g.setup.seed, shown: g.classSeed(), mode: g.mode, diff: g.difficulty, hard: g.hard, max: g.maxStrikes,
       card: document.getElementById('card-title').innerText + ' / ' + document.getElementById('card-time').innerText + ' / ' + document.getElementById('card-sub').innerText };
   });
   pass(r.daily && r.daily.date === today && r.daily.seed === Number(today.replace(/-/g, '')) && r.seed === r.daily.seed && r.shown === r.daily.seed, `daily: the class seed ${r.seed} (the UTC date) is passed to game.start as opts.seed`);
@@ -471,7 +472,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   r = await page.evaluate(() => ({ daily: document.getElementById('btn-daily').innerText, state: game.state, d: game.daily }));
   pass(r.state === 'title' && new RegExp('best ' + first).test(r.daily) && !r.d, 'menu: DAILY CLASS now shows your best (' + r.daily.replace(/\n/g, ' | ') + ')');
   await page.click('#btn-free'); await page.waitForTimeout(800);
-  pass(await page.evaluate(() => game.state === 'playing' && !game.daily && game.nextSetup === null), 'a normal Free Class after it is not a daily class (no seed)');
+  pass(await page.evaluate((d) => game.state === 'playing' && !game.daily && game.setup.seed !== d, Number(today.replace(/-/g, ''))), 'a normal Free Class after it is not a daily class (not the daily seed)');
   await page.close();
 
   // another day is another class (the date comes from the clock, in UTC)
