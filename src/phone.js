@@ -1,9 +1,12 @@
 // The player's phone: a 3D handset attached to the camera with a live canvas screen.
 // Two apps: PAPER PLANE (a tap-to-fly game: crash and the phone makes a LOUD noise) and
 // the meme feed (src/memes.js). It also shows messages, videos friends send you... and other things.
+// A third app, PSST! (src/psst.js), and the phone themes are unlocked by playing (src/replay.js).
 import * as THREE from 'three';
 import { damp } from './util.js';
 import { ClipPlayer, ClipBag, drawFace, wrapText } from './memes.js';
+import { PsstGame } from './psst.js';
+import { PHONE_THEMES } from './data.js';
 
 const W = 240, H = 480;
 const GROUND = 440, PX = 70, GAP = 128;
@@ -55,12 +58,14 @@ export class PlaneGame {
     ev.crash(this.score);
   }
 
-  draw(c) {
+  /** th: the phone theme (colours) */
+  draw(c, th = PHONE_THEMES.classic) {
+    INK = th.ink;
     const g = c.createLinearGradient(0, 30, 0, GROUND);
-    g.addColorStop(0, '#5ec2f2'); g.addColorStop(1, '#c7ecff');
+    g.addColorStop(0, th.sky[0]); g.addColorStop(1, th.sky[1]);
     c.fillStyle = g; c.fillRect(0, 26, W, GROUND - 26);
     // clouds
-    c.fillStyle = 'rgba(255,255,255,0.85)';
+    c.fillStyle = th.cloud;
     for (let i = 0; i < 4; i++) {
       const x = ((i * 90 - this.scroll * 0.25) % 330 + 330) % 330 - 60, y = 70 + i * 55;
       c.beginPath(); c.ellipse(x, y, 26, 10, 0, 0, Math.PI * 2); c.ellipse(x + 18, y - 7, 18, 11, 0, 0, Math.PI * 2); c.fill();
@@ -72,10 +77,10 @@ export class PlaneGame {
       pencil(c, p.x, bot, GROUND, false);
     }
     // desk
-    c.fillStyle = '#b07a43'; c.fillRect(0, GROUND, W, H - GROUND);
-    c.fillStyle = '#8f5f2f';
+    c.fillStyle = th.ground; c.fillRect(0, GROUND, W, H - GROUND);
+    c.fillStyle = th.groundDark;
     for (let i = 0; i < 9; i++) c.fillRect(((i * 34 - this.scroll) % 306 + 306) % 306 - 30, GROUND + 14, 20, 3);
-    c.fillStyle = '#c98e52'; c.fillRect(0, GROUND, W, 5);
+    c.fillStyle = th.groundTop; c.fillRect(0, GROUND, W, 5);
     // the plane
     c.save(); c.translate(PX, this.y);
     c.rotate(Math.max(-0.6, Math.min(1.2, this.vy / 420)));
@@ -85,20 +90,20 @@ export class PlaneGame {
     c.restore();
     // text
     c.textAlign = 'center';
-    outline(c, String(this.score), W / 2, 92, 44);
+    outline(c, String(this.score), W / 2, 92, 44, th.text);
     if (this.state === 'ready') {
-      outline(c, 'PAPER PLANE', W / 2, 160, 28, '#ffe066');
-      outline(c, 'TAP TO FLY', W / 2, 300, 22);
-      c.fillStyle = '#1d3557'; c.font = 'bold 12px sans-serif';
+      outline(c, 'PAPER PLANE', W / 2, 160, 28, th.accent);
+      outline(c, 'TAP TO FLY', W / 2, 300, 22, th.text);
+      c.fillStyle = th.ink; c.font = 'bold 12px sans-serif';
       c.fillText(this.hint || 'tap: [E] / click', W / 2, 324);
       if (this.best) { c.font = 'bold 13px sans-serif'; c.fillText('BEST ' + this.best, W / 2, 346); }
     } else if (this.state === 'paused') {
-      outline(c, 'TAP TO CONTINUE', W / 2, 300, 20);
+      outline(c, 'TAP TO CONTINUE', W / 2, 300, 20, th.text);
     } else if (this.state === 'dead') {
       c.fillStyle = 'rgba(120,0,0,0.25)'; c.fillRect(0, 26, W, GROUND - 26);
       outline(c, 'GAME OVER', W / 2, 190, 34, '#ff4d4d');
-      outline(c, 'BEST ' + this.best, W / 2, 230, 18);
-      if (this.deadT > 0.9) outline(c, 'tap to retry', W / 2, 300, 18);
+      outline(c, 'BEST ' + this.best, W / 2, 230, 18, th.text);
+      if (this.deadT > 0.9) outline(c, 'tap to retry', W / 2, 300, 18, th.text);
     }
   }
 }
@@ -122,9 +127,10 @@ function pencil(c, x, y0, y1, down) {
   c.closePath(); c.fill();
 }
 
+let INK = '#1d3557'; // the outline colour of the game's text (from the phone theme)
 function outline(c, s, x, y, size, col = '#fff') {
   c.font = `900 ${size}px Impact, "Arial Black", sans-serif`;
-  c.lineJoin = 'round'; c.lineWidth = size / 5; c.strokeStyle = '#1d3557';
+  c.lineJoin = 'round'; c.lineWidth = size / 5; c.strokeStyle = INK;
   c.strokeText(s, x, y); c.fillStyle = col; c.fillText(s, x, y);
 }
 
@@ -134,7 +140,7 @@ export class Phone {
     this.audio = audio;
     const g = (this.group = new THREE.Group());
     camera.add(g);
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.072, 0.145, 0.009), new THREE.MeshStandardMaterial({ color: 0x0b0b0d, roughness: 0.3, metalness: 0.5 }));
+    const body = (this.body = new THREE.Mesh(new THREE.BoxGeometry(0.072, 0.145, 0.009), new THREE.MeshStandardMaterial({ color: 0x0b0b0d, roughness: 0.3, metalness: 0.5 })));
     g.add(body);
     this.canvas = document.createElement('canvas');
     this.canvas.width = W; this.canvas.height = H;
@@ -149,8 +155,11 @@ export class Phone {
     g.add(this.light);
     this.raise = 0;
     this.up = false;
-    this.app = 'game';      // what it shows when nothing else is going on: 'game' or 'memes'
-    this.mode = 'game';     // on screen now: 'game' 'memes' 'video' (a video someone sent) 'message' 'face'
+    this.app = 'game';      // what it shows when nothing else is going on: 'game', 'memes' (or 'psst', once unlocked)
+    this.apps = ['game', 'memes'];   // the apps T / APP switches between (src/replay.js adds PSST! when it is unlocked)
+    this.theme = PHONE_THEMES.classic;
+    this.psst = new PsstGame();
+    this.mode = 'game';     // on screen now: 'game' 'memes' 'psst' 'video' (a video someone sent) 'message' 'face'
     this.message = null;
     this.t = 0;
     this.redraw = 0;
@@ -159,7 +168,7 @@ export class Phone {
     this.bag = new ClipBag();
     this.feedGap = 0;
     this.mission = null;    // { player, from }
-    this.onCrash = null; this.onPoint = null; this.onFlap = null; this.onFeedDone = null;
+    this.onCrash = null; this.onPoint = null; this.onFlap = null; this.onFeedDone = null; this.onApp = null;
     this.forceT = 0;      // he holds it up in front of you (the scare)
     this.feedDoneFired = false;
     this.clock = '9:41';
@@ -172,6 +181,15 @@ export class Phone {
     this.feed.stopSound(); this.feed.clip = null; this.feed.key = null;
     this.app = 'game'; this.mode = 'game'; this.message = null;
     this.game.reset();
+    this.psst.reset();
+    this.redraw = 0;
+  }
+
+  /** the colours of the handset and its apps (PHONE_THEMES in src/data.js) */
+  setTheme(th) {
+    this.theme = th || PHONE_THEMES.classic;
+    this.body.material.color.setHex(this.theme.body);
+    this.light.color.setHex(this.theme.light);
     this.redraw = 0;
   }
 
@@ -197,11 +215,12 @@ export class Phone {
 
   switchApp() {
     if (this.mode === 'message' || this.mode === 'face') return;
-    this.feed.pause(); this.game.pause();
-    this.app = this.app === 'game' ? 'memes' : 'game';
+    this.feed.pause(); this.game.pause(); this.psst.pause();
+    this.app = this.apps[(this.apps.indexOf(this.app) + 1) % this.apps.length];
     this.mode = this.app;
     if (this.app === 'memes' && !this.feed.clip) this.nextClip();
     this.redraw = 0;
+    if (this.onApp) this.onApp(this.app);
   }
 
   /** E / click / TAP while the phone is up */
@@ -209,6 +228,7 @@ export class Phone {
     if (this.raise < 0.6) return;
     if (this.mode === 'game') { if (this.game.tap() && this.onFlap) this.onFlap(); }
     else if (this.mode === 'memes') this.nextClip();
+    else if (this.mode === 'psst') { if (this.psst.tap() && this.onFlap) this.onFlap('psst'); }
   }
 
   nextClip(key, seed) {
@@ -252,6 +272,12 @@ export class Phone {
       let left = dt;
       while (left > 1e-6) { const h = Math.min(1 / 60, left); this.game.step(h, ev); left -= h; }
     } else if (this.game.state === 'play') this.game.pause();
+    // PSST! too (a note he sees in the air is as loud as a crash)
+    if (this.mode === 'psst' && live) {
+      const ev = { point: (s) => this.onPoint && this.onPoint(s, 'psst'), crash: (s) => this.onCrash && this.onCrash(s, 'psst') };
+      let left = dt;
+      while (left > 1e-6) { const h = Math.min(1 / 60, left); this.psst.step(h, ev); left -= h; }
+    } else if (this.psst.state === 'play') this.psst.pause();
     // videos play while you watch them
     const vol = 0.85;
     if (this.mode === 'video' && this.mission && live) this.mission.player.advance(dt, { on: true, vol });
@@ -267,20 +293,20 @@ export class Phone {
     if (!this.group.visible) return;
     this.redraw -= dt;
     if (this.redraw > 0) return;
-    this.redraw = this.mode === 'game' && this.game.state === 'play' ? 1 / 30 : 1 / 24;
-    const c = this.ctx;
+    this.redraw = (this.mode === 'game' && this.game.state === 'play') || (this.mode === 'psst' && this.psst.state === 'play') ? 1 / 30 : 1 / 24;
+    const c = this.ctx, th = this.theme;
     if (this.mode === 'face') drawFace(c, W, H, this.portrait);
     else if (this.mode === 'message' && this.message) {
-      c.fillStyle = '#0d1117'; c.fillRect(0, 0, W, H);
+      c.fillStyle = th.msgBg; c.fillRect(0, 0, W, H);
       c.fillStyle = '#9aa4b2'; c.font = '15px sans-serif'; c.textAlign = 'center';
       c.fillText(this.clock, W / 2, 28);
-      c.fillStyle = '#1f2937';
+      c.fillStyle = th.msgCard;
       rr(c, 10, 62, W - 20, 280, 18); c.fill();
       c.textAlign = 'left';
       c.fillStyle = this.message.from === 'Unknown' ? '#ff6b6b' : '#7cc4ff';
       c.font = 'bold 28px sans-serif';
       c.fillText(this.message.from, 24, 108);
-      c.fillStyle = '#e5e7eb'; c.font = '28px sans-serif';
+      c.fillStyle = th.msgText; c.font = '28px sans-serif';
       wrapText(c, this.message.text, 24, 152, W - 48, 34);
     } else if (this.mode === 'video' && this.mission) {
       const m = this.mission;
@@ -288,9 +314,9 @@ export class Phone {
     } else if (this.mode === 'memes') {
       this.feed.drawScreen(c, W, H, { clock: this.clock, paused: !live, footer: this.feedHint || 'tap: next video' });
     } else {
-      c.fillStyle = '#000'; c.fillRect(0, 0, W, 26);
-      c.fillStyle = '#d7dbe2'; c.font = 'bold 12px sans-serif'; c.textAlign = 'left'; c.fillText(this.clock, 10, 17);
-      this.game.draw(c);
+      c.fillStyle = th.bar; c.fillRect(0, 0, W, 26);
+      c.fillStyle = th.barText; c.font = 'bold 12px sans-serif'; c.textAlign = 'left'; c.fillText(this.clock, 10, 17);
+      if (this.mode === 'psst') this.psst.draw(c, th); else this.game.draw(c, th);
     }
     this.tex.needsUpdate = true;
   }

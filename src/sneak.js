@@ -18,7 +18,7 @@
 import * as THREE from 'three';
 import { clamp, lerp, damp, rand, pick, chance, smoothstep, Bag } from './util.js';
 import { ROWS, COLS } from './world.js';
-import { SNEAK, SECRETS } from './data.js';
+import { SNEAK, LAPTOP_SECRETS } from './data.js';
 
 const V = THREE.Vector3;
 const _a = new V(), _b = new V(), _c = new V(), _d = new V(), _hit = new V();
@@ -86,7 +86,7 @@ export const SneakMixin = {
     this.clockAhead = 0;
     this.sitting = false; this.sneakBusy = false; this.sneakScan = null;
     this.nextSit = 1e9; this.nextDeskGlasses = 1e9;
-    this.secretBag = new Bag(SECRETS.map((_, i) => i)); this.secretNext = 0;
+    this.secretBag = new Bag(LAPTOP_SECRETS.map((_, i) => i)); this.secretNext = 0;
     this.laptopShutAt = 0; this.sneakAimOn = false; this.sneakQuipped = false; this.sneakSeatOn = '';
     if (this.cushionMesh) this.cushionMesh.visible = false;
   },
@@ -521,8 +521,8 @@ export const SneakMixin = {
       const L = W.laptop;
       if (!this.typing) { L.openTarget = 1; L.glowTarget = 1; this.laptopShutAt = this.t + SNEAK.laptop.open; }
       A.play('keys_2', { pos: L.screenPos.clone(), vol: 0.45, ref: 1 });
-      const i = this.mode === 'story' ? this.secretNext++ % SECRETS.length : this.secretBag.next();
-      const [title, body] = SECRETS[i];
+      const i = this.mode === 'story' ? this.secretNext++ % LAPTOP_SECRETS.length : this.secretBag.next();
+      const [title, body] = LAPTOP_SECRETS[i];
       this.uiTo(p, 'showNote', `<div class="secret"><div class="secret-h">HIS LAPTOP · ${title}</div>${body}</div>`);
       this.mischief += SNEAK.laptop.mischief;
       this.note(p, 'secrets'); this.track.event(this.t, p, 'secret', { i });

@@ -22,6 +22,8 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 
 **Free Class**: the whole morning in one go (about 5 minutes), getting darker and stranger every hour.
 
+**Daily class** (title screen): one Free Class a day that is the same for everyone in the world. It is built from one number, the class seed, made from the date (UTC): `2026-11-14` is class `#20261114`. The day decides whether it is Easy or Hard, and what counts double in the score that day (PAPER DAY, PARROT DAY, QUESTION DAY…). You get a score, and your best score of each day is kept in your browser. The menu shows today's date and your best. Online, the host can start the daily class for everyone (**DAILY** in the lobby).
+
 **Difficulty** (title screen): **Easy** gives you 3 strikes. **Hard** plays the same (he still warns you when he only *hears* something) but you get **one strike**, and if he actually **sees** you whispering or on your phone, he comes for you right away.
 
 **Play with friends**: up to 4 players in the same Free Class (Easy or Hard, the host picks).
@@ -32,6 +34,8 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 4. The host picks Easy or Hard and presses **START FREE CLASS**. Friends who join later drop straight into the running class.
 
 In the lobby Mr. Madi waits at the door. He tells every friend to sit down, he doesn't like it when the host leaves, and the door slams when a class closes on you.
+
+The host can also press **DAILY** before **START**: then everybody plays today's daily class. At the end every player gets **their own report card** (and daily score), graded on what they did; notes, unlocks and best scores are kept in each player's own browser.
 
 Everyone sits at their own desk and sees the others as students with name tags. Look at a friend and hold **E** to whisper to them (only they see it). Hold your phone in the meme app, look at a friend and press **R**: you shout "Bro! Look at this!" and hold your phone out to them; they look at it to watch. Throw paper at him, at the class or at each other: everyone sees the paper fly, your arm winding up, and the laugh meter. Repeating him, dumb questions, the phone and whispering all work for everyone, and he goes after whoever is making the most noise: he walks to *their* desk. Everyone has their own breath: he can lean over anybody's desk to listen (the others see him do it), and he creeps up on whoever stares at their phone. The board, the posters and the seats change the same for everyone, and only while **no** player is looking at them. Strikes are shared by the whole class (Easy: 3, plus 1 for every friend; Hard: one strike for everybody).
 
@@ -103,10 +107,10 @@ On a local server or GitHub Pages there is no `api/turn`, so there is no relay. 
 | …crawl | **WASD** or the arrow keys | the stick |
 | …his glasses, his laptop, his chair, the clock | hold **E** next to it | hold **USE** |
 | Hold your breath (when he leans over your desk) | hold **B** | hold **BREATH** |
-| Pause | **Esc** | **II** button |
+| Pause (and the notebook) | **Esc** | **II** button |
 
 * **Repeat him**: right after he speaks, your squeaky impression makes the class laugh. He doesn't know who said it, so he walks down the rows and leans over the desks, looking at everyone, then goes back. Do it three times in a row and he knows it was you.
-* **Your phone** has two apps. **PAPER PLANE**: tap to fly between the pencils. Crash and the phone plays a LOUD game-over tune that the whole class (and he) hears: he turns right to you, so put it away. **Memes**: an endless feed of short funny videos.
+* **Your phone** has two apps. **PAPER PLANE**: tap to fly between the pencils. Crash and the phone plays a LOUD game-over tune that the whole class (and he) hears: he turns right to you, so put it away. **Memes**: an endless feed of short funny videos. A third app, **PSST!**, can be unlocked: tap to pass a note from desk to desk while the little teacher on your screen writes on his board. When his chalk stops, stop: a note in the air when he turns around is just as LOUD as a crash.
 * **Meme videos**: friends send you videos and classmates hold their phone out to you ("LOOK! look at this!"). Watch them to the end, but **if he sees you watching a video, he comes and takes the phone**. The loud parts of a video can be heard across the room.
 * **Dumb questions**: he stares at you, he doesn't know, he goes to his laptop. While he types he isn't watching you. Ask too many and you're in trouble.
 * **Pranks**: hold **G** and a dotted arc shows where your paper goes and what it will hit; hold longer to throw harder, let go to throw. A **paper ball** flies fast and straight; a **paper plane** is slower, glides much farther and curves to one side (every one is folded a little differently). Hit **his back** and he spins around to find who did it (hit him three times and he knows it was you). Hit **his head** and his glasses fly off: he can't see until he finds them on the floor. Hit the **board while he writes** and the chalk screeches. Hit a **kid** and they yell "Ow!" and might throw one back at you; Sam and Nora laugh (or throw back). **If he sees your arm up, you're caught.**
@@ -128,6 +132,15 @@ On a local server or GitHub Pages there is no `api/turn`, so there is no relay. 
   * **Quirks**: **half deaf** on one side (whisper on his deaf side), **hates laughing** (the class laughing makes him angrier), **dozes off** (he can't see you, but a loud noise wakes him), **obsessed with the clock** (he glances back less), **counts the class** (he points at every head) and **hums** while he writes (he hears you less, then more when he stops). You find them out by playing: the HUD lists the ones you noticed ("TODAY HE").
   * **He learns your slang**: class-clown memes and your echoes are remembered (also next class, in this browser). Later he uses them wrong in the lesson, writes them on the board, mocks your squeaky voice, and dances to phonk from his own phone.
   * Online, every player sees and hears all of it, also a friend who joins late.
+* **Report card**: after every class (won or lost, story or Free Class) he grades you from **A** to **F** in seven subjects: Whispering, Drama (repeating him), Science (dumb questions), Media Studies (videos, your phone), Gym (throwing), Behaviour and Attendance, each with his comment. The final grade is the average of your four best subjects (Hard adds a little). He likes the quiet ones, so an **A** is not a compliment ("A… for… awful."), and an **F** is "for… favorite".
+* **Unlocks** (kept in your browser, listed in the notebook):
+  * **SPITBALL** (a C or better on a report card): fast and quiet, and it sticks where it lands. He feels his neck and blames the roof ("The roof… is… leaking."). The second time he knows it is not rain. The third: caught.
+  * **RUBBER BAND** (hit him with paper 3 times in one class): very fast and it stings ("Ow."), and the twang tells him where you sit. It bounces off walls: hit him after a bounce (a **TRICK SHOT**) and he looks at the wall instead.
+  * **WATER BALLOON** (an A on a report card): a slow lob that soaks everybody near it. He has to wipe his glasses (he can't see meanwhile); on the board it washes the lesson away ("My… lesson."). It is worth two hits, and slow to refill.
+  * **PSST!** the phone app (finish 3 classes), and four **phone themes** (no strike until the bell; 5 videos watched; 6 of Mr. Hale's notes; a daily class finished). Pick a theme in the notebook.
+  * New pranks join the prank selector: hold **G** / **PRANK**, then **X** / the mouse wheel / **SWAP**.
+* **Mr. Hale's notes**: he hid 12 notes in Room 13. You find one by doing something in class: looking at the right place for a moment, a prank, a question, your phone, the class clowns, staying until the bell… The **NOTEBOOK** (main menu and pause menu) keeps the ones you found and gives a hint for each one you are missing. Together they tell what happened to Mr. Hale.
+* **Two secret endings.** One in Free Class, one in the story. Mr. Hale's notes tell you how.
 * An optional helper HUD (Settings) shows when he is watching you and how angry he is.
 
 Tip: headphones. The audio is positional; you can hear his footsteps.
@@ -187,10 +200,17 @@ src/events.js              a different teacher every class: the seeded class set
                            (ringtone, fly, pizza, fire alarm, he leaves the room)
 src/quirks.js              his quirks (half deaf, hates laughing, dozes off, the clock, counts the class, hums)
 src/slang.js               the slang he learns from you and uses wrong (remembered in the browser)
+src/morepranks.js          the pranks you unlock: spitball, rubber band, water balloon (each with its own flight and reaction)
+src/replay.js              reasons to replay: the report card, unlocks, Mr. Hale's hidden notes, the daily class
+src/secrets.js             the two secret endings, and the supply closet at the back of the room
+src/profile.js             what your browser keeps between classes (unlocks, notes, best scores), with a fallback when storage is blocked
+src/notebook.js            the notebook screen (notes, unlocks, records) and the DAILY CLASS / NOTEBOOK menu entries
 src/memes.js, src/clips.js the meme clips (original cartoons drawn live) and the clip player
-src/phone.js               your phone: PAPER PLANE, the meme feed, messages
+src/phone.js               your phone: PAPER PLANE, the meme feed, messages, themes
+src/psst.js                PSST!, the third phone app (unlocked): pass the note while his back is turned
 src/stats.js               what every player did in a class (counts + event log)
-src/data.js                board text, lines, questions, messages, notes, chapter titles
+src/data.js                board text, lines, questions, messages, notes, chapter titles, and the tables of every feature
+                           (pranks, the report card's grading rows, unlocks, Mr. Hale's notes and how each is found, the daily class)
 src/teacher.js             Mr. Madi: rigged suit body, IK arms and legs, walk cycle
                            (feet step, hips stay level so he seems to glide), glasses
 src/madi_head.js           the head shaped from the reference photo, jaw, teeth, glasses
@@ -208,8 +228,8 @@ src/audio.js               Web Audio engine: 3D HRTF sound, reverb, live ambienc
 src/post.js                retro post-processing (grain, aberration, glitch, blackout)
 assets/models/             rigged characters (built by tools/build_characters.py, bundled in models.json)
 assets/textures/           teacher face texture + glow mask (from the reference photo)
-assets/audio/voice/        432 spoken lines
-assets/audio/sfx/          127 sound effects and music loops
+assets/audio/voice/        462 spoken lines
+assets/audio/sfx/          141 sound effects and music loops
 assets/videos/             your own .mp4 memes (optional, see assets/videos/README.md)
 tools/                     scripts that generate all of the assets above + preview pages
 tests/                     browser tests and their runner (bash tests/run.sh quick|full)
@@ -219,7 +239,7 @@ vendor/                    three.js r170 (+ GLTFLoader), PeerJS 1.5.5
 
 ### Tests
 
-`bash tests/run.sh quick` (about 14 minutes) or `bash tests/run.sh full` (about 35 minutes) plays the game in
+`bash tests/run.sh quick` (about 17 minutes) or `bash tests/run.sh full` (about 40 minutes) plays the game in
 headless Chromium and prints PASS / FAIL per test. See `tests/README.md`.
 
 ### Regenerating the assets
@@ -230,7 +250,7 @@ pip install numpy pillow pyfqmr
 python3 tools/make_face_texture.py   # face texture + eye glow
 python3 tools/build_characters.py    # all characters (downloads the CC0 MakeHuman base mesh once)
 python3 tools/gen_voices.py          # voice lines that are missing (--all rebuilds every line)
-python3 tools/gen_sfx.py             # all sound effects (add 'memes', 'v4', 'v5', 'v6', 'v7', 'p3', 'p4' or 'dread' to build only one group)
+python3 tools/gen_sfx.py             # all sound effects (add 'memes', 'v4', 'v5', 'v6', 'v7', 'p3', 'p4', 'p6' or 'dread' to build only one group)
 python3 tools/pack_audio.py OUT      # every sound in one file (OUT.mp3 + OUT.json), for hosts that limit the number of
                                      # files (the claude.ai preview); the page then sets window.AUDIO_PACK = 'OUT'
 ```

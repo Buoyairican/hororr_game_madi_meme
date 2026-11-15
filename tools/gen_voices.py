@@ -676,6 +676,66 @@ NORA.update({
     "n_sn_hale": "Those are Mister Hale's glasses. Take them back.",
 })
 
+# ---------------- Phase 6 (src/replay.js, src/morepranks.js, src/secrets.js): the report card, the daily class,
+# the unlocked pranks, his glasses breaking, the secret endings (Mr. Hale: a tired, kind voice, not the substitute's).
+TEACHER.update({
+    "t_gradeA": "A. | For | awful.",
+    "t_gradeB": "B. | For | bad.",
+    "t_gradeC": "C. | I | see | you.",
+    "t_gradeD": "D. | For | dull.",
+    "t_gradeF": "F. | For | favorite.",
+    "t_daily": "Today | is | a special | day.",
+    "t_roof": "The roof | is | leaking.",
+    "t_notrain": "That | is not | rain.",
+    "t_ow": "Ow.",
+    "t_wet": "I am | wet.",
+    "t_lesson": "My | lesson.",
+    "t_broken": "They are | broken.",
+    "t_noclass": "I cannot | see | the class.",
+    "t_isthere": "Is there | a class?",
+    "t_notteacher": "Then | I am not | a teacher.",
+    "t_lookup": "I will | look it up.",
+})
+SUBS.update({
+    "t_gradeA": "A... for... awful.",
+    "t_gradeB": "B... for... bad.",
+    "t_gradeC": "C... I... see... you.",
+    "t_gradeD": "D... for... dull.",
+    "t_gradeF": "F... for... favorite.",
+    "t_daily": "Today... is... a special... day.",
+    "t_roof": "The roof... is... leaking.",
+    "t_notrain": "That... is not... rain.",
+    "t_ow": "Ow.",
+    "t_wet": "I am... wet.",
+    "t_lesson": "My... lesson.",
+    "t_broken": "They are... broken.",
+    "t_noclass": "I cannot... see... the class.",
+    "t_isthere": "Is there... a class?",
+    "t_notteacher": "Then... I am not... a teacher.",
+    "t_lookup": "I will... look it up.",
+})
+SAM.update({
+    "s_broke": "Bro. You broke his glasses.",
+    "s_knock": "Did you hear that? At the back.",
+    "s_kevinback": "Kevin?! Dude, where were you?",
+})
+NORA.update({
+    "n_cantsee": "He can't see us. He can't see anything.",
+    "n_hale": "That's Mister Hale. That's his voice!",
+})
+ALOUD.update({
+    "h_who": ("mb-us2", 132, 42, 1.0, "hale", "Hello? Is somebody out there?"),
+    "h_late": ("mb-us2", 132, 42, 1.0, "hale", "Sorry I'm late, class."),
+    "h_never": ("mb-us2", 128, 42, 1.0, "hale", "Thirty years. And I finally missed a day."),
+    "h_roll": ("mb-us2", 132, 46, 1.0, "hale", "Kevin?"),
+    "h_glasses": ("mb-us2", 132, 44, 1.0, "hale", "Has anyone seen my glasses?"),
+    "h_dismissed": ("mb-us2", 128, 42, 1.0, "hale", "Class dismissed. Go home. All of you."),
+    "k_here": ("mb-us3", 150, 60, 1.2, "kid", "Um. Here."),
+})
+MEMES.update({
+    "k_ew": ("Eww! Gross!", "Ewww! Gross!", ""),
+})
+
 # Voices inside the meme clips on the phones: (espeak voice, speed, pitch, rubberband pitch, text)
 CLIPV = {
     "v_br_pencil": ("it", 125, 30, 0.86, "Matitino Gommarino!"),

@@ -13,6 +13,9 @@ import { SlangMixin } from './slang.js';
 import { BlameMixin } from './blame.js';
 import { SneakMixin } from './sneak.js';
 import { DreadMixin } from './dread.js';
+import { ReplayMixin } from './replay.js';
+import { MorePranksMixin } from './morepranks.js';
+import { SecretMixin } from './secrets.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
@@ -103,6 +106,7 @@ export class Game {
     this.setupBlame();
     this.setupSneak();
     this.setupDread();
+    this.setupMorePranks(); this.setupSecrets(); this.setupReplay(); // Phase 6: unlocked pranks, the closet, report cards / notes / the daily class
     this.reset('free', 0);
   }
 
@@ -240,6 +244,7 @@ export class Game {
     this.resetQuirks();
     this.resetSlang();
     this.resetDread();
+    this.resetMorePranks(); this.resetSecrets(); this.resetReplay();
     this.searching = false;
     this.ui.clearTransient();
     this.ui.setObjectives([]);
@@ -338,6 +343,7 @@ export class Game {
     this.updateSlang(dt);
     this.updateChoice(dt);
     this.updateIdle(dt);
+    this.updateReplay(dt); // Mr. Hale's hidden notes (src/replay.js)
     this.updateHand(dt);
     this.updateDread(dt); // his creeping, his listening at your desk, your breath, things that change (before updateAnger)
     this.phone.update(dt);
@@ -1121,6 +1127,7 @@ export class Game {
   }
 
   resolveBuzz() {
+    if (this.buzz && this.buzz.read > 1.4) this.track.event(this.t, this.me, 'text', { from: this.buzz.msg.from }); // you read it
     if (this.buzz) this.buzzRead = this.buzz.msg;
     this.buzz = null;
     this.msgShow = 0;
@@ -3200,7 +3207,7 @@ export class Game {
     A.fadeBus('amb', 0.5, 2);
     A.play('gasp', { pos: new THREE.Vector3(0, 1.1, 0.5), vol: 0.6 });
     for (const k of this.allKids()) k.lookTarget = W.laptop.screenPos;
-    yield* this.wait(5);
+    if (yield* this.secretKnock(who)) return; // the quiet seconds after he is gone... something knocks at the back (src/secrets.js)
     this.blackoutTarget = 1;
     yield* this.wait(2);
     this.finish('true');
@@ -3287,6 +3294,7 @@ export class Game {
     yield* this.wait(1.4);
     yield* this.turnToClass();
     yield* this.say('t_morning');
+    if (this.daily) yield* this.say('t_daily', 0.3); // the daily class (src/replay.js)
     yield* this.actStare(2);
   }
 
@@ -3358,6 +3366,7 @@ export class Game {
 
   completeChapter() {
     const n = this.chapter;
+    this.endKind = 'period';
     this.saveProgress(n + 1);
     const titles = [
       ['PERIOD 1 COMPLETE', 'The bell rang. Nobody moved.<br><i>Kevin\'s desk is still empty.</i>'],
@@ -3370,15 +3379,16 @@ export class Game {
   }
 
   finish(kind) {
+    this.endKind = kind; // (the report card and the unlocks ask how the class ended: src/replay.js)
     if (this.mode === 'story') {
-      if (kind === 'true' || kind === 'escape') {
+      if (kind === 'true' || kind === 'escape' || kind === 'hale') {
         this.saveProgress(4);
         this.endAction = kind === 'escape'
           ? { label: 'TRY FOR THE TRUE ENDING', go: () => this.start('story', 3) }
           : { label: 'PLAY FREE CLASS', go: () => this.start('free') };
       } else this.endAction = { label: 'RETRY PERIOD', go: () => this.start('story', this.chapter) };
       const [title, text] = ENDINGS[kind] || ENDINGS.caught;
-      this.showEnd(title, (kind === 'caught' && this.hard ? 'On hard, once is enough.<br>Nobody leaves his class.' : text) + (kind === 'true' ? '<br><br><b>THE END.</b>' : ''));
+      this.showEnd(title, (kind === 'caught' && this.hard ? 'On hard, once is enough.<br>Nobody leaves his class.' : text) + (kind === 'true' ? '<br><br><b>THE END.</b>' : kind === 'hale' ? '<br><br><b>THE REAL END.</b>' : ''));
       return;
     }
     this.endAction = { label: 'TRY AGAIN', go: () => this.start('free') };
@@ -3399,6 +3409,7 @@ export class Game {
     this.ui.clearTransient();
     this.ui.closeChoices();
     this.dreadEnd();
+    this.replayEnd(); // everybody's report card; a daily class is retried as the daily class (src/replay.js)
     this.ui.end(title, text, this.statsHtml(), this.endAction ? this.endAction.label : null);
     if (this.mp) this.mp.onEnd(title, text, this.statsHtml());
   }
@@ -3492,7 +3503,7 @@ export class Game {
   }
 }
 
-Object.assign(Game.prototype, VideoMixin, PrankMixin, LobbyMixin, EventMixin, QuirkMixin, SlangMixin, BlameMixin, SneakMixin);
+Object.assign(Game.prototype, VideoMixin, PrankMixin, LobbyMixin, EventMixin, QuirkMixin, SlangMixin, BlameMixin, SneakMixin, ReplayMixin, MorePranksMixin, SecretMixin);
 
 /** is the clip on a phone held out to you at a loud moment? */
 function clipLoud(sh) {

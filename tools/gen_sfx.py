@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Synthesise all sound effects used by the game (no samples, no licences).
 
-    python3 tools/gen_sfx.py          (needs numpy + ffmpeg; add v3, v4, v5, v6, v7, p3, p4, dread or memes for one group)
+    python3 tools/gen_sfx.py          (needs numpy + ffmpeg; add v3, v4, v5, v6, v7, p3, p4, p6, dread or memes for one group)
 
 Writes assets/audio/sfx/*.mp3. Every sound is built from noise, oscillators,
 filters and a synthetic room impulse response, so it can be tweaked freely.
@@ -1664,6 +1664,97 @@ def make_p4():
     save("sn_drawer", reverb(x, 0.2, dur=0.7, decay=0.5), 0.7)
 
 
+def make_p6():
+    """Phase 6 (reasons to replay): the report card stamp, an unlock, a hidden note, the unlocked pranks
+    (spitball, rubber band, water balloon), the PSST! app, knocking on the closet, his glasses breaking.
+    Uses its own random numbers, so building only this group gives the same files."""
+    r = np.random.default_rng(606)
+
+    def nz(d):
+        return r.standard_normal(int(d * SR))
+
+    # the grade is stamped on the report card: a rubber stamp on paper on a desk
+    d = 0.4; t = t_axis(d)
+    x = osc_sin(np.full(len(t), 115.0)) * np.exp(-t / 0.045) + biquad(nz(d), "lp", 900) * np.exp(-t / 0.018) * 1.2
+    x += crinkle(d, 180, 1500, 5000, seed=601) * 0.35 * np.exp(-t / 0.09)
+    save("p6_stamp", reverb(x, 0.12, dur=0.5, decay=0.3), 0.85)
+    # something unlocked: four music-box notes going up (the title tune's box)
+    d = 1.9
+    x = np.zeros(int(d * SR))
+    for k, f in enumerate((1318.5, 1661.2, 1975.5, 2637.0)):   # E6 G#6 B6 E7
+        place(x, music_box_note(f, 1.2) * (0.5 - 0.05 * k), 0.11 * k)
+    save("p6_unlock", reverb(x, 0.3, dur=1.4, decay=0.5), 0.6)
+    # one of Mr. Hale's notes: old paper unfolding, then two quiet notes
+    d = 1.5
+    x = np.zeros(int(d * SR))
+    place(x, crinkle(0.5, 260, 1200, 5000, seed=602) * np.sin(np.pi * t_axis(0.5) / 0.5), 0.0)
+    place(x, music_box_note(880.0, 1.0) * 0.32, 0.36)        # A5
+    place(x, music_box_note(1318.5, 1.0) * 0.26, 0.56)       # E6
+    save("p6_note", reverb(x, 0.3, dur=1.2, decay=0.5), 0.55)
+    # a spitball leaves the straw: "thup"
+    d = 0.16; t = t_axis(d)
+    x = svf(nz(d), 1700 - 1100 * (t / d), 2.0, "bp") * np.exp(-t / 0.035) + osc_sin(260 * np.exp(-t / 0.03) + 90) * np.exp(-t / 0.02) * 0.6
+    save("p6_spit", x, 0.6)
+    # ...and lands: a small wet tick
+    d = 0.14; t = t_axis(d)
+    x = biquad(nz(d), "lp", 2600) * np.exp(-t / 0.006) + osc_sin(340 * np.exp(-t / 0.04) + 120) * np.exp(-t / 0.03) * 0.7
+    save("p6_splat", x, 0.55)
+    # a rubber band let go: twang
+    d = 0.4; t = t_axis(d)
+    f = 300 + 260 * np.exp(-t / 0.03) + 6 * np.sin(2 * np.pi * 38 * t)
+    x = (osc_sin(f) + 0.4 * osc_sin(2 * f) + 0.2 * osc_saw(3 * f)) * np.exp(-t / 0.09)
+    x += biquad(nz(d), "bp", 3200, 1.5) * np.exp(-t / 0.004) * 0.8
+    save("p6_twang", x, 0.7)
+    # it snaps against something
+    d = 0.12; t = t_axis(d)
+    x = biquad(nz(d), "bp", 2900, 1.2) * np.exp(-t / 0.005) * 1.4 + osc_sin(np.full(len(t), 950.0)) * np.exp(-t / 0.012) * 0.4
+    save("p6_snap", x, 0.7)
+    # stretching the next rubber band: a rising rubbery creak
+    d = 0.9; t = t_axis(d)
+    f = 240 + 420 * (t / d) ** 1.5
+    x = osc_saw(f) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * (22 + 30 * t / d) * t))) * np.sin(np.pi * t / d) ** 0.7
+    x = svf(x, 700 + 900 * (t / d), 2.5, "bp") + biquad(nz(d), "bp", 2400, 1.0) * 0.05
+    save("p6_stretch", x, 0.4)
+    # filling a water balloon under the desk: a thin stream, bubbles, the rubber squeaking fuller
+    d = 1.7; t = t_axis(d)
+    x = svf(nz(d), 1400 + 900 * (t / d), 1.2, "bp") * 0.5 * np.sin(np.pi * np.clip(t / d, 0, 1)) ** 0.5
+    for _ in range(26):
+        at = r.uniform(0.05, d - 0.15); bd = r.uniform(0.03, 0.07); bt = t_axis(bd)
+        f0 = r.uniform(500, 1300)
+        place(x, osc_sin(f0 * (1 + 0.8 * bt / bd)) * np.sin(np.pi * bt / bd) * r.uniform(0.2, 0.5), at)
+    save("p6_fill", x, 0.45)
+    # a water balloon bursts: the pop, the slap of water, drops after it
+    d = 1.0; t = t_axis(d)
+    x = biquad(nz(d), "lp", 5200) * np.exp(-t / 0.11) + biquad(nz(d), "bp", 600, 0.8) * np.exp(-t / 0.05) * 1.6
+    x += osc_sin(180 * np.exp(-t / 0.05) + 60) * np.exp(-t / 0.04) * 1.2
+    for _ in range(34):
+        at = r.uniform(0.08, 0.8); bd = r.uniform(0.01, 0.03); bt = t_axis(bd)
+        place(x, biquad(r.standard_normal(len(bt)), "bp", r.uniform(1800, 5200), 3.0) * np.exp(-bt / (bd * 0.3)) * r.uniform(0.15, 0.5) * (1 - at), at)
+    save("p6_splash", reverb(x, 0.2, dur=0.9, decay=0.4), 0.85)
+    # one knock on a wooden door
+    d = 0.3; t = t_axis(d)
+    x = biquad(nz(d), "bp", 330, 3.0) * np.exp(-t / 0.018) + osc_sin(np.full(len(t), 142.0)) * np.exp(-t / 0.04) * 0.8
+    x += biquad(nz(d), "bp", 1500, 2.0) * np.exp(-t / 0.004) * 0.5
+    save("p6_knock", reverb(x, 0.25, dur=0.9, decay=0.5), 0.8)
+    # a crack runs across a lens
+    d = 0.3; t = t_axis(d)
+    x = crinkle(d, 120, 4000, 9500, seed=603) * np.exp(-t / 0.07) + osc_sin(np.full(len(t), 3400.0)) * np.exp(-t / 0.02) * 0.5
+    x += biquad(nz(d), "hp", 5000) * np.exp(-t / 0.003) * 0.9
+    save("p6_crack", x, 0.6)
+    # glasses break on the floor: the frame clacks, the lenses shatter and scatter
+    d = 1.1; t = t_axis(d)
+    x = biquad(nz(d), "hp", 3500) * np.exp(-t / 0.03) * 1.2 + biquad(nz(d), "bp", 700, 2.0) * np.exp(-t / 0.02)
+    for k in range(9):
+        f0 = r.uniform(2300, 7600)
+        x += osc_sin(np.full(len(t), f0)) * np.exp(-t / r.uniform(0.04, 0.22)) * r.uniform(0.1, 0.3)
+    place(x, crinkle(0.8, 150, 3800, 9800, seed=604) * np.exp(-t_axis(0.8) / 0.3) * 0.9, 0.06)
+    save("p6_break", reverb(x, 0.2, dur=0.9, decay=0.4), 0.85)
+    # PSST!: the note goes to the next desk
+    d = 0.14; t = t_axis(d)
+    x = svf(nz(d), 1800 + 2600 * (t / d), 1.3, "bp") * np.sin(np.pi * t / d) ** 2
+    save("p6_pass", x, 0.4)
+
+
 if __name__ == "__main__":
     import sys
     print("Synthesising sound effects ->", OUT)
@@ -1672,6 +1763,9 @@ if __name__ == "__main__":
         raise SystemExit(0)
     if "p4" in sys.argv:  # Phase 4: off your chair, his desk
         make_p4()
+        raise SystemExit(0)
+    if "p6" in sys.argv:  # Phase 6: the report card, unlocks, notes, the unlocked pranks, PSST!, the secret endings
+        make_p6()
         raise SystemExit(0)
     if "v7" in sys.argv:
         make_v7()
@@ -1716,4 +1810,5 @@ if __name__ == "__main__":
     make_v7()
     make_p3()
     make_p4()
+    make_p6()
     print("done")

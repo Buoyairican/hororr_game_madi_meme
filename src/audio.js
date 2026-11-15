@@ -19,6 +19,9 @@ export const SFX = [
   'madi_ring', 'phone_voice', 'phone_static', 'fly_buzz', 'fly_splat', 'door_knock', 'pizza_box', 'munch', 'fire_alarm', 'madi_hum', 'snort', 'class_chatter',
   'bl_stick', 'bl_rip', 'bl_click', 'bl_paw', 'bl_ooh',
   'sn_slip', 'sn_grab', 'sn_clock', 'sn_cushion', 'sn_squeak', 'sn_drawer',
+  // Phase 6: report card, unlocks, hidden notes, the unlocked pranks, PSST!, the secret endings
+  'p6_stamp', 'p6_unlock', 'p6_note', 'p6_spit', 'p6_splat', 'p6_twang', 'p6_snap', 'p6_stretch', 'p6_fill', 'p6_splash',
+  'p6_knock', 'p6_crack', 'p6_break', 'p6_pass',
 ];
 
 const _v = new THREE.Vector3();

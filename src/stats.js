@@ -43,6 +43,12 @@ export const STAT_KEYS = [
   'secrets',     // things you read on his laptop
   'clocks',      // times you moved the clock forward
   'cushions',    // whoopee cushions he sat on
+  // Phase 6 (src/replay.js, src/morepranks.js)
+  'glassesOff',  // paper on his head: the glasses flew off
+  'soaked',      // water balloons that got him wet
+  'trickShots',  // rubber bands that hit someone off a wall
+  'notesFound',  // Mr. Hale's hidden notes found in this class
+  'psst',        // notes delivered in the PSST! phone app
 ];
 
 export class RunStats {
@@ -73,7 +79,9 @@ export class RunStats {
   }
 
   event(t, p, type, info = {}) {
-    this.log.push({ t: Math.round(t * 10) / 10, who: p ? p.id : null, type, ...info });
+    const e = { t: Math.round(t * 10) / 10, who: p ? p.id : null, type, ...info };
+    this.log.push(e);
+    if (this.onEvent) this.onEvent(e, p); // (src/replay.js listens: Mr. Hale's notes are found by what happens in class)
     if (this.log.length > 500) this.log.shift();
   }
 

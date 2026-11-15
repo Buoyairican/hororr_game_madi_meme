@@ -97,6 +97,8 @@
       <button id="btn-mp">PLAY WITH FRIENDS</button>
       <div class="diff-row"><button id="btn-easy">EASY</button><button id="btn-hard">HARD</button></div>
       <div id="diff-note"></div>
+      <!-- Phase 6: the daily class (today's date and your best) and the notebook (Mr. Hale's notes, unlocks, records) -->
+      <div id="p6-menu"><button id="btn-daily">DAILY CLASS<small id="daily-info"></small></button><button id="btn-notebook">NOTEBOOK<small id="notebook-info"></small></button></div>
       <button id="btn-how">HOW TO PLAY</button>
       <button id="btn-settings">SETTINGS</button>
     </div>
@@ -139,6 +141,9 @@
       <li>If he catches you, he comes to your desk. <b>Three strikes</b> and the period is over.</li>
       <li>Sit still too long and the <b>class clowns</b> in the back start making noises. He will go and find out who did it.</li>
       <li><b>Difficulty</b>: <b>Easy</b> gives you 3 strikes. <b>Hard</b> plays the same, but you only get <b>one strike</b>, and if he actually <b>sees</b> you whispering or on your phone, he comes for you right away.</li>
+      <li><b>Report card</b> &mdash; after every class he grades you, A to F. He likes the quiet ones, so an <b>A</b> is not a compliment. Good grades and deeds <b>unlock</b> things: new pranks (spitball, rubber band, water balloon: switch with <kbd>X</kbd> / <b>SWAP</b> while you aim), phone themes and a third phone app (<b>PSST!</b>).</li>
+      <li><b>Mr. Hale's notes</b> &mdash; 12 notes are hidden in the class. You find one by doing something (looking at the right place, a prank, a question&hellip;). The <b>NOTEBOOK</b> (main menu and pause menu) keeps them, with a hint for each one you are missing. They tell you what happened to Mr. Hale&hellip; and how to find the two secret endings.</li>
+      <li><b>Daily class</b> &mdash; the same class for everyone in the world that day (the day picks Easy or Hard, and one thing that counts double). Your best score of the day is kept.</li>
       <li><b>Play with friends</b> (Free Class): one of you hosts, the others join with the class code (up to 4). Look at a friend and hold <kbd>E</kbd> / <b>TALK</b> to whisper to them. In the meme app, look at a friend and press <kbd>R</kbd> / <b>SHOW</b> to hold your phone out to them. Throw paper at each other too. Strikes are shared, so keep each other quiet.</li>
       <li><b>Hosting?</b> Keep the game open on your screen until your friends are in: on a phone, a game in the background can't let anybody in. Send the code with <b>SHARE CODE</b> (you stay in the game) or <b>COPY INVITE LINK</b>. Joining takes up to a minute on slow networks; the game keeps trying by itself.</li>
     </ul>
@@ -173,7 +178,7 @@
         <ul id="mp-players"></ul>
         <div id="mp-host-ctl" class="hidden">
           <div class="dim mp-free">Online play is Free Class (8:30 to 12:30).</div>
-          <div class="diff-row"><button id="mp-easy">EASY</button><button id="mp-hard">HARD</button></div>
+          <div class="diff-row"><button id="mp-easy">EASY</button><button id="mp-hard">HARD</button><button id="mp-daily">DAILY</button></div>
           <div id="mp-diff-note" class="dim"></div>
           <button id="btn-mp-go" class="big">START FREE CLASS</button>
         </div>
@@ -198,6 +203,16 @@
   </div>
 </div>
 
+<!-- ============ NOTEBOOK (Phase 6): Mr. Hale's notes, unlocks, records ============ -->
+<div id="notebook" class="screen hidden">
+  <div class="panel" id="notebook-panel">
+    <h2>NOTEBOOK</h2>
+    <div id="notebook-tabs"><button data-tab="notes">MR. HALE'S NOTES</button><button data-tab="unlocks">UNLOCKS</button><button data-tab="records">RECORDS</button></div>
+    <div id="notebook-body"></div>
+    <button class="back">BACK</button>
+  </div>
+</div>
+
 <!-- ============ PAUSE ============ -->
 <div id="pause" class="screen hidden">
   <div class="panel center">
@@ -205,6 +220,7 @@
     <p class="dim">He is waiting.</p>
     <button id="btn-resume" class="big">RESUME</button>
     <button id="btn-pause-settings">SETTINGS</button>
+    <button id="btn-pause-notebook">NOTEBOOK</button>
     <button id="btn-restart">RESTART</button>
     <button id="btn-quit">MAIN MENU</button>
   </div>
@@ -216,6 +232,8 @@
     <h2 id="end-title">DETENTION</h2>
     <p id="end-text"></p>
     <div id="end-stats"></div>
+    <!-- Phase 6: your report card (its own block; in landscape it sits to the right of the rest) -->
+    <div id="end-report"></div>
     <button id="btn-again" class="big">TRY AGAIN</button>
     <button id="btn-menu">MAIN MENU</button>
   </div>

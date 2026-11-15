@@ -13,7 +13,7 @@ import { clockLabel } from './data.js';
 import { clamp, dampAngle, lerp } from './util.js';
 import { HeldPhone } from './memes.js';
 import { showPose, avatarShoulders, lookDot } from './videos.js';
-import { makePaperMesh } from './pranks.js';
+import { makePaperMesh, PAPER_KINDS } from './pranks.js';
 import { makeNoteMesh, toolCode, toolName } from './blame.js';
 import { PRANK, ONLINE } from './data.js';
 
@@ -234,11 +234,12 @@ export class MP {
     } else if (m.t === 'press') {
       if (m.k === 'echo' || m.k === 'ask' || m.k === 'show') p.in[m.k] = true;
       else if (m.k === 'fail' && !(p.failT > 0.5)) g.phoneFail(p);
-      else if (m.k === 'throw') g.throwFrom(p, { yaw: m.y, pitch: m.p, power: m.pw, kind: m.kd === 1 ? 'plane' : 'ball', curve: m.cv });
+      else if (m.k === 'throw') g.throwFrom(p, { yaw: m.y, pitch: m.p, power: m.pw, kind: PAPER_KINDS[m.kd] || 'ball', curve: m.cv });
       else if (m.k === 'note') g.stickNote(p);
       else if (m.k === 'use') g.deskAct(p, String(m.w)); // his glasses, his laptop, the clock, his chair
     }
     else if (m.t === 'pick') g.pickChoice(Number(m.i), p);
+    else if (m.t === 'p6') g.replayFromGuest(p, m); // Phase 6 (src/replay.js)
   }
 
   dropGuest(id) {
@@ -534,6 +535,7 @@ export class MP {
         break;
       }
       case 'end': if (this.jump) this.pendingEnd = e; else this.showEnd(e); break;
+      case 'p6': g.replayNet(e); break; // Phase 6: your report card, a note of Mr. Hale's you found (src/replay.js)
       default: break;
     }
   }
@@ -754,7 +756,7 @@ export class MP {
     const req = g.localPrank(dt, inp, pressed, blocked || away, g.prankOpen());
     if (req && req.note) this.send({ t: 'press', k: 'note' });
     else if (req) {
-      this.send({ t: 'press', k: 'throw', y: r3(req.yaw), p: r3(req.pitch), pw: r2(req.power), kd: req.kind === 'plane' ? 1 : 0, cv: r2(req.curve) });
+      this.send({ t: 'press', k: 'throw', y: r3(req.yaw), p: r3(req.pitch), pw: r2(req.power), kd: Math.max(0, PAPER_KINDS.indexOf(req.kind)), cv: r2(req.curve) });
       me.foldT = PRANK.fold[req.kind];
     }
     const aiming = !!me.aim;

@@ -187,7 +187,7 @@ export const SNEAK = {
   sit: { gap: [45, 70], first: [25, 45], soon: 8, for: [7, 11], crouch: 0.42, chance: 0.5 },
 };
 // what is on his laptop (one per read; Free Class picks at random, period 4 goes in order)
-export const SECRETS = [
+export const LAPTOP_SECRETS = [
   ['SEARCH HISTORY', 'what is my name<br>what is a face<br>how to keep a face<br>how to give back a face'],
   ['EMAIL (not sent)', 'To: the principal<br>Mr. Hale will not be coming back.<br>I will take his classes.<br><b>All of them.</b>'],
   ['NOTES.txt', 'Sam: talks.<br>Nora: writes notes.<br>Kevin: done.<br>The new one: <b>soon.</b>'],
@@ -489,6 +489,151 @@ export const ENDINGS = {
   caught: ['DETENTION', 'He caught you one time too many.<br>Nobody leaves his class.'],
   pet: ['AFTER CLASS', 'You were too quiet. He keeps the quiet ones.<br><i>Next time, don\'t be such a good student.</i>'],
   survived: ['CLASS DISMISSED', ''],
+  // Phase 6: the two secret endings (src/secrets.js)
+  hale: ['MR. HALE', 'You knocked three times. Something knocked back.<br>He walked out of a closet that was never there, and asked for his glasses.<br><i>Kevin\'s desk is not empty any more.</i>'],
+  glasses: ['CLASS CANCELLED', 'His glasses broke, and he could not find the class any more.<br>No class, no teacher. He went out to look it up.<br><i>At the back of the room, something knocked. Three times.</i>'],
+};
+
+// ================= Phase 6: reasons to replay =================
+// (src/replay.js: report card, unlocks, Mr. Hale's notes, the daily class; src/morepranks.js; src/psst.js; src/secrets.js)
+
+// ---------------- the report card
+// One row per thing he grades: [subject, stat key, points for each one, the most it can give (or take), his comment].
+// "{n}" in a comment is the number. The stat keys are the counters of src/stats.js (the player's own, then the whole
+// class's), plus "survived" (1 when the class ended well), "minutes" and "strikes". A key nobody counts (yet) is
+// worth nothing, so a row for a later feature can be added here before the feature exists.
+export const REPORT = {
+  rows: [
+    ['Whispering', 'whispers', 14, 70, 'Whispered {n} times. I heard... every word.'],
+    ['Whispering', 'talk', 0.7, 30, '{n} seconds of talking. In my class... nobody talks.'],
+    ['Whispering', 'notes', 9, 27, 'Reads notes. Notes... are not... the lesson.'],
+    ['Drama', 'echoes', 24, 96, 'Repeated me {n} times. Repeated me... {n} times.'],
+    ['Science', 'questions', 24, 96, 'Asked {n} questions. Water... is dry.'],
+    ['Media Studies', 'videos', 22, 88, 'Watched {n} videos. None of them... were the lesson.'],
+    ['Media Studies', 'shown', 12, 36, 'Showed {n} videos to the class. Nobody... showed me.'],
+    ['Media Studies', 'phone', 0.4, 24, '{n} seconds on a phone. No... phones.'],
+    ['Media Studies', 'fails', 8, 16, 'A very loud phone. {n} times.'],
+    ['Media Studies', 'psst', 5, 20, 'Passed {n} notes. On a phone. In my class.'],
+    ['Gym', 'hitHim', 26, 78, 'Hit me with paper {n} times. I... counted.'],
+    ['Gym', 'hits', 7, 35, '{n} hits. Paper... is for... writing.'],
+    ['Gym', 'throws', 3, 21, 'Threw {n} things. Missed... most of them.'],
+    ['Gym', 'glassesOff', 14, 28, 'My glasses fell off {n} times. Strange.'],
+    ['Gym', 'soaked', 16, 32, 'I am... still... wet.'],
+    ['Gym', 'trickShots', 12, 24, 'A rubber band came off the wall. Geometry.'],
+    ['Behaviour', 'closeCalls', 14, 42, 'Almost caught {n} times. Almost.'],
+    ['Behaviour', 'objectives', 9, 36, 'Finished {n} tasks. None of them... were mine.'],
+    ['Behaviour', 'caught', -30, 90, 'Caught {n} times. I... see you.'],
+    ['Attendance', 'survived', 70, 70, 'Stayed until the bell. Nobody... leaves early.'],
+    ['Attendance', 'minutes', 6, 30, 'Lasted {n} minutes. Then... detention.'],
+  ],
+  base: { Behaviour: 50 },                 // points a subject starts with
+  none: {                                  // what he writes when there is nothing to grade
+    Whispering: 'Silent. I like... silent.', Drama: 'Never repeated me. Good.', Science: 'No questions. I know... everything.',
+    'Media Studies': 'No phone. Suspicious.', Gym: 'Threw nothing. Sits... very still.', Behaviour: 'Did nothing. Perfect.', Attendance: 'Did not... leave. Nobody leaves.',
+  },
+  grades: [[85, 'A'], [68, 'B'], [50, 'C'], [30, 'D'], [0, 'F']],   // points -> letter
+  best: 4,                                 // the final grade is the average of your best subjects (some classes have no pranks or questions)
+  hardBonus: 6,                            // on Hard the final grade gets this many points more
+  remark: {                                // under the final grade (he likes the quiet ones: an A is not a compliment)
+    A: 'The worst student... I have ever had.', B: 'A bad influence... on the others.', C: 'Could be worse. Could be... quieter.',
+    D: 'Almost... a good student.', F: 'Quiet. Still. My... favorite.',
+  },
+  voice: { A: 't_gradeA', B: 't_gradeB', C: 't_gradeC', D: 't_gradeD', F: 't_gradeF' },
+};
+
+// ---------------- unlocks (kept in the browser: src/profile.js)
+// need: { grade: 'C' }  a report card this good  |  { stat, n, no? }  that many in one class (and none of `no`)
+//       { total, n }  that many over all your classes  |  { notes: n }  Mr. Hale's notes found  |  { daily: n }  daily classes finished
+export const UNLOCKS = [
+  { id: 'spit', type: 'prank', name: 'SPITBALL', how: 'Get a C or better on a report card.', what: 'A new prank: fast, quiet, and it sticks. He thinks the roof is leaking. Twice.', need: { grade: 'C' } },
+  { id: 'band', type: 'prank', name: 'RUBBER BAND', how: 'Hit him with paper 3 times in one class.', what: 'A new prank: very fast, it stings, and it bounces off walls. Trick shots confuse him.', need: { stat: 'hitHim', n: 3 } },
+  { id: 'bomb', type: 'prank', name: 'WATER BALLOON', how: 'Get an A on a report card.', what: 'A new prank: it soaks everything near it. He has to wipe his glasses. It wipes the board, too.', need: { grade: 'A' } },
+  { id: 'psst', type: 'app', name: 'PSST!', how: 'Finish 3 classes (any grade).', what: 'A third app on your phone: pass the note while his back is turned. Switch apps with T / APP.', need: { total: 'classes', n: 3 } },
+  { id: 'chalk', type: 'theme', name: 'CHALKBOARD', how: 'Stay until the bell without a single strike.', what: 'A phone theme: board green and chalk white.', need: { stat: 'survived', n: 1, no: 'strikes' } },
+  { id: 'neon', type: 'theme', name: 'ARCADE', how: 'Watch 5 meme videos to the end (all classes count).', what: 'A phone theme: purple and neon.', need: { total: 'videos', n: 5 } },
+  { id: 'hale', type: 'theme', name: 'MR. HALE\'S PHONE', how: 'Find 6 of Mr. Hale\'s notes.', what: 'A phone theme: old paper. It was his.', need: { notes: 6 } },
+  { id: 'gold', type: 'theme', name: 'GOLD STAR', how: 'Finish a daily class.', what: 'A phone theme: black and gold.', need: { daily: 1 } },
+];
+// phone themes: the colours of the handset and its apps (src/phone.js, src/psst.js)
+export const PHONE_THEMES = {
+  classic: { name: 'CLASSIC', body: 0x0b0b0d, light: 0x9cc4ff, bar: '#000000', barText: '#d7dbe2', sky: ['#5ec2f2', '#c7ecff'], cloud: 'rgba(255,255,255,0.85)', ground: '#b07a43', groundDark: '#8f5f2f', groundTop: '#c98e52', ink: '#1d3557', text: '#ffffff', accent: '#ffe066', msgBg: '#0d1117', msgCard: '#1f2937', msgText: '#e5e7eb' },
+  chalk: { name: 'CHALKBOARD', body: 0x1c2b22, light: 0xbfe6cf, bar: '#0f1a14', barText: '#dfe8d8', sky: ['#1f3a2c', '#2f5440'], cloud: 'rgba(232,230,218,0.35)', ground: '#6b4a2a', groundDark: '#4d3319', groundTop: '#8a623a', ink: '#12241a', text: '#f1efe2', accent: '#f6e58d', msgBg: '#14251b', msgCard: '#22402f', msgText: '#f1efe2' },
+  neon: { name: 'ARCADE', body: 0x1a0b2e, light: 0xff6ad5, bar: '#12041f', barText: '#7afcff', sky: ['#2b0a4f', '#7b1fa2'], cloud: 'rgba(122,252,255,0.45)', ground: '#16213e', groundDark: '#0f3460', groundTop: '#e94560', ink: '#12041f', text: '#7afcff', accent: '#ff6ad5', msgBg: '#12041f', msgCard: '#2b0a4f', msgText: '#f5e9ff' },
+  hale: { name: 'MR. HALE\'S PHONE', body: 0x3b3226, light: 0xffd9a0, bar: '#2b241a', barText: '#e8dcc0', sky: ['#d8c9a3', '#efe6cc'], cloud: 'rgba(255,255,255,0.55)', ground: '#7a5a3a', groundDark: '#5c4026', groundTop: '#94714a', ink: '#3a2a16', text: '#fff8e6', accent: '#b03a2e', msgBg: '#2b241a', msgCard: '#4a3d2b', msgText: '#f3ead2' },
+  gold: { name: 'GOLD STAR', body: 0x8a6a12, light: 0xffe08a, bar: '#111111', barText: '#ffd54a', sky: ['#111111', '#3a2f0b'], cloud: 'rgba(255,213,74,0.4)', ground: '#2a2208', groundDark: '#1a1505', groundTop: '#ffd54a', ink: '#111111', text: '#ffd54a', accent: '#ffffff', msgBg: '#111111', msgCard: '#2a2208', msgText: '#ffe9a6' },
+};
+
+// ---------------- more things to throw (unlocked above). They join the PRANK tables when src/morepranks.js loads.
+//   fold: seconds to make the next one   speed: [softest, hardest] throw   grav / drag: how it flies
+//   expose: seconds your arm stays up after the throw   counts: how many hits on him it is worth (three: he knows)
+export const PRANK_MORE = {
+  spit: { name: 'SPITBALL', fold: 0.45, speed: [9, 16], grav: 1, drag: 0.5, expose: 0.25, counts: 1, refill: 'prank_crumple',
+    laugh: { him: 14, kid: 16, friend: 12, player: 14, board: 6 }, mischief: { him: 18, kid: 10, friend: 8, player: 8, board: 4 }, anger: 3 },
+  band: { name: 'RUBBER BAND', fold: 1.1, speed: [13, 22], grav: 0.6, drag: 1.1, expose: 1.0, counts: 1, refill: 'p6_stretch', bounce: 0.72, bounces: 4,
+    laugh: { him: 44, kid: 24, friend: 18, player: 22, trick: 20 }, mischief: { him: 34, kid: 14, friend: 10, player: 10, trick: 25 }, anger: 8 },
+  bomb: { name: 'WATER BALLOON', fold: 7, speed: [4.5, 9], grav: 1, drag: 0.02, expose: 0.9, counts: 2, refill: 'p6_fill', splash: 1.1,
+    laugh: { him: 62, kid: 30, friend: 22, player: 26, board: 26, floor: 10 }, mischief: { him: 45, kid: 16, friend: 12, player: 12, board: 22, floor: 3 }, anger: 14, wipe: 6 },
+};
+
+// ---------------- Mr. Hale's 12 hidden notes (the notebook). find: what a player does in class to find it
+//   { look: place, sec, when? }   look at a place that long (places and `when` checks: NOTE_PLACES / NOTE_WHEN in src/replay.js)
+//   { stat: key, n }              one of that player's counters reaches n (src/stats.js)
+//   { global: key, n }            a counter of the whole class reaches n (everybody in the class finds it)
+//   { event: type, ...fields }    something that player did, from the class log (game.track.event): every field must match
+//   { classEvent: type, ...}      the same, for things that happen to the whole class
+//   { local: 'plane', n }         on your own phone: that score in PAPER PLANE
+export const HALE_NOTES = [
+  { n: 1, title: 'Monday', find: { look: 'closet', sec: 2 }, hint: 'There is a door at the back of the room, on the right. Was it always there?',
+    text: 'Thirty years in Room 13 and I have never missed a day. I know every crack in these walls. There was never a supply closet at the back. This morning there is one. The door has no handle.' },
+  { n: 2, title: 'Monday, later', find: { look: 'teacher', when: 'clap', sec: 1.2 }, hint: 'Watch him clap the chalk off his hands.',
+    text: 'Something in the closet claps. Slowly. Like a man knocking chalk dust off his hands. I told the office. They said Room 13 has always had a closet.' },
+  { n: 3, title: 'Tuesday', find: { look: 'poster', sec: 2 }, hint: 'Somebody is MISSING. Read the poster by the door.',
+    text: 'A new name on the staff list: MADI. No first name, no subject. The office says he has "always been our substitute". Nobody can tell me what he looks like.' },
+  { n: 4, title: 'Wednesday', find: { look: 'doorWindow', when: 'doorFace', sec: 0.4 }, hint: 'Sometimes there is a face in the door window. Look at it.',
+    text: 'I stayed late to grade papers. A very tall man stood at the door window and watched me. For an hour. He did not blink once. I counted.' },
+  { n: 5, title: 'Wednesday night', find: { stat: 'echoes', n: 3 }, hint: 'Repeat him three times in one class.',
+    text: 'He spoke through the door. "What... is... a teacher?" I said: someone who knows the lesson. He wrote it down. Then he repeated it back to me. Wrong.' },
+  { n: 6, title: 'Thursday', find: { local: 'plane', n: 5 }, hint: 'Score 5 in PAPER PLANE.',
+    text: 'My lesson plan is gone from my desk. Page 47 is torn out of every book. He is studying my class. I think he wants it.' },
+  { n: 7, title: 'Thursday, later', find: { event: 'question', q: 'name' }, hint: 'Ask him his first name.',
+    text: 'He knows nothing by himself. He has to look everything up, and he hates it. Ask him something he cannot find, and he just... stops. Remember that.' },
+  { n: 8, title: 'Thursday night', find: { event: 'hit', target: 'teacher', part: 'head' }, hint: 'Knock his glasses off.',
+    text: 'My spare glasses are missing from the drawer. I think he believes the glasses are what make a teacher. Without them, I don\'t think he can see a class at all.' },
+  { n: 9, title: 'Friday', find: { look: 'kevin', sec: 2.5 }, hint: 'Kevin\'s desk is empty. Look at it for a while.',
+    text: 'Kevin stayed after class to ask about his grade. I went to the office for five minutes. When I came back, the closet door was shut and Kevin\'s desk was empty.' },
+  { n: 10, title: 'Friday, later', find: { global: 'memes', n: 2 }, hint: 'Sit still and let the class clowns get in trouble. Twice.',
+    text: 'He keeps the quiet ones. The loud ones confuse him. So be loud. Be trouble. Be the worst class I ever had. Just don\'t let him catch you.' },
+  { n: 11, title: 'Friday night', find: { event: 'text', from: 'Mr. Hale' }, hint: 'Read a text from Mr. Hale on your phone.',
+    text: 'I went in after Kevin. I am writing this in the dark. The closet is bigger inside: rows of desks, a board with nothing on it. Everyone here sits very, very still.' },
+  { n: 12, title: 'To my class', find: { classEvent: 'objective', id: 'bell' }, hint: 'Stay until the bell.',
+    text: 'If you find this: at the last bell, ask him what he is. When he is gone, knock on the closet three times, like chalk dust off your hands. Then I will know it is you. <i>R. Hale</i>' },
+];
+
+// ---------------- the two secret endings (src/secrets.js)
+export const SECRETS = {
+  closet: { x: 4.975, z: 4.8, w: 0.9, h: 2.0 },   // the supply closet door on the right wall, at the back (it has no handle)
+  knock: { wait: 5, window: 12, need: 3 },          // after he is gone: the quiet seconds, how long you get once you look at the closet, the knocks it takes
+  glasses: { breakAt: 3 },                          // paper on his head this many times in one Free Class: his glasses break
+};
+
+// ---------------- the daily class: the same class for everyone that day, built from one number (the class seed)
+export const DAILY = {
+  mode: 'free',                // online play is Free Class, so the daily class is one too
+  hardChance: 0.35,            // about one day in three is a Hard day
+  // today's special (picked by the seed): these counters are worth double in the daily score
+  specials: [
+    { id: 'paper', name: 'PAPER DAY', text: 'everything you throw counts double', keys: ['throws', 'hits', 'hitHim', 'glassesOff', 'soaked', 'trickShots'] },
+    { id: 'parrot', name: 'PARROT DAY', text: 'repeating him counts double', keys: ['echoes'] },
+    { id: 'question', name: 'QUESTION DAY', text: 'dumb questions count double', keys: ['questions'] },
+    { id: 'movie', name: 'MOVIE DAY', text: 'videos count double', keys: ['videos', 'shown'] },
+    { id: 'gossip', name: 'GOSSIP DAY', text: 'whispering counts double', keys: ['whispers'] },
+    { id: 'nerves', name: 'NERVES DAY', text: 'close calls count double', keys: ['closeCalls'] },
+  ],
+  // the daily score: points for each one of a counter (the same counters as the report card; unknown ones are worth nothing)
+  score: [['whispers', 12], ['echoes', 30], ['questions', 25], ['videos', 25], ['shown', 15], ['throws', 2], ['hits', 10], ['hitHim', 35],
+    ['glassesOff', 20], ['soaked', 25], ['trickShots', 20], ['closeCalls', 25], ['objectives', 30], ['notesFound', 20], ['caught', -100], ['survived', 250]],
+  hardBonus: 1.25,             // a Hard day is worth a quarter more
+  keep: 40,                    // days of best scores kept in the browser
 };
 
 /** "sPoNgE cAsE" for mocking him */
