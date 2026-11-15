@@ -112,7 +112,7 @@ export const SneakMixin = {
   canLeave(p) {
     return !!this.allowSneak && this.state === 'playing' && !p.out && p.slipK <= 0.01 && !this.cutscene && !this.ending && !this.lockBully && !this.eventLock
       && !p.choice && !(p.local && this.choice) && !p.talk && !p.phoneUp && !p.aim && !p.aiming && !(p.handT > 0) && !p.qBusy && !p.showWatch
-      && !this.blameBusy && !(this.cat && this.cat.p === p);
+      && !this.blameBusy && !(this.cat && this.cat.p === p) && !(this.dread && (this.dread.lean || (this.dread.creep && this.dread.creep.p === p)));
   },
   /** the two places next to your chair (in the aisles on both sides) */
   seatSide(p, side, out = new V()) { return out.set(p.desk.x + side * 0.75, 0, p.desk.z + 0.55); },
@@ -271,6 +271,8 @@ export const SneakMixin = {
     const canSee = present && W.master > 0.3 && this.blackout < 0.5 && !this.blind && !this.typing && !this.dozing && !this.dancing;
     const blur = this.halfBlind ? SNEAK.glasses.halfSee : 99;
     for (const q of this.players) q.seatBox.set(_c.set(q.eye.x - 0.2, 0.45, q.eye.z - 0.27), _d.set(q.eye.x + 0.2, 1.25, q.eye.z + 0.13));
+    // (the kids sit where they sit now: two of them may have changed places, src/dread.js)
+    for (const o of this.sneakOcc) if (o.kid && o.kid.seat) { const k = o.kid.seat; o.box.min.set(k.x - 0.2, 0.45, k.z - 0.22); o.box.max.set(k.x + 0.2, 1.25, k.z + 0.18); }
     for (const p of this.players) {
       if (!p.local) { if (p.slipK > 0) this.sneakEye(p, p.view); else p.view.copy(p.camPos); }
       if (p.slipK <= 0) { p.spotT = Math.max(0, p.spotT - S.forget * dt); p.sneakSeen = 0; p.emptyT = 0; if (p.emptyCool > 0) p.emptyCool -= dt; continue; }

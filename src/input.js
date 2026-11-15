@@ -17,6 +17,7 @@ export class Input {
     this.moveKeys = { f: false, b: false, l: false, r: false };
     this.joy = { x: 0, y: 0 };
     this.move = { x: 0, y: 0 };
+    this.breath = false; this.keys.breath = false; this.touchBtn.breath = false; // hold your breath: B / BREATH (src/dread.js)
     this.wheelAt = 0;
     this.choiceKey = -1;
     this.sens = 1;
@@ -65,6 +66,7 @@ export class Input {
       if (this.enabled && k === 'c') this.pressed.seat = true;
       const mk = MOVE_KEYS[k];
       if (mk) { this.moveKeys[mk] = true; if (this.enabled && k.startsWith('arrow')) e.preventDefault(); }
+      if (this.enabled && k === 'b') this.keys.breath = true;
       if (this.enabled && k === 'r') this.pressed.echo = true;
       if (this.enabled && k === 't') this.pressed.ask = true;
       if (this.enabled && k >= '1' && k <= '3') this.choiceKey = Number(k) - 1;
@@ -78,8 +80,10 @@ export class Input {
       if (k === 'g') this.keys.prank = false;
       const mk = MOVE_KEYS[k];
       if (mk) this.moveKeys[mk] = false;
+      if (k === 'b') this.keys.breath = false;
     });
     window.addEventListener('blur', () => { this.keys.talk = this.keys.phone = this.keys.prank = this.mouse.talk = this.mouse.phone = false; this.pressed.drop = true; this.stopMove(); });
+    window.addEventListener('blur', () => { this.keys.breath = false; });
     // the mouse wheel switches paper ball / paper plane
     // (a trackpad swipe or a free-spinning wheel sends a stream of events: one gesture, one switch)
     window.addEventListener('wheel', (e) => {
@@ -205,6 +209,7 @@ export class Input {
       this.keys.prank = false;
       this.stopMove();
       this.pressed.drop = true; // a paper you were aiming is not thrown when you pause
+      this.keys.breath = this.touchBtn.breath = false;
       document.querySelectorAll('.tbtn').forEach((b) => b.classList.remove('active'));
     }
   }
@@ -220,6 +225,7 @@ export class Input {
     const m = this.moveKeys;
     this.move.x = clampUnit((m.r ? 1 : 0) - (m.l ? 1 : 0) + this.joy.x);
     this.move.y = clampUnit((m.f ? 1 : 0) - (m.b ? 1 : 0) + this.joy.y);
+    this.breath = this.keys.breath || this.touchBtn.breath;
     return r;
   }
 }

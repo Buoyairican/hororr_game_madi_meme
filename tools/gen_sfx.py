@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Synthesise all sound effects used by the game (no samples, no licences).
 
-    python3 tools/gen_sfx.py          (needs numpy + ffmpeg; add v3, v4, v5, v6, v7, p3 or memes for one group)
+    python3 tools/gen_sfx.py          (needs numpy + ffmpeg; add v3, v4, v5, v6, v7, p3, p4, dread or memes for one group)
 
 Writes assets/audio/sfx/*.mp3. Every sound is built from noise, oscillators,
 filters and a synthetic room impulse response, so it can be tweaked freely.
@@ -1212,6 +1212,111 @@ def make_v5():
     save("class_laugh", reverb(x, 0.35, dur=1.4, decay=0.5), 0.8)
 
 
+def make_dread():
+    """real dread (Phase 5): your own breath (in, out, the gasp when you run out of air), the small tells while he
+    creeps up on you (the lights, his breath, a floorboard), the quiet sounds of things changing behind your back
+    (the board, a poster, a seat) and the moment you notice.
+    Uses its own random numbers, so building only this group gives the same files."""
+    r = np.random.default_rng(513)
+
+    def nz(d):
+        return r.standard_normal(int(d * SR))
+
+    def air(d, f0, f1, q=1.1):
+        """breath: noise through a band that moves from f0 to f1"""
+        t = t_axis(d)
+        return svf(nz(d), f0 + (f1 - f0) * (t / d), q, "bp")
+
+    # you breathe in, fast, through the nose (and hold it)
+    d = 0.5; t = t_axis(d)
+    x = air(d, 900, 2600) * np.clip(t / 0.3, 0, 1) ** 1.6 * np.clip((d - t) / 0.05, 0, 1)
+    x += air(d, 3200, 5200, 0.8) * 0.25 * np.clip(t / 0.35, 0, 1) ** 2 * np.clip((d - t) / 0.05, 0, 1)
+    save("dread_inhale", x, 0.45)
+    # ...and let it go, slowly, through the mouth
+    d = 0.95; t = t_axis(d)
+    x = air(d, 1500, 600, 0.9) * np.clip(t / 0.06, 0, 1) * np.exp(-t / 0.33)
+    x += biquad(nz(d), "lp", 420) * 0.3 * np.clip(t / 0.05, 0, 1) * np.exp(-t / 0.25)
+    save("dread_exhale", x, 0.4)
+    # out of air: one big gasp and two short pants
+    d = 1.7
+    x = np.zeros(int(d * SR))
+    g = air(0.55, 700, 3000, 1.4)
+    tt = t_axis(0.55)
+    g = g * np.clip(tt / 0.4, 0, 1) ** 1.3 * np.clip((0.55 - tt) / 0.04, 0, 1) * (1 + 0.4 * np.sin(2 * np.pi * 31 * tt))
+    place(x, g * 1.3, 0.0)
+    for k, at in enumerate((0.66, 1.12)):
+        dd = 0.34 - 0.04 * k
+        tt = t_axis(dd)
+        out_ = air(dd, 1300, 700, 0.9) * np.clip(tt / 0.03, 0, 1) * np.exp(-tt / 0.12)
+        in_ = air(0.2, 1000, 2300, 1.2) * np.sin(np.pi * t_axis(0.2) / 0.2) ** 1.5
+        place(x, out_ * (0.9 - 0.2 * k), at)
+        place(x, in_ * (0.6 - 0.15 * k), at + dd - 0.06)
+    save("dread_gasp", reverb(x, 0.12, dur=0.6, decay=0.25), 0.8)
+
+    # the lights dip: the hum of the tubes sags and a starter ticks
+    d = 1.1; t = t_axis(d)
+    sag = 120 - 9 * np.exp(-((t - 0.35) / 0.2) ** 2)
+    hum = (osc_saw(sag) * 0.5 + osc_sin(sag * 2) * 0.6) * (0.35 + 0.65 * np.exp(-((t - 0.35) / 0.28) ** 2))
+    x = biquad(hum, "bp", 480, 1.2) * 0.9 * np.sin(np.pi * t / d) ** 0.7
+    for at, a in ((0.3, 1.0), (0.37, 0.6), (0.55, 0.4)):
+        tk = t_axis(0.03)
+        place(x, biquad(nz(0.03), "bp", 3800, 3.0) * np.exp(-tk / 0.004) * a * 1.4, at)
+    save("dread_light", reverb(x, 0.25, dur=1.0, decay=0.4), 0.45)
+
+    # his breath, close: a long low rasp out, a wet pull in
+    d = 2.8
+    x = np.zeros(int(d * SR))
+    tt = t_axis(1.5)
+    out_ = air(1.5, 620, 380, 1.0) * np.sin(np.pi * tt / 1.5) ** 0.8 * (1 + 0.55 * np.sin(2 * np.pi * 23 * tt))
+    out_ += biquad(nz(1.5), "lp", 240) * 0.5 * np.sin(np.pi * tt / 1.5)
+    place(x, out_, 0.05)
+    tt = t_axis(0.95)
+    in_ = air(0.95, 500, 1100, 1.3) * np.sin(np.pi * tt / 0.95) ** 1.4 * (1 + 0.5 * np.sin(2 * np.pi * 29 * tt))
+    place(x, in_ * 0.7, 1.75)
+    save("dread_breath", fft_filter(x, band_f(700, 3.2)), 0.6)
+
+    # a floorboard under his weight: a slow stick-slip creak
+    d = 1.0; t = t_axis(d)
+    f = 310 + 160 * (t / d) ** 2 + 22 * np.sin(2 * np.pi * 6.5 * t)
+    grain = np.clip(np.sin(2 * np.pi * (38 + 30 * t / d) * t), 0, 1) ** 3
+    x = (osc_saw(f) * 0.6 + osc_sq(f * 1.51, 0.3) * 0.25) * grain
+    x = biquad(biquad(x, "bp", 900, 1.4), "lp", 2600) * np.sin(np.pi * np.clip(t / d, 0, 1)) ** 0.6
+    x += biquad(nz(d), "lp", 160) * 0.35 * np.exp(-((t - 0.12) / 0.07) ** 2)
+    save("dread_creak", reverb(x, 0.2, dur=0.8, decay=0.3), 0.5)
+
+    # something on the board is different: two faint strokes of chalk, like a fingernail
+    d = 0.6
+    x = np.zeros(int(d * SR))
+    for k, (at, dd) in enumerate(((0.02, 0.16), (0.27, 0.22))):
+        tt = t_axis(dd)
+        st = biquad(nz(dd), "bp", 3600 + 500 * k, 2.2) * np.sin(np.pi * tt / dd) ** 0.5 * (0.6 + 0.4 * np.sin(2 * np.pi * 47 * tt) ** 2)
+        st += osc_sin(np.full(len(tt), 2950.0 + 240 * k)) * 0.12 * np.sin(np.pi * tt / dd) ** 2
+        place(x, st, at)
+    save("dread_board", reverb(x, 0.3, dur=0.9, decay=0.4), 0.32)
+
+    # a poster is different: paper lifting off the wall and settling
+    d = 0.7; t = t_axis(d)
+    x = crinkle(d, 150, 1500, 5500, seed=531) * (0.3 + 0.7 * np.exp(-((t - 0.2) / 0.14) ** 2))
+    x += biquad(nz(d), "bp", 700, 0.8) * 0.12 * np.exp(-((t - 0.25) / 0.12) ** 2)
+    save("dread_paper", reverb(x, 0.2, dur=0.7, decay=0.3), 0.3)
+
+    # a seat is different: a chair takes (or loses) a weight, cloth moves
+    d = 0.8; t = t_axis(d)
+    f = 240 + 70 * np.sin(2 * np.pi * 2.2 * t)
+    x = biquad(osc_saw(f) * np.clip(np.sin(2 * np.pi * 44 * t), 0, 1) ** 4, "bp", 760, 2.0) * np.exp(-((t - 0.22) / 0.13) ** 2) * 0.7
+    x += biquad(nz(d), "bp", 1900, 0.7) * 0.2 * np.exp(-((t - 0.5) / 0.14) ** 2)
+    x += osc_sin(np.full(len(t), 92.0)) * 0.5 * np.exp(-((t - 0.2) / 0.05) ** 2)
+    save("dread_seat", reverb(x, 0.25, dur=0.8, decay=0.35), 0.34)
+
+    # you noticed: a low swell and a small glassy note that arrives backwards
+    d = 1.5; t = t_axis(d)
+    x = (osc_sin(np.full(len(t), 58.0)) + 0.5 * osc_sin(np.full(len(t), 87.4))) * np.sin(np.pi * t / d) ** 2 * 0.8
+    ping = music_box_note(1244.5, 0.9)[::-1] * 0.22 + music_box_note(1318.5, 0.9)[::-1] * 0.16
+    place(x, ping, 0.05)
+    x += biquad(nz(d), "bp", 5200, 4.0) * 0.03 * np.sin(np.pi * t / d) ** 3
+    save("dread_notice", reverb(x, 0.35, dur=1.4, decay=0.6), 0.5)
+
+
 def make_v6():
     """playing online: a friend sits down in the lobby, every try to connect, could not get in.
     Uses its own random numbers, so building only this group gives the same files."""
@@ -1577,6 +1682,9 @@ if __name__ == "__main__":
     if "v5" in sys.argv:
         make_v5()
         raise SystemExit(0)
+    if "dread" in sys.argv:
+        make_dread()
+        raise SystemExit(0)
     if "memes" in sys.argv:  # only a newer group
         make_memes()
         raise SystemExit(0)
@@ -1602,6 +1710,7 @@ if __name__ == "__main__":
     make_memes()
     make_v3()
     make_v4()
+    make_dread()
     make_v5()
     make_v6()
     make_v7()

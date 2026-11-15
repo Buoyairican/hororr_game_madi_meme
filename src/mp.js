@@ -219,6 +219,7 @@ export class MP {
     const p = g.players.find((x) => x.id === id);
     if (!p) return;
     p.heard = performance.now();
+    if (m.t === 'dread') { g.dreadMsg(p, m); return; } // holding their breath, what they can see (src/dread.js)
     if (m.t === 'bye') { this.net.kick(id); this.dropGuest(id); return; }
     if (m.t === 'in') {
       p.yaw = clamp(Number(m.y) || 0, -3, 3); p.pitch = clamp(Number(m.p) || 0, -1.2, 1.2);
@@ -344,6 +345,7 @@ export class MP {
       ck: r2(g.clockMin), ph: g.phase, a: Math.round(g.anger), s: g.strikes, ms: g.maxStrikes, m: Math.floor(g.mischief),
       pr: g.present ? 1 : 0, bl: g.blind ? 1 : 0, ty: g.typing ? 1 : 0, cu: g.cutscene ? 1 : 0, em: g.emergency,
       ec: g.canEcho() ? r2(g.echoable.until - g.t) : -1,
+      dr: g.dreadSnap(), // real dread: everybody's breath, who he listens to, the lights, posters and seats
       sh: g.shows.filter((x) => !x.over).map((x) => [x.id, x.to.id, x.npc ? 'n:' + x.npc.kind : 'p:' + x.fromP.id, x.key, x.seed, r2(x.t)]),
       // pranks: the papers, the laugh meter, whether anybody may throw right now
       pj: g.paperSnap(), lg: Math.round(g.laugh), ap: g.prankOpen() ? 1 : 0,
@@ -514,6 +516,7 @@ export class MP {
       case 'board': if (BOARD_EVENTS.has(e.f)) W.board[e.f](...(e.a || [])); break;
       case 'proj': if (PROJ_EVENTS.has(e.f)) W.projector[e.f](...(e.a || [])); break;
       case 'flash': W.flash(e.s); break;
+      case 'dread': g.dreadNet(e); break;
       case 'chalk': W.chalkBurst(V(e.p), e.n, e.sp); break;
       case 'choice':
         this.choice = { n: e.labels.length, until: g.t + e.timeout, timeout: e.timeout, ask: e.title.startsWith('Raise') };
@@ -601,6 +604,7 @@ export class MP {
     g.blackoutTarget = fx[0];
     if (Math.abs(fx[1] - g.blackout) > 0.35) g.blackout = fx[1];
     g.shake = Math.max(g.shake, fx[2]); g.glitch = Math.max(g.glitch, fx[3]); g.scareFear = Math.max(g.scareFear, fx[4]); g.redFlash = Math.max(g.redFlash, fx[5]);
+    g.applyDreadSnap(s.dr);
     // the other players
     for (const row of s.P) {
       if (row[0] === this.myId) { g.me.notesLeft = Number(row[9]) | 0; g.applyMySneak(row.slice(10)); continue; }
@@ -646,6 +650,7 @@ export class MP {
       g.updatePrankVisuals(dt);
       g.blameVisuals(dt);
       g.updateHand(dt);
+      g.guestDread(dt);
       g.phone.update(dt);
       this.guestHud();
       this.inT -= dt;

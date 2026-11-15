@@ -33,7 +33,7 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 
 In the lobby Mr. Madi waits at the door. He tells every friend to sit down, he doesn't like it when the host leaves, and the door slams when a class closes on you.
 
-Everyone sits at their own desk and sees the others as students with name tags. Look at a friend and hold **E** to whisper to them (only they see it). Hold your phone in the meme app, look at a friend and press **R**: you shout "Bro! Look at this!" and hold your phone out to them; they look at it to watch. Throw paper at him, at the class or at each other: everyone sees the paper fly, your arm winding up, and the laugh meter. Repeating him, dumb questions, the phone and whispering all work for everyone, and he goes after whoever is making the most noise: he walks to *their* desk. Strikes are shared by the whole class (Easy: 3, plus 1 for every friend; Hard: one strike for everybody).
+Everyone sits at their own desk and sees the others as students with name tags. Look at a friend and hold **E** to whisper to them (only they see it). Hold your phone in the meme app, look at a friend and press **R**: you shout "Bro! Look at this!" and hold your phone out to them; they look at it to watch. Throw paper at him, at the class or at each other: everyone sees the paper fly, your arm winding up, and the laugh meter. Repeating him, dumb questions, the phone and whispering all work for everyone, and he goes after whoever is making the most noise: he walks to *their* desk. Everyone has their own breath: he can lean over anybody's desk to listen (the others see him do it), and he creeps up on whoever stares at their phone. The board, the posters and the seats change the same for everyone, and only while **no** player is looking at them. Strikes are shared by the whole class (Easy: 3, plus 1 for every friend; Hard: one strike for everybody).
 
 How it works: the host's browser runs the game and streams it to the friends over WebRTC (peer to peer). [PeerJS](https://peerjs.com)'s free public server does the handshake. To find a way between two networks the game uses Google's STUN servers and **your own relay** (a TURN server, free for a small game). **Switch it on**, or friends on mobile data and strict Wi-Fi often can't join: see **Friends can't join?** below. Nothing to install and no game server; it works from any static host such as Vercel. If the host's link to the handshake server drops, or the host's phone comes back to the game, it reconnects by itself and keeps the same class code.
 
@@ -102,6 +102,7 @@ On a local server or GitHub Pages there is no `api/turn`, so there is no relay. 
 | Leave your seat (period 4, Free Class) / sit back down (at your desk) | **C** | **SEAT** / **SIT** |
 | …crawl | **WASD** or the arrow keys | the stick |
 | …his glasses, his laptop, his chair, the clock | hold **E** next to it | hold **USE** |
+| Hold your breath (when he leans over your desk) | hold **B** | hold **BREATH** |
 | Pause | **Esc** | **II** button |
 
 * **Repeat him**: right after he speaks, your squeaky impression makes the class laugh. He doesn't know who said it, so he walks down the rows and leans over the desks, looking at everyone, then goes back. Do it three times in a row and he knows it was you.
@@ -116,6 +117,9 @@ On a local server or GitHub Pages there is no `api/turn`, so there is no relay. 
 * **Leave your seat** (period 4, and in Free Class): **C** slips you off your chair onto the floor. Crawl along the aisles (you can't crawl through desks). **His sight uses where you really are**: desks, chair backs, his desk and the kids sitting at them hide you, the dark helps, and the bar under the crosshair shows how close he is to seeing you. At the edge of his eye it never fills; if he **looks right at you** when it is full (Easy and Hard alike), or walks into you, he takes you by the collar and walks you back to your desk: a strike. Half full: "Hm?" and he looks. He also notices an **empty chair**: "Where did you go?", and he comes to your desk, looking around on the way (back in your chair in time: "Hmm." and he watches you).
 * **At his desk** (hold **E**; you come up off the floor to reach, so he can see you better): **his glasses**, when he takes them off to rub his eyes and leaves them on the desk (without them he only sees what is close; steal them and he hunts for them, squinting, then puts on his spare pair; caught with them: "And these are mine."), **his laptop** (what is on it: his search history, his notes, an email...; the screen glows while you read), a **whoopee cushion** on his chair (he sits down now and then), and in Free Class **the clock** (stand up under it: 15 minutes forward, the bell rings sooner; if he keeps checking the clock, he notices).
 * **When he wipes his glasses**, he can't see you.
+* **Don't stare at your phone.** While you do, he comes closer: **backwards** (so he can't see you), without footsteps, a few steps at a time. There are small tells: the chalk stops, the lights at the front dim, somebody breathes, a floorboard creaks right at your desk (on Easy a quiet caption names each one and Sam warns you; on Hard he is faster and quieter). Look up in time and you catch him: he stops dead and only his head turns round to you. Don't, and he turns around at your desk and leans over you. On Hard he then **sees** the phone, and that is the one strike.
+* **When he leans over your desk, he is listening.** Hold **B** (phone: **BREATH**) to hold your breath and keep the mouse still (phone: don't drag the view) until he straightens up. The **BREATH** meter shows the air you have left (10 seconds on Easy, 8.5 on Hard): run out and you gasp, loud. If he hears you (you breathe, you move, you make a sound, you gasp), on Easy he gets a lot angrier (if he was angry already, that is a strike); on Hard he is looking right at you: caught. If he hears nothing, he calms down and you get mischief for it.
+* **Things change when nobody is looking**: a line on the board, a poster, a seat (a kid is gone and back later, two kids changed places, Kevin is in his seat for a while). Never while anybody looks at it. A very quiet sound gives it away. Look at it again and you noticed (a little mischief).
 * **When the chalk stops, stop talking.** He turns around without warning.
 * If he catches you, he comes to your desk. **Three strikes** and the period is over.
 * **The class clowns**: if you do nothing for a while (a random 30 seconds to over a minute each time; no whispering, phone, repeating or questions; just looking around doesn't count), somebody in the back does a meme noise: snoring, "bruh", an airhorn, a sad trombone, "six seven!", a goat, a whoopee cushion, crickets, a metal pipe… He stops, turns around and goes to find out who did it. He looks slang up on his laptop ("what does bruh mean"), wakes up the snorer by slapping their desk, and once the laptop even tells him who farted. In detention, the ones he catches don't look the same afterwards.
@@ -177,6 +181,8 @@ src/pranks.js              pranks you aim: paper balls and planes, the aim arc, 
 src/blame.js               the laser pointer (he chases the dot), KICK ME notes, "Who did it?" (lie, say nothing, confess)
 src/sneak.js               leave your seat: crawling, his sight from where you really are (what hides you), the empty chair,
                            caught and walked back, his desk (glasses, laptop, clock, whoopee cushion), crawling avatars online
+src/dread.js               real dread: he creeps up on you while you stare at your phone, things change while nobody looks,
+                           he leans over your desk and you hold your breath (the BREATH meter)
 src/events.js              a different teacher every class: the seeded class setup and the event deck
                            (ringtone, fly, pizza, fire alarm, he leaves the room)
 src/quirks.js              his quirks (half deaf, hates laughing, dozes off, the clock, counts the class, hums)
@@ -202,8 +208,8 @@ src/audio.js               Web Audio engine: 3D HRTF sound, reverb, live ambienc
 src/post.js                retro post-processing (grain, aberration, glitch, blackout)
 assets/models/             rigged characters (built by tools/build_characters.py, bundled in models.json)
 assets/textures/           teacher face texture + glow mask (from the reference photo)
-assets/audio/voice/        420 spoken lines
-assets/audio/sfx/          117 sound effects and music loops
+assets/audio/voice/        432 spoken lines
+assets/audio/sfx/          127 sound effects and music loops
 assets/videos/             your own .mp4 memes (optional, see assets/videos/README.md)
 tools/                     scripts that generate all of the assets above + preview pages
 tests/                     browser tests and their runner (bash tests/run.sh quick|full)
@@ -213,7 +219,7 @@ vendor/                    three.js r170 (+ GLTFLoader), PeerJS 1.5.5
 
 ### Tests
 
-`bash tests/run.sh quick` (about 12 minutes) or `bash tests/run.sh full` (about 30 minutes) plays the game in
+`bash tests/run.sh quick` (about 14 minutes) or `bash tests/run.sh full` (about 35 minutes) plays the game in
 headless Chromium and prints PASS / FAIL per test. See `tests/README.md`.
 
 ### Regenerating the assets
@@ -224,7 +230,7 @@ pip install numpy pillow pyfqmr
 python3 tools/make_face_texture.py   # face texture + eye glow
 python3 tools/build_characters.py    # all characters (downloads the CC0 MakeHuman base mesh once)
 python3 tools/gen_voices.py          # voice lines that are missing (--all rebuilds every line)
-python3 tools/gen_sfx.py             # all sound effects (add 'memes', 'v4', 'v5', 'v6', 'v7', 'p3' or 'p4' to build only one group)
+python3 tools/gen_sfx.py             # all sound effects (add 'memes', 'v4', 'v5', 'v6', 'v7', 'p3', 'p4' or 'dread' to build only one group)
 python3 tools/pack_audio.py OUT      # every sound in one file (OUT.mp3 + OUT.json), for hosts that limit the number of
                                      # files (the claude.ai preview); the page then sets window.AUDIO_PACK = 'OUT'
 ```

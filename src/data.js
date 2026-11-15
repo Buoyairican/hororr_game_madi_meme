@@ -309,6 +309,103 @@ export const SLANG_USE = {
   remember: 'He remembers your slang from last time.',
 };
 
+// ---------------- real dread (src/dread.js): every number, text and variant in one place
+export const DREAD = {
+  // 1. he creeps up on whoever stares at their phone: he walks backwards, no footsteps, only small tells
+  creep: {
+    after: { easy: [9, 13], hard: [7, 10] },   // seconds on your phone before he starts (a new number every time)
+    gap: { easy: [50, 75], hard: [38, 55] },   // seconds between two creeps
+    speed: { easy: 0.42, hard: 0.56 },         // metres per second
+    pause: { easy: 2.4, hard: 1.6 },           // he stands still this long after every step (a tell plays)
+    steps: 3,                                  // steps from the board to your desk
+    lookUp: 0.35,                              // your phone down this long: you looked up
+    tellVol: { easy: 1, hard: 0.6 },           // how loud the tells are
+    dim: 0.55,                                 // how much the lights at the front dim
+    calm: 40,                                  // he only does it while his anger is below this
+    spotMischief: 15,                          // you looked up in time
+  },
+  // 2. things change while nobody looks at them: the board, a seat, a poster
+  change: {
+    gap: [[40, 60], [34, 50], [28, 42], [22, 34]],  // seconds between two changes, by phase (story: by period)
+    first: [16, 26],                                // the first one comes this long after the lesson starts
+    unseen: 0.6,                                    // out of everybody's view this long before it may change
+    pad: 1.15, padNet: 1.45,                        // margin around what a player can see (friends online: more, their view arrives late)
+    notice: { cos: 0.93, time: 0.35, within: 90 },  // looking this straight at it, this long: you noticed (if you look within 90 s)
+    back: [25, 45],                                 // a kid who is gone is back after this long
+    kevin: [14, 22],                                // Kevin stays this long
+    mischief: 8, fear: 0.5,
+  },
+  // what happens to a line on the board: flip = the same line, backwards; swap = other words; add = a line he did not write
+  board: [
+    { id: 'flip', w: 1 },
+    { id: 'swap', w: 2, text: [
+      ['did you look away?', 'page 47  page 47  page 47', 'who is missing?', '2 + 2 = you'],
+      ['did you look away?', 'count the chairs', 'who is missing?', 'x + ? = you'],
+      ['I moved', 'do not turn around', 'I counted you twice', 'look at me'],
+      ['I am closer now', 'do not look away', 'your seat is next', 'look at me'],
+    ] },
+    { id: 'add', w: 1, text: [['psst'], ['look behind you'], ['one of you is gone'], ['you looked away']] },
+  ],
+  // posters: each one has two later versions (they come one after the other)
+  posters: {
+    missing: [
+      { name: 'KEVIN', lines: ['Student, Room 13', 'Last seen: Friday', 'in his seat'], kid: true },
+      { name: 'YOU', lines: ['Student, Room 13', 'Last seen: today', 'on your phone'], kid: true },
+    ],
+    rules: [
+      { lines: ['1. NO TALKING', '2. NO PHONES', '3. EYES ON', '   THE BOARD', '4. DO NOT LOOK', '   AWAY', '5. NOBODY', '   LEAVES'], note: 'he is counting' },
+      { lines: ['1. NO BREATHING', '2. NO PHONES', '3. EYES ON', '   HIM', '4. DO NOT LOOK', '   AWAY', '5. NOBODY', '   LEAVES'], note: 'too late' },
+    ],
+    silence: [{ words: ['SILENCE', 'IS', 'SAFER'] }, { words: ['HE CAN', 'HEAR', 'YOU'] }],
+    eyes: [{ look: 1, text: 'HE IS WATCHING YOU' }, { look: 0, wide: true, text: 'DO NOT LOOK AWAY' }],
+    atoms: [{ arms: 1.45, text: 'ARMS: TOO LONG' }, { arms: 1.9, text: 'ARMS: HIS' }],
+  },
+  // seats: gone = a kid is not there any more (back later); swap = two kids changed places; kevin = Kevin is back for a while
+  seats: [{ id: 'gone', w: 3, min: 0 }, { id: 'swap', w: 1.5, min: 1 }, { id: 'kevin', w: 1.2, min: 3 }],
+  // 3. he leans over your desk and listens: hold your breath (B / BREATH) and don't move the view
+  breath: {
+    max: { easy: 10, hard: 8.5 },              // seconds of air
+    refill: 3,                                 // seconds from empty to full
+    gasp: 1.6, gaspNoise: 0.7,                 // out of air: you gasp this long, and it is loud
+    lean: { easy: [4, 5.5], hard: [5, 6.5] },  // how long he listens
+    grace: { easy: 1.8, hard: 1.0 },           // time to get ready when he bends down (a friend online gets `lag` more)
+    first: 3.0, lag: 0.3,                      // ...the very first time in a class on Easy: longer
+    resume: 1,                                 // back from the pause menu while he listens: this long to press B again
+    still: { easy: 0.12, hard: 0.07 },         // how far your view may move while he listens (radians)
+    gap: { easy: [80, 115], hard: [60, 90] },  // seconds between his visits to a desk
+    failAnger: { easy: 30, hard: 45 }, failHeat: 25,   // he heard you (Hard: he is looking right at you: caught)
+    okMischief: 30, okCalm: 15,                // he heard nothing
+  },
+  // where it happens. Story: by period. Free Class: by phase. (Only in quiet stretches of lesson, never in a story moment.)
+  when: {
+    story: [
+      { change: ['poster'] },
+      { change: ['poster', 'board'], creep: true },
+      { change: ['poster', 'board', 'seat'], creep: true, lean: true },
+      { change: ['poster', 'board', 'seat'], creep: true, lean: true },
+    ],
+    free: [
+      { change: ['poster'], creep: true },
+      { change: ['poster', 'board'], creep: true, lean: true },
+      { change: ['poster', 'board', 'seat'], creep: true, lean: true },
+      { change: ['poster', 'board', 'seat'], creep: true, lean: true },
+    ],
+  },
+  // hints (the key or the touch button shows, whichever the player has) and the quiet captions for the tells (Easy only)
+  text: {
+    creepHint: 'It got very quiet. <b>Look up from your phone.</b>',
+    spotHint: 'He was walking <b>backwards</b>. Look up from your phone now and then.',
+    leanHint: 'He is <b>listening</b>. <span class="desk-only">Hold <b>B</b> to hold your breath and <b>keep the mouse still</b></span><span class="touch-only">Hold <b>BREATH</b> and <b>don\'t drag the view</b></span> until he leaves.',
+    leanOther: 'He is listening at <b>{name}</b>\'s desk.',
+    okHint: 'He heard nothing. <b>Breathe.</b>',
+    fail: { breath: 'He heard you <b>breathe</b>.', air: 'You ran out of air. <b>He heard that.</b>', moved: 'You <b>moved</b>. He noticed.', noise: 'He <b>heard</b> that.' },
+    changeHint: 'That was different a moment ago. <b>Things change when nobody is looking.</b>',
+    tells: ['the chalk has stopped', 'the lights dim', 'somebody is breathing', 'a floorboard, very close'],
+    hud: { idle: 'BREATH', hold: 'HOLD YOUR BREATH', still: 'DON\'T MOVE', out: 'OUT OF AIR' },
+    legend: ' · <kbd>B</kbd> hold your breath',
+  },
+};
+
 // Playing online: how patient joining is, what the lobby says, and what you hear there
 // (src/net.js, src/lobby.js, the lobby in src/main.js). Times are in milliseconds.
 export const ONLINE = {

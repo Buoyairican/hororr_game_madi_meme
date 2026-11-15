@@ -8,7 +8,8 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message + ' ' + (e.stack || '').split('\n')[1]));
   page.on('console', (m) => { if (m.type() === 'error') logs.push('console: ' + m.text().slice(0, 200)); });
   const check = async (name, expr) => { let r; try { r = await page.evaluate(expr); } catch (e) { r = 'ERR ' + e.message; } (r === true ? ok : bad).push(name + (r === true ? '' : ' -> ' + JSON.stringify(r))); return r === true; };
-  await page.goto(ROOT + '/index.html?debug=1&autostart=1&mode=free');
+  // (a plain teacher: no events or quirks today; they make the class laugh too, and this test reads the meter)
+  await page.goto(ROOT + '/index.html?debug=1&autostart=1&mode=free&events=none&quirks=none');
   await page.waitForFunction(() => window.game && game.state === 'playing', null, { timeout: 120000 });
   await page.evaluate(async () => {
     const g = window.game;
@@ -19,6 +20,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
     // nothing random gets in the way: no calls, texts, scares, videos, class clowns
     g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {};
     g.startMeme = () => false;
+    g.dreadAuto = false; // (no creeping, leaning or changes by themselves: src/dread.js)
     window.run = (sec) => { for (let i = 0; i < Math.round(sec * 30); i++) { if (g.state !== 'playing') break; g.playTick(1 / 30); g.ui.update(1 / 30); } };
     window.calm = () => { g.anger = 0; g.flags = { r40: true, r70: true }; for (const p of g.players) { p.heat = 0; p.prankSeenT = 0; } };
     // he stands at the board, back to the class, doing nothing
