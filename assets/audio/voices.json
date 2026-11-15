@@ -1049,6 +1049,56 @@
   "text": "I will... look it up.",
   "dur": 2.664
  },
+ "t_cn_google": {
+  "who": "teacher",
+  "text": "Mister... Madi... googles... how to be... a teacher.",
+  "dur": 7.393
+ },
+ "t_cn_arms": {
+  "who": "teacher",
+  "text": "His arms... are longer... than... my future.",
+  "dur": 6.165
+ },
+ "t_cn_five": {
+  "who": "teacher",
+  "text": "Two... plus two... is five. Pass it... on.",
+  "dur": 6.922
+ },
+ "t_cn_blink": {
+  "who": "teacher",
+  "text": "Sir. Blink twice... if you need... help.",
+  "dur": 6.348
+ },
+ "t_cn_soup": {
+  "who": "teacher",
+  "text": "Mister... Madi... smells like... old... soup.",
+  "dur": 7.184
+ },
+ "t_gh_light": {
+  "who": "teacher",
+  "text": "The lights. Again.",
+  "dur": 2.612
+ },
+ "t_gh_chair": {
+  "who": "teacher",
+  "text": "Who... moved... that?",
+  "dur": 3.448
+ },
+ "t_gh_nobody": {
+  "who": "teacher",
+  "text": "Nobody... is... there.",
+  "dur": 3.631
+ },
+ "t_gh_book": {
+  "who": "teacher",
+  "text": "My... book.",
+  "dur": 2.011
+ },
+ "t_bl_friend": {
+  "who": "teacher",
+  "text": "Your... friend. Interesting.",
+  "dur": 4.441
+ },
  "tw_turn": {
   "who": "teacher",
   "text": "Turn... around.",

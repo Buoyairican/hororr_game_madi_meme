@@ -37,9 +37,14 @@ screenshots looked at. Whatever the review finds gets fixed first.
 | Hold your breath | hold **B** | BREATH |
 | Blame | the 1-3 choice menu you already know | the choice buttons |
 | Laser pointer, KICK ME note | **X** / wheel picks them after the paper, hold **G** to use | SWAP, hold PRANK |
+| Pass the note going round (online) | look at the next player, hold **E** | hold TALK |
+| Haunt as a ghost (online) | **1** / **2** / **3** | LIGHT / CHAIR / BOOK (the ECHO / ASK / TALK buttons) |
+| Blame a friend (online) | **4** in "Who did it?" | the fourth choice button |
+| Microphone | SETTINGS (off by default) | SETTINGS |
 
 Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, X, mouse wheel (X / wheel / G also
-work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow keys (off your chair), B (hold your breath).
+work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow keys (off your chair), B (hold your breath),
+4 (a fourth answer). As a ghost, 1-3 are the haunts (a ghost gets no choices).
 
 ## Phases
 
@@ -278,7 +283,7 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   a second way to find a note). The daily seed goes through Phase 2's class setup (`game.setup.seed`):
   the same events, quirks and plan for everyone that day. One `seededRng` / `hashStr` in `src/util.js`.
 
-### [ ] Phase 7: Online extras
+### [x] Phase 7: Online extras
 - Teamwork missions: one asks a question to distract him while another sneaks to his desk;
   pass a note down a chain of players.
 - Betrayal and scoreboard: blame friends; the end screen ranks who caused the most chaos.
@@ -286,3 +291,42 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   (flicker a light, slide a chair, drop a book).
 - Microphone (optional, off by default): laugh out loud for real and he hears it. Only your
   volume level is used, never sent anywhere; the browser asks first.
+- Shipped (the other session had only started the data tables; built here on top of Phases 2-6). Tables in
+  `src/data.js`: `CHAIN`, `GHOST`, `TEAM`, `MIC`, `CHAOS`. Each part has its own file.
+  **The note chain** (`src/chain.js`, online only): 42-56 s into the class and then every 55-80 s (not in the
+  last 50 s) a note starts with one player and goes round by seat. The holder sees what it says and who is
+  next; looking at the next player and holding E / TALK (a whisper) for 1.3 s passes it (a meter; with the
+  note, the next player wins over Sam or Nora in the same line of sight). If he looks right at the one
+  passing it (the instant-catch look, lookDot > 0.8, the same on Easy and Hard) for 0.3 s, he takes it: a
+  strike, and in the busted scene he reads that note out loud (5 notes, 5 lines). Also caught for anything
+  else while holding it: he finds it. Made it in time: +40 mischief and 20 per pass, the class laughs, he
+  calms down a little. A player who leaves passes it on; fewer than two: it falls apart.
+  Stats: `chain_pass`, `chain_done`, `chain_lost`; events `chain`.
+  **The ghost kid** (`src/ghost.js`): online with a friend still in the class, a player caught (not the last
+  strike) floats into the back right corner as a ghost for 60 s. Like off-your-chair, `p.camPos` stays at the
+  seat (he never sees or catches a ghost: no talking, phone, pranks or questions, nobody listens at their
+  chair); their view floats to the corner, their avatar is see-through there. 1 / 2 / 3 (LIGHT / CHAIR /
+  BOOK on a phone, a HUD with the cooldowns 16 / 34 / 24 s): the lights flicker; the spare chair at the back
+  wall slides (he walks all the way to the back to look: "Who... moved... that?" "Nobody... is... there."); the
+  book drops off his desk (it floats back 7 s later). Each takes some anger away; he only reacts when he is
+  free (not in a scene, an event or a habit). Stats: `ghost`, `ghost_haunt`; events `ghost`, `haunt`.
+  **Teamwork and betrayal** (`src/team.js`): a friend slipping off their chair tells the others to ask him a
+  question; a desk act (glasses, laptop, clock, cushion) while another player's question keeps him busy is
+  TEAMWORK (`team_distract` for the one who asked, once per question). "Who did it?" gets a fourth answer
+  online (key 4): point at the nearest friend in their seat. Not believed: a lie, as with a kid. Believed:
+  "Your... friend. Interesting." and he watches the friend (`watchedT`, heat); they are told who blamed them
+  (`blame_friend`).
+  **The microphone** (`src/mic.js`): SETTINGS, off by default and never saved (off again every start). The
+  browser asks; refused / no microphone / not https / it stops: the setting turns itself off with a line
+  saying why. An analyser node reads the level (RMS, dB; a steady background like a fan slowly stops
+  counting; a key click is too short); above the gate it is noise like a whisper (on Hard, with him looking
+  right at you, a catch like whispering), a laugh out loud counts (`mic_noise`, every 2.5 s) and sometimes
+  he asks "What... is... so funny?". No sound is recorded, kept or sent. Online the friend's browser sends the
+  host only that number (0..1) with its other input, so the host can hear them: the one difference from the
+  idea above, which said the level is never sent anywhere.
+  **The scoreboard** (`src/scoreboard.js`): online, every end screen gets WHO CAUSED THE MOST CHAOS: points
+  from `CHAOS.weights` (all phases' counters), most first, and a title each (THE SNITCH, THE GHOST, THE
+  SNIPER, THE SNEAK, THE MAILMAN, THE DECOY...; every title once, the biggest pair first; nobody: THE ANGEL).
+  The host sends everybody's numbers; each browser builds the board (only numbers and names are taken).
+  The report card also grades `chain_pass`, `blame_friend`, `ghost_haunt`, `team_distract`, `mic_noise`.
+  10 voice lines, 2 sounds (`gen_sfx.py p7`). Tests: `tests/extras.js`, `tests/mp_extras.js`.

@@ -31,6 +31,13 @@ export function gradeOf(score) {
  * friend online builds theirs from the numbers the host sends. A stat key that is not in
  * `stats` is worth nothing.
  */
+/** his comment with the number in it: "{n} times" reads "once" / "twice" for 1 and 2 */
+const timesText = (comment, n) => comment.replace(/\{n\} times/g, (m, at) => {
+  const w = n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`;
+  const before = comment.slice(0, at);
+  return /(^|[.!?]\s*)$/.test(before) && !/\.\.\.\s*$/.test(before) ? w[0].toUpperCase() + w.slice(1) : w; // (starting a sentence: "Once."; not after "...")
+}).replace(/\{n\}/g, String(n));
+
 export function makeCard(stats, o = {}) {
   const subjects = [], by = new Map();
   for (const [subject, key, per, cap, comment] of REPORT.rows) {
@@ -41,7 +48,7 @@ export function makeCard(stats, o = {}) {
     const pts = Math.sign(per) * Math.min(Math.abs(cap), Math.abs(n * per));
     s.score += pts;
     // his comment is about whatever counted most
-    if (Math.abs(pts) > s.top) { s.top = Math.abs(pts); s.comment = comment.replace(/\{n\}/g, String(Math.round(n))); }
+    if (Math.abs(pts) > s.top) { s.top = Math.abs(pts); s.comment = timesText(comment, Math.round(n)); }
   }
   for (const s of subjects) {
     s.score = Math.round(clamp(s.score, 0, 100));

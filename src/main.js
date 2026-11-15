@@ -11,7 +11,7 @@ import { Phone } from './phone.js';
 import { loadUserVideos } from './memes.js';
 import { Game } from './game.js';
 import { preloadModels, instantiate } from './models.js';
-import { CHAPTERS, ONLINE } from './data.js';
+import { CHAPTERS, ONLINE, MIC } from './data.js';
 import { MP, cleanName } from './mp.js';
 import { cleanCode } from './net.js';
 import { initNotebook, renderNotebook } from './notebook.js';
@@ -491,6 +491,30 @@ async function boot() {
     renderer.shadowMap.enabled = v;
     scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); });
   }, true);
+
+  // ---------------- the microphone (Phase 7, src/mic.js): off every time the game starts, never saved ----------------
+  {
+    const box = $('set-mic'), note = $('set-mic-note'), meter = $('set-mic-meter'), fill = $('set-mic-fill');
+    box.checked = false;
+    const say = (key) => { note.textContent = key ? MIC.text[key].replace(/<[^>]+>/g, '') : ''; meter.classList.toggle('on', game.mic.on); };
+    let asking = 0;
+    box.addEventListener('change', async () => {
+      const ask = ++asking;
+      if (!box.checked) { await game.micSet(false); say(''); return; }
+      say('asking');
+      const r = await game.micSet(true);
+      if (ask !== asking) return; // (changed again meanwhile)
+      if (r !== 'on') box.checked = false;
+      say(r);
+    });
+    game.onMicLost = () => { box.checked = false; say('lost'); ui.hint(MIC.text.lost, 4); };
+    // the level, while the settings are open
+    const tickMeter = () => {
+      if (game.mic.on && !$('settings').classList.contains('hidden')) { if (game.state !== 'playing') game.micUpdate(1 / 30); fill.style.width = Math.round(game.mic.level * 100) + '%'; }
+      setTimeout(tickMeter, 33);
+    };
+    tickMeter();
+  }
 
   // ---------------- loop ----------------
   let last = performance.now();

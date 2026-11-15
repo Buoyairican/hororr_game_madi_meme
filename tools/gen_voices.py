@@ -736,6 +736,33 @@ MEMES.update({
     "k_ew": ("Eww! Gross!", "Ewww! Gross!", ""),
 })
 
+# ---------------- Phase 7 (src/chain.js, src/ghost.js, src/team.js): he reads the note that went round out loud,
+# the ghost kid's haunts, blaming a friend.
+TEACHER.update({
+    "t_cn_google": "Mister | Madi | googles | how to be | a teacher.",
+    "t_cn_arms": "His arms | are longer | than | my future.",
+    "t_cn_five": "Two | plus two | is five. | Pass it | on.",
+    "t_cn_blink": "Sir. | Blink twice | if you need | help.",
+    "t_cn_soup": "Mister | Madi | smells like | old | soup.",
+    "t_gh_light": "The lights. | Again.",
+    "t_gh_chair": "Who | moved | that?",
+    "t_gh_nobody": "Nobody | is | there.",
+    "t_gh_book": "My | book.",
+    "t_bl_friend": "Your | friend. | Interesting.",
+})
+SUBS.update({
+    "t_cn_google": "Mister... Madi... googles... how to be... a teacher.",
+    "t_cn_arms": "His arms... are longer... than... my future.",
+    "t_cn_five": "Two... plus two... is five. Pass it... on.",
+    "t_cn_blink": "Sir. Blink twice... if you need... help.",
+    "t_cn_soup": "Mister... Madi... smells like... old... soup.",
+    "t_gh_light": "The lights. Again.",
+    "t_gh_chair": "Who... moved... that?",
+    "t_gh_nobody": "Nobody... is... there.",
+    "t_gh_book": "My... book.",
+    "t_bl_friend": "Your... friend. Interesting.",
+})
+
 # Voices inside the meme clips on the phones: (espeak voice, speed, pitch, rubberband pitch, text)
 CLIPV = {
     "v_br_pencil": ("it", 125, 30, 0.86, "Matitino Gommarino!"),

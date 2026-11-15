@@ -16,6 +16,11 @@ import { DreadMixin } from './dread.js';
 import { ReplayMixin } from './replay.js';
 import { MorePranksMixin } from './morepranks.js';
 import { SecretMixin } from './secrets.js';
+import { ChainMixin } from './chain.js';
+import { GhostMixin } from './ghost.js';
+import { TeamMixin } from './team.js';
+import { MicMixin } from './mic.js';
+import { ScoreboardMixin } from './scoreboard.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
@@ -107,6 +112,7 @@ export class Game {
     this.setupSneak();
     this.setupDread();
     this.setupMorePranks(); this.setupSecrets(); this.setupReplay(); // Phase 6: unlocked pranks, the closet, report cards / notes / the daily class
+    this.setupGhost(); this.setupMic(); // Phase 7: the ghost kid's corner (the spare chair), the microphone
     this.reset('free', 0);
   }
 
@@ -138,6 +144,9 @@ export class Game {
     p.prankKind = p.prankKind || 'ball';
     this.resetSneakPlayer(p); // off your chair (src/sneak.js)
     this.resetDreadPlayer(p);
+    if (this.spareChair) this.resetGhostPlayer(p); // Phase 7: a ghost in the corner (src/ghost.js), your microphone (src/mic.js)
+    if (this.mic) this.resetMicPlayer(p);
+    p.decoyHintAt = 0; p.decoyQ = -1;
   }
   removePlayer(id) {
     const p = this.players.find((x) => x.id === id);
@@ -245,6 +254,7 @@ export class Game {
     this.resetSlang();
     this.resetDread();
     this.resetMorePranks(); this.resetSecrets(); this.resetReplay();
+    this.resetChain(); this.resetGhost(); this.resetTeam(); this.ui.chaos(null); // Phase 7: the note chain, ghosts, teamwork, the scoreboard
     this.searching = false;
     this.ui.clearTransient();
     this.ui.setObjectives([]);
@@ -324,6 +334,7 @@ export class Game {
     for (const k in this.world.dynamicChairs) this.world.dynamicChairs[k].update(dt, this.t);
     this.updateWatching();
     this.updateSneakSight(dt); // (off your chair: what he sees of where you really are)
+    this.micUpdate(dt); // (your microphone, if it is on: how loud you are)
     this.phone.clock = this.clockText();
     this.updateShows(dt);
     if (!this.cutscene) this.updateActions(dt);
@@ -338,6 +349,8 @@ export class Game {
     this.blameVisuals(dt);
     this.updateSneak(dt);
     this.sneakVisuals(dt);
+    this.updateGhosts(dt); // Phase 7: ghosts in the corner (src/ghost.js), the note going round (src/chain.js)
+    this.updateChain(dt);
     this.updateEvents(dt);
     this.updateQuirks(dt);
     this.updateSlang(dt);
@@ -390,7 +403,7 @@ export class Game {
     const d = this.input.consume();
     if (!this.camOverride) {
       // (on the floor you can turn all the way round; back on your chair you turn back to the front)
-      if (this.me.out) this.yaw = wrapAngle(this.yaw + d.yaw);
+      if (this.me.out || this.me.ghostK > 0) this.yaw = wrapAngle(this.yaw + d.yaw);
       else if (Math.abs(this.yaw) > 2.86) this.yaw = damp(this.yaw, clamp(this.yaw, -2.85, 2.85), 6, dt);
       else this.yaw = clamp(this.yaw + d.yaw, -2.85, 2.85);
       this.pitch = clamp(this.pitch + d.pitch, -1.1, 1.05);
@@ -400,8 +413,9 @@ export class Game {
 
   applyCamera(dt) {
     const cam = this.camera;
-    const sneaking = this.me.slipK > 0; // off your chair (src/sneak.js): your eyes are where you are
-    const ex = sneaking ? this.sneakEye(this.me, this.eyeTmp) : this.me.eye;
+    const ghosting = this.me.ghostK > 0; // a ghost in the corner (src/ghost.js)
+    const sneaking = this.me.slipK > 0 || ghosting; // off your chair (src/sneak.js): your eyes are where you are
+    const ex = ghosting ? this.ghostEye(this.me, this.eyeTmp) : sneaking ? this.sneakEye(this.me, this.eyeTmp) : this.me.eye;
     const o = this.camOverride;
     if (o) {
       o.t += dt;
@@ -473,6 +487,9 @@ export class Game {
     };
     for (const f of this.friends) if (!f.gone) consider(f, f.headWorld(v2));
     for (const q of this.players) if (q !== p) consider(q, this.headOf(q, v2));
+    // holding the note that goes round (src/chain.js): the one to pass it to comes first, even with Sam in the way
+    const c = this.chainNextFor(p);
+    if (c && best !== c.next && p.camFwd.dot(v1.subVectors(this.headOf(c.next, v2), p.camPos).normalize()) > 0.94) return c.next;
     return best;
   }
   /** where a player's head is (their avatar if they have one here, else their camera) */
@@ -489,6 +506,13 @@ export class Game {
     if (ui.noteOpen && !this.noteHold && (inp.talk || inp.phone || pressed.echo || pressed.ask)) { ui.closeNote(); this.noteLatch = true; blocked = true; }
     if (this.noteLatch && !inp.talk && !inp.phone) this.noteLatch = false;
     blocked = blocked || ui.noteOpen || this.noteLatch || !!this.choice;
+    // a ghost in the corner (src/ghost.js): only the haunts
+    if (this.localGhost(inp, pressed)) {
+      this.playerActs(me, { talk: false, phone: false, echo: false, ask: false, tap: false }, dt);
+      this.remoteActs(dt);
+      this.noise = me.noise;
+      return;
+    }
     // off your chair (src/sneak.js): C, crawling, his desk; nothing else while you are on the floor
     const away = this.localSneak(dt, inp, pressed, blocked);
     // pranks: hold G to aim a paper, let go to throw (while aiming, the other keys work the paper)
@@ -500,19 +524,7 @@ export class Game {
     else if (!blocked && pressed.echo && !this.canEcho(me) && this.allowEcho && !this.lockBully) ui.hint('Repeat him right after he says something.', 2.5);
     if (!away && !aiming && !blocked && !inp.phone && pressed.ask && !this.canAsk(me) && this.allowAsk && me.qBusy) ui.hint('Wait for him to answer first.', 2.5);
     this.playerActs(me, blocked || aiming || away ? { talk: false, phone: false, echo: false, ask: false, tap: false } : { talk: inp.talk && !me.talkLatch, phone: inp.phone, echo: pressed.echo, ask: pressed.ask, tap: pressed.tap }, dt);
-    // friends playing over the network
-    for (const p of this.players) {
-      if (p.local) continue;
-      // with their phone up, R means "show this video" and T switches apps on their own screen
-      const a = { talk: p.in.talk, phone: p.in.phone, echo: p.in.phone ? !!p.in.show : p.in.echo, ask: p.in.phone ? false : p.in.ask, tap: false };
-      p.in.echo = p.in.ask = p.in.show = false;
-      this.remoteSneak(p, dt); // off their chair: where they crawl
-      const off = p.out || p.slipK > 0;
-      p.aiming = !!p.in.aim && this.prankOpen() && !p.choice && !off;
-      p.tool = p.aiming ? p.in.aimKind || 'ball' : null;
-      if (p.choice || p.aiming || off) a.talk = a.phone = a.echo = a.ask = false;
-      this.playerActs(p, a, dt);
-    }
+    this.remoteActs(dt);
     this.noise = me.noise;
     if (away) { ui.phoneControls('out', this.input.touch); return; } // (localSneak wrote the prompt)
     const aim = this.aimFriend(me);
@@ -521,9 +533,26 @@ export class Game {
     else if (inp.phone && !blocked) {
       const ph = this.phone;
       if (ph.mode === 'memes' && aim && !aim.kind) pr = this.input.touch ? `tap SHOW · show ${aim.name} this video` : `[R] · show ${aim.name} this video`;
-    } else if (aim && !me.talk) pr = this.input.touch ? `hold TALK · whisper to ${aim.name}` : `hold [E] · whisper to ${aim.name}`;
+    } else if (aim && !me.talk) pr = this.chainPrompt(aim) || (this.input.touch ? `hold TALK · whisper to ${aim.name}` : `hold [E] · whisper to ${aim.name}`);
+    this.chainVisuals(!!me.talk); // (passing the note: its meter)
     ui.prompt(this.vidZoom ? '' : pr); // watching a phone held out to you: nothing in the way
     ui.phoneControls(aiming ? 'aim:' + me.aim.kind : inp.phone && !blocked ? this.phone.mode : null, this.input.touch);
+  }
+
+  /** friends playing over the network: what they do this frame */
+  remoteActs(dt) {
+    for (const p of this.players) {
+      if (p.local) continue;
+      // with their phone up, R means "show this video" and T switches apps on their own screen
+      const a = { talk: p.in.talk, phone: p.in.phone, echo: p.in.phone ? !!p.in.show : p.in.echo, ask: p.in.phone ? false : p.in.ask, tap: false };
+      p.in.echo = p.in.ask = p.in.show = false;
+      if (!p.ghost) this.remoteSneak(p, dt); // off their chair: where they crawl
+      const off = p.out || p.slipK > 0 || !!p.ghost; // (a ghost in the corner does nothing but haunt: src/ghost.js)
+      p.aiming = !!p.in.aim && this.prankOpen() && !p.choice && !off;
+      p.tool = p.aiming ? p.in.aimKind || 'ball' : null;
+      if (p.choice || p.aiming || off) a.talk = a.phone = a.echo = a.ask = false;
+      this.playerActs(p, a, dt);
+    }
   }
 
   /** one player's actions this frame: the local player, or a friend over the network */
@@ -596,6 +625,7 @@ export class Game {
     } else if (p.talk) this.endTalk(p);
     for (const f of this.friends) if (this.t < (f.speakUntil || 0) && (f.partner || this.me) === p) noise = Math.max(noise, f.speakNoise || 0);
     if (p.local && this.buzz) noise = Math.max(noise, 0.25);
+    noise = Math.max(noise, this.micNoise(p)); // a real laugh into the microphone (src/mic.js)
     p.noise = noise;
     this.updateNoteJob(p, dt);
   }
@@ -1881,7 +1911,9 @@ export class Game {
         yield* this.wait(1.6);
       }
       if (p.hasGlasses) yield* this.takeBackGlasses(p); // "And these... are mine."
-      yield* this.say(BUST_LINE[reason] || pick(['t_hear', 't_see', 't_who']), 0.5);
+      const read = this.chainCaught(p); // holding the note that goes round: he reads it out loud (src/chain.js)
+      if (read && reason !== 'note') { A.play('paper', { pos: T.handPos('R'), vol: 1.1 }); yield* this.wait(0.6); }
+      yield* this.say(read || BUST_LINE[reason] || pick(['t_hear', 't_see', 't_who']), 0.5);
       yield* this.say(this.strikes === this.maxStrikes - 1 ? 't_last' : 't_detention', 0.6);
       if (this.mp) this.mp.strikeToast(p, this.strikes, this.maxStrikes);
       else this.ui.toast(`STRIKE ${this.strikes} / ${this.maxStrikes}`, 2.8);
@@ -1896,6 +1928,7 @@ export class Game {
       if (!this.ending) this.cutscene = false;
       this.anger = 20; this.flags = { r40: false, r70: false };
       p.echoStreak = 0; p.qCount = Math.min(p.qCount, 1); p.prankStreak = 0;
+      if (!this.ending && this.strikes < this.maxStrikes) this.ghostAfterBust(p); // online: to the corner as a ghost (src/ghost.js)
     }
     T.faceTo(Math.PI, 2);
     yield* this.walk(rand(-1, 1), -5.4);
@@ -3410,6 +3443,7 @@ export class Game {
     this.ui.closeChoices();
     this.dreadEnd();
     this.replayEnd(); // everybody's report card; a daily class is retried as the daily class (src/replay.js)
+    this.chaosEnd(); // online: who caused the most chaos (src/scoreboard.js)
     this.ui.end(title, text, this.statsHtml(), this.endAction ? this.endAction.label : null);
     if (this.mp) this.mp.onEnd(title, text, this.statsHtml());
   }
@@ -3514,3 +3548,4 @@ function clipLoud(sh) {
 }
 
 Object.assign(Game.prototype, DreadMixin); // real dread (src/dread.js)
+Object.assign(Game.prototype, ChainMixin, GhostMixin, TeamMixin, MicMixin, ScoreboardMixin); // Phase 7: online extras

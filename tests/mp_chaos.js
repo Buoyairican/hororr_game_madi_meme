@@ -24,7 +24,8 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
       const g = game;
       if (!g || g.state !== 'playing') return;
       if (g.ui.noteOpen && Math.random() < 0.3) g.ui.closeNote();
-      if (!document.getElementById('choices').classList.contains('hidden') && Math.random() < 0.2) g.input.choiceKey = (Math.random() * 3) | 0;
+      if (!document.getElementById('choices').classList.contains('hidden') && Math.random() < 0.2) g.input.choiceKey = (Math.random() * 4) | 0; // (a 4th: blame a friend)
+      if (g.me.ghost && Math.random() < 0.05) g.input.choiceKey = (Math.random() * 3) | 0; // a ghost haunts (Phase 7)
       if (Math.random() < 0.1) g.yaw = (Math.random() * 2 - 1) * 2.8;
       const r = Math.random();
       if (Math.random() < 0.15) { g.input.keys.talk = r < 0.3; g.input.keys.phone = r > 0.9; }

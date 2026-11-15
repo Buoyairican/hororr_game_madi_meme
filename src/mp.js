@@ -93,11 +93,30 @@ class Avatar {
     scene.add(this.phone);
   }
   headWorld(out = new THREE.Vector3()) { return this.c.headWorld(out); }
+  /** a ghost in the corner (src/ghost.js): see-through and pale */
+  setGhost(on, mat) {
+    if (!!on === !!this.ghosted) return;
+    this.ghosted = !!on;
+    this.c.root.traverse((o) => {
+      if (!o.isMesh) return;
+      if (on) { o.userData.mat0 = o.material; o.userData.shadow0 = o.castShadow; o.material = mat; o.castShadow = false; }
+      else if (o.userData.mat0) { o.material = o.userData.mat0; o.userData.mat0 = null; o.castShadow = !!o.userData.shadow0; }
+    });
+  }
   update(dt, st) {
     const c = this.c;
     // off their chair (src/sneak.js): on hands and knees where they are (held up by the collar when he carries them)
-    const k = st.slip || 0, r = c.root;
-    if (k > 0.001) {
+    const k = st.slip || 0, r = c.root, gk = st.ghost || 0;
+    if (gk > 0.001 && st.gx != null) {
+      // a ghost: floats from the chair to the corner (src/ghost.js), bobbing a little
+      const e = gk * gk * (3 - 2 * gk);
+      this.crawled = true;
+      this.setGhost(true, st.gmat);
+      r.rotation.order = 'XYZ';
+      r.position.set(lerp(this.home.x, st.gx, e), this.home.y + e * (0.12 + Math.sin(st.t * 1.3) * 0.04), lerp(this.home.z, st.gz, e));
+      r.rotation.set(0, Math.PI + 0.35 * e, 0);
+    } else if (k > 0.001) {
+      this.setGhost(false);
       const e = k * k * (3 - 2 * k);
       this.crawled = true;
       r.rotation.order = 'YXZ';
@@ -105,6 +124,7 @@ class Avatar {
       r.rotation.set((st.carried ? 0.3 : 1.22) * e, Math.PI + st.yaw * e, 0);
     } else if (this.crawled) {
       this.crawled = false;
+      this.setGhost(false);
       r.position.copy(this.home); r.rotation.order = 'XYZ'; r.rotation.set(0, Math.PI, 0);
     }
     const head = c.headWorld(_v);
@@ -231,12 +251,15 @@ export class MP {
       p.in.aimKind = toolName(Number(m.ak) | 0);
       // off their chair (src/sneak.js): where they crawl (the host checks it), reaching up for the clock
       p.in.so = !!m.so; p.in.sx = Number(m.sx); p.in.sz = Number(m.sz); p.in.st = Number(m.st) || 0;
+      // Phase 7: how loud their microphone is (0..1; only if they turned it on: src/mic.js)
+      p.in.mc = clamp(Number(m.mc) || 0, 0, 1);
     } else if (m.t === 'press') {
       if (m.k === 'echo' || m.k === 'ask' || m.k === 'show') p.in[m.k] = true;
       else if (m.k === 'fail' && !(p.failT > 0.5)) g.phoneFail(p);
       else if (m.k === 'throw') g.throwFrom(p, { yaw: m.y, pitch: m.p, power: m.pw, kind: PAPER_KINDS[m.kd] || 'ball', curve: m.cv });
       else if (m.k === 'note') g.stickNote(p);
       else if (m.k === 'use') g.deskAct(p, String(m.w)); // his glasses, his laptop, the clock, his chair
+      else if (m.k === 'haunt') g.haunt(p, Number(m.h) | 0); // a ghost in the corner (src/ghost.js)
     }
     else if (m.t === 'pick') g.pickChoice(Number(m.i), p);
     else if (m.t === 'p6') g.replayFromGuest(p, m); // Phase 6 (src/replay.js)
@@ -312,7 +335,7 @@ export class MP {
     this.checkSilent();
     for (const p of g.players) {
       if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: !!p.talk, phone: p.phoneUp, hand: p.handT > 0, aim: p.aiming, tool: p.tool, thr: g.t - p.lastThrow,
-        slip: p.slipK, x: p.pos.x, z: p.pos.z, carried: p.carried });
+        slip: p.slipK, x: p.pos.x, z: p.pos.z, carried: p.carried, ...g.ghostLook(p) });
     }
     if (!this.live()) { this.q = []; return; }
     this.snapT -= dt;
@@ -356,6 +379,8 @@ export class MP {
       tl: (g.allowLaser ? 1 : 0) | (g.allowNote ? 2 : 0), bm: g.blameSnap(),
       // Phase 4: his glasses (on, on the desk, gone), half blind, the cushion, the clock, leaving your seat allowed, sitting
       sn: g.sneakSnap(),
+      // Phase 7: the note going round, the ghosts in the corner and the spare chair
+      cn: g.chainSnap(), gh: g.ghostSnap(),
     };
   }
 
@@ -536,6 +561,7 @@ export class MP {
       }
       case 'end': if (this.jump) this.pendingEnd = e; else this.showEnd(e); break;
       case 'p6': g.replayNet(e); break; // Phase 6: your report card, a note of Mr. Hale's you found (src/replay.js)
+      case 'p7': if (e.k === 'board') g.showChaos(e.rows); break; // Phase 7: who caused the most chaos (src/scoreboard.js)
       default: break;
     }
   }
@@ -577,6 +603,7 @@ export class MP {
     g.applyEventSnap(s.ev);
     g.applyBlameSnap(s.bm);
     g.applySneakSnap(s.sn);
+    g.applyChainSnap(s.cn); g.applyGhostSnap(s.gh);
     // classmates
     const kids = g.allKids();
     s.K.forEach((row, i) => {
@@ -640,9 +667,11 @@ export class MP {
       for (const c of g.allKids()) { c.attend = att; c.update(dt); }
       g.world.board.update(dt);
       g.sneakVisuals(dt); // (the others' crawling, the cushion, his glasses, your meter)
+      g.guestGhosts(dt); // (ghosts in the corner, yours too; the spare chair)
+      g.micUpdate(dt);
       for (const p of g.players) {
         if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: p.netTalk, phone: p.phoneUp, hand: p.netHand, aim: p.netAim, tool: p.netTool, thr: g.t - (p.netThrAt ?? -99),
-          slip: p.slipK, x: p.pos.x, z: p.pos.z, carried: p.carried });
+          slip: p.slipK, x: p.pos.x, z: p.pos.z, carried: p.carried, ...g.ghostLook(p) });
       }
       g.updateWatching();
       this.guestShows(dt);
@@ -662,7 +691,8 @@ export class MP {
         this.send({ t: 'in', y: r3(g.yaw), p: r3(g.pitch), talk: this.talk ? 1 : 0, ph: this.phoneUp ? 1 : 0,
           pv: this.phoneUp && ph.playing ? 1 : 0, pl: this.phoneUp && ph.loud ? 1 : 0,
           ck: typeof ph.feed.key === 'number' ? ph.feed.key : -1, cs: ph.feed.seed | 0, lk: this.lookShow || 0, am: g.me.aim ? 1 : 0, ak: g.me.aim ? toolCode(g.me.aim.kind) : 0,
-          so: g.me.out ? 1 : 0, sx: r2(g.me.pos.x), sz: r2(g.me.pos.z), st: g.me.standK > 0.3 ? r2(g.me.standY || 1) : 0 });
+          so: g.me.out ? 1 : 0, sx: r2(g.me.pos.x), sz: r2(g.me.pos.z), st: g.me.standK > 0.3 ? r2(g.me.standY || 1) : 0,
+          mc: g.mic.on ? r2(g.mic.level) : 0 }); // (your microphone: only how loud, nothing else)
       }
     }
     if (this.jump && this.jump.next().done) {
@@ -750,6 +780,8 @@ export class MP {
     if (ui.noteOpen && !g.noteHold && (inp.talk || inp.phone || pressed.echo || pressed.ask)) { ui.closeNote(); g.noteLatch = true; blocked = true; }
     if (g.noteLatch && !inp.talk && !inp.phone) g.noteLatch = false;
     blocked = blocked || ui.noteOpen || g.noteLatch || !!this.choice || g.cutscene;
+    // a ghost in the corner (src/ghost.js): only the haunts
+    if (g.localGhost(inp, pressed)) { this.phoneUp = false; this.talk = false; g.phone.up = false; me.aim = null; return; }
     // off your chair (src/sneak.js): crawl here, the host checks where you are; nothing else while you are on the floor
     const away = g.localSneak(dt, inp, pressed, blocked);
     // pranks: aim here, the host throws it (and everything after)
@@ -786,7 +818,8 @@ export class MP {
     }
     if (aiming) pr = g.aimLabel;
     else if (held) { if (g.phone.mode === 'memes' && aim && !aim.kind) pr = inp.touch ? `tap SHOW · show ${aim.name} this video` : `[R] · show ${aim.name} this video`; }
-    else if (aim && !this.talk) pr = inp.touch ? `hold TALK · whisper to ${aim.name}` : `hold [E] · whisper to ${aim.name}`;
+    else if (aim && !this.talk) pr = g.chainPrompt(aim) || (inp.touch ? `hold TALK · whisper to ${aim.name}` : `hold [E] · whisper to ${aim.name}`);
+    g.chainVisuals(this.talk); // (passing the note that goes round: its meter)
     ui.prompt(g.vidZoom ? '' : pr);
     ui.phoneControls(aiming ? 'aim:' + me.aim.kind : held ? g.phone.mode : null, inp.touch);
     if (this.choice) {
@@ -817,6 +850,7 @@ export class MP {
     this.localTeacher = true;
     g.input.enable(false);
     g.seatNow(g.me); // (off your chair: back on it, he is right in front of you)
+    g.allGhostsBack(); // (a ghost: back in your chair too)
     if (this.choice) { this.choice = null; g.ui.closeChoices(); }
     const dir = new THREE.Vector3(g.camFwd.x, 0, g.camFwd.z).normalize();
     const start = 1.3, end = 0.5;

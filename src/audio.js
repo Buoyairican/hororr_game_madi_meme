@@ -22,6 +22,7 @@ export const SFX = [
   // Phase 6: report card, unlocks, hidden notes, the unlocked pranks, PSST!, the secret endings
   'p6_stamp', 'p6_unlock', 'p6_note', 'p6_spit', 'p6_splat', 'p6_twang', 'p6_snap', 'p6_stretch', 'p6_fill', 'p6_splash',
   'p6_knock', 'p6_crack', 'p6_break', 'p6_pass',
+  'gh_float', 'gh_haunt', // Phase 7: the ghost kid (src/ghost.js)
 ];
 
 const _v = new THREE.Vector3();

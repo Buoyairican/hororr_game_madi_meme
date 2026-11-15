@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { ROOM, BOARD_Z, ROWS, COLS } from './world.js';
 import { clamp, rand, pick, chance } from './util.js';
-import { BLAME, NOTE, LASER, PRANK } from './data.js';
+import { BLAME, NOTE, LASER, PRANK, TEAM } from './data.js';
 
 const V = THREE.Vector3;
 const _a = new V(), _b = new V(), _c = new V(), _d = new V();
@@ -575,10 +575,14 @@ export const BlameMixin = {
       this.track.event(this.t, p, 'asked', { about, sure: Math.round(sure * 100) / 100 });
       const title = sure >= BLAME.lieLimit ? 'Who did it? (he looks sure it was you)' : 'Who did it? (he isn\'t sure)';
       const labels = [goat ? `Point at ${goat.name}` : 'Point at someone', 'Say nothing', 'Confess'];
+      // online: you can also blame a friend (Phase 7, src/team.js)
+      const friend = this.blameFriendFor(p);
+      if (friend) labels.push(TEAM.text.point.replace('{name}', friend.name));
       const i = yield* this.choose(title, labels, BLAME.answerTime, p);
       if (!this.players.includes(p)) return;
       if (i === 0 && goat) yield* this.blamePoint(p, goat, sure);
       else if (i === 2) yield* this.blameConfess(p);
+      else if (i === 3 && friend) yield* this.blameFriend(p, friend, sure);
       else yield* this.blameSilent(p);
     } finally {
       this.blameBusy = false;
@@ -704,7 +708,7 @@ export const BlameMixin = {
   /** an idle act: he walks down the aisle next to someone's desk, stops just past it and looks over the back rows */
   *actAisle() {
     const T = this.teacher;
-    const p = pick(this.players);
+    const p = pick(this.players.filter((q) => !q.ghost));
     if (!p) return;
     const ax = p.desk.x >= 0 ? Math.min(3.75, p.desk.x + 0.75) : Math.max(-3.75, p.desk.x - 0.75);
     T.lookAt(null, 3);

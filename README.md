@@ -37,6 +37,14 @@ In the lobby Mr. Madi waits at the door. He tells every friend to sit down, he d
 
 The host can also press **DAILY** before **START**: then everybody plays today's daily class. At the end every player gets **their own report card** (and daily score), graded on what they did; notes, unlocks and best scores are kept in each player's own browser.
 
+**Online extras**:
+* **The note that goes round.** Now and then a note starts with one of you and has to reach everybody, seat by seat: look at the next one and hold **E** / **TALK** to pass it on. If he looks right at you while you pass it, he takes it, it is a strike, and he reads it out loud to the class. In time, and it gets a laugh and a lot of mischief.
+* **The ghost kid.** Caught (and not out yet)? You float into the back corner as a ghost for a minute. Press **1**, **2**, **3** (or **LIGHT**, **CHAIR**, **BOOK**) to flicker the lights, slide the spare chair at the back or drop the book off his desk. Each haunt calms him a little and pulls him over to look (all the way to the back for the chair): time for your friends. He never sees a ghost.
+* **The decoy.** When a friend slips off their chair, the others are told to ask him a question (**T**): if the friend gets something done at his desk while the question keeps him busy, it is **TEAMWORK** and the one who asked counts as the decoy.
+* **Betrayal.** When he asks "Who did it?", you can point at a friend sitting in the class. If he believes you, he watches *them* now, and they are told who it was.
+* **WHO CAUSED THE MOST CHAOS**: the end screen ranks everybody by what they did, each with a title (THE SNIPER, THE GHOST, THE SNITCH, THE MAILMAN, THE DECOY, THE SNEAK…).
+* **Microphone** (SETTINGS, off by default and off again every time you start): laugh out loud for real and he hears it. Only how loud you are is measured, many times a second; no sound is recorded, kept or sent anywhere (online, your browser sends the host that one number). On Hard, a laugh while he looks right at you is a catch, like whispering.
+
 Everyone sits at their own desk and sees the others as students with name tags. Look at a friend and hold **E** to whisper to them (only they see it). Hold your phone in the meme app, look at a friend and press **R**: you shout "Bro! Look at this!" and hold your phone out to them; they look at it to watch. Throw paper at him, at the class or at each other: everyone sees the paper fly, your arm winding up, and the laugh meter. Repeating him, dumb questions, the phone and whispering all work for everyone, and he goes after whoever is making the most noise: he walks to *their* desk. Everyone has their own breath: he can lean over anybody's desk to listen (the others see him do it), and he creeps up on whoever stares at their phone. The board, the posters and the seats change the same for everyone, and only while **no** player is looking at them. Strikes are shared by the whole class (Easy: 3, plus 1 for every friend; Hard: one strike for everybody).
 
 How it works: the host's browser runs the game and streams it to the friends over WebRTC (peer to peer). [PeerJS](https://peerjs.com)'s free public server does the handshake. To find a way between two networks the game uses Google's STUN servers and **your own relay** (a TURN server, free for a small game). **Switch it on**, or friends on mobile data and strict Wi-Fi often can't join: see **Friends can't join?** below. Nothing to install and no game server; it works from any static host such as Vercel. If the host's link to the handshake server drops, or the host's phone comes back to the game, it reconnects by itself and keeps the same class code.
@@ -102,11 +110,14 @@ On a local server or GitHub Pages there is no `api/turn`, so there is no relay. 
 | …ball or plane | **X** or the mouse wheel | **SWAP** |
 | …put it away without throwing | **E** (or pull out your phone) | **DROP** |
 | Laser pointer / KICK ME note (period 3 on, Free Class) | **X** picks them too; hold **G** to use | **SWAP**, hold **PRANK** |
-| "Who did it?": point at a kid / say nothing / confess | **1–3** | the choice buttons |
+| "Who did it?": point at a kid / say nothing / confess (online: **4** points at a friend) | **1–4** | the choice buttons |
 | Leave your seat (period 4, Free Class) / sit back down (at your desk) | **C** | **SEAT** / **SIT** |
 | …crawl | **WASD** or the arrow keys | the stick |
 | …his glasses, his laptop, his chair, the clock | hold **E** next to it | hold **USE** |
 | Hold your breath (when he leans over your desk) | hold **B** | hold **BREATH** |
+| Pass the note that goes round (online) | look at the next player, hold **E** | hold **TALK** |
+| Haunt as a ghost (online, after you were caught) | **1** lights, **2** the chair, **3** the book | **LIGHT** / **CHAIR** / **BOOK** |
+| Microphone (off by default) | SETTINGS | SETTINGS |
 | Pause (and the notebook) | **Esc** | **II** button |
 
 * **Repeat him**: right after he speaks, your squeaky impression makes the class laugh. He doesn't know who said it, so he walks down the rows and leans over the desks, looking at everyone, then goes back. Do it three times in a row and he knows it was you.
@@ -203,6 +214,11 @@ src/slang.js               the slang he learns from you and uses wrong (remember
 src/morepranks.js          the pranks you unlock: spitball, rubber band, water balloon (each with its own flight and reaction)
 src/replay.js              reasons to replay: the report card, unlocks, Mr. Hale's hidden notes, the daily class
 src/secrets.js             the two secret endings, and the supply closet at the back of the room
+src/chain.js               online: the note that goes round from player to player (he reads it out loud if he catches it)
+src/ghost.js               online: the ghost kid (caught, you haunt the class from the corner for a minute)
+src/team.js                online: the decoy (a question keeps him busy while a friend is at his desk), blaming a friend
+src/mic.js                 the optional microphone: only how loud you are, never recorded or sent
+src/scoreboard.js          online: WHO CAUSED THE MOST CHAOS on the end screen (points and titles)
 src/profile.js             what your browser keeps between classes (unlocks, notes, best scores), with a fallback when storage is blocked
 src/notebook.js            the notebook screen (notes, unlocks, records) and the DAILY CLASS / NOTEBOOK menu entries
 src/memes.js, src/clips.js the meme clips (original cartoons drawn live) and the clip player

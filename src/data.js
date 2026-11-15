@@ -472,6 +472,140 @@ export const ONLINE = {
   },
 };
 
+// ---------------- online extras (Phase 7): every number and every text in one place
+// The note chain (src/chain.js): a note goes from player to player while he is not looking.
+export const CHAIN = {
+  minPlayers: 2,
+  first: [42, 56],           // seconds into the class before the first note goes round
+  gap: [55, 80],             // pause before the next one
+  stopBefore: 50,            // no new note this close to the last bell
+  time: [30, 22],            // seconds for the whole chain: this much, plus this much for every pass
+  hold: 1.3,                 // look at the next player and hold E / TALK this long to pass it
+  seen: 0.3,                 // he looks right at you (the instant-catch look) this long while you pass it: he takes it
+  reward: { pass: 12, done: 40, perPass: 20, laugh: 34, calm: 25 }, // mischief per pass / when it arrives (+ per pass); the class laughs; he calms down
+  lostAnger: 12,             // he got the note: this much angrier (and it is a strike, like any note he catches)
+  // what is on the paper, and the line he says when he reads it out loud (tools/gen_voices.py)
+  notes: [
+    { text: 'Mr. Madi googles<br><b>how to be a teacher.</b>', read: 't_cn_google' },
+    { text: 'His arms are longer<br>than <b>my future.</b>', read: 't_cn_arms' },
+    { text: '2 + 2 = 5.<br><b>Pass it on.</b>', read: 't_cn_five' },
+    { text: 'Sir, blink twice<br>if you need <b>help.</b>', read: 't_cn_blink' },
+    { text: 'Mr. Madi smells like<br><b>old soup.</b>', read: 't_cn_soup' },
+  ],
+  text: {
+    start: 'pass it on &rarr;',
+    holder: 'You have the note: <i>{note}</i><br>Look at <b>{next}</b> and hold <b>{key}</b> to pass it on, but only while he isn\'t looking!',
+    next: '<b>{holder}</b> has a note for you. Don\'t let him look that way.',
+    others: 'A note is going round: {chain}. Keep him busy while they pass it.',
+    got: 'You got the note from <b>{from}</b>: <i>{note}</i><br>Now pass it to <b>{next}</b>.',
+    last: 'You got the note from <b>{from}</b>: <i>{note}</i>',
+    done: 'THE NOTE MADE IT!<br>+{pts} mischief',
+    lost: 'HE GOT THE NOTE',
+    timeout: 'The note never made it.',
+    cancel: 'The note chain fell apart.',
+    moved: '{who} left. <b>{to}</b> picked up the note.',
+    prompt: 'hold {key} · pass the note to {next}',
+  },
+};
+// The ghost kid (src/ghost.js): online, a caught player stands in the corner as a ghost for a while.
+export const GHOST = {
+  minPlayers: 2,             // only with friends in the class (your haunts are for them)
+  time: 60,                  // seconds in the corner
+  spots: [[4.35, 5.45], [3.6, 5.5], [4.5, 4.7], [2.9, 5.5]], // where a ghost stands (the back right corner), one spot per seat
+  eye: 1.42, yaw: 0.5,       // how high a ghost floats, and which way it faces first (toward the class)
+  floatIn: 2.0, floatOut: 1.4, // seconds to float to the corner / back to the seat
+  firstWait: 2.5,            // no haunting until you have arrived
+  bookBack: 7,               // the book floats back onto his desk after this long
+  fear: 0.45,                // how much a haunt scares everybody (the screen)
+  chair: { x: 1.5, z: 5.45, yaw: Math.PI, moves: [[0.55, -0.2, 0.7], [-0.5, -0.05, -0.5], [0.1, -0.35, 0.25]] }, // the spare chair at the back wall, and where it slides to (dx, dz, turn)
+  // key 1-3 (or the touch buttons). cd: cooldown; calm: how much of his anger a haunt takes away;
+  // line: what he says; the sound of the haunt itself is in src/ghost.js
+  haunts: [
+    { id: 'light', name: 'LIGHT', does: 'flickers the lights', cd: 16, calm: 8, mischief: 6, line: 't_gh_light' },
+    { id: 'chair', name: 'CHAIR', does: 'slides a chair', cd: 34, calm: 14, mischief: 10, line: 't_gh_chair', after: 't_gh_nobody' },
+    { id: 'book', name: 'BOOK', does: 'drops a book', cd: 24, calm: 11, mischief: 8, line: 't_gh_book' },
+  ],
+  text: {
+    you: 'He sent you to the corner. You are a <b>ghost</b> for a minute: press <b>1</b>, <b>2</b>, <b>3</b> to haunt the class and pull him away from your friends.',
+    youTouch: 'He sent you to the corner. You are a <b>ghost</b> for a minute: tap <b>LIGHT</b>, <b>CHAIR</b> or <b>BOOK</b> to haunt the class and pull him away from your friends.',
+    others: '<b>{name}</b> is a ghost in the corner for a minute. Their haunts pull him away from you.',
+    back: 'You are back in your seat.',
+    wait: 'Not yet…',
+    legend: '<kbd>1</kbd> light · <kbd>2</kbd> chair · <kbd>3</kbd> book · look around',
+  },
+};
+// Teamwork and betrayal (src/team.js)
+export const TEAM = {
+  // the decoy: one of you asks him a question while a friend is off their chair; the friend gets to his desk meanwhile
+  decoy: { mischief: 30, laugh: 20, hintCd: 40 },
+  // pointing at a friend when he asks "Who did it?" (only online, only a friend in their seat)
+  friend: { heat: 30, watch: 12, mischief: 30, laugh: 26 },
+  text: {
+    decoyAsk: '<b>{name}</b> is off their chair. Ask him a question ({key}) to keep him busy!',
+    decoyDone: 'TEAMWORK!<br><b>{decoy}</b> kept him busy',
+    point: 'Point at {name} (your friend)',
+    blamed: '<b>{name}</b> blamed you! He is <b>watching you</b> now.',
+    blamer: 'You blamed <b>{name}</b>. He believed you. Friends...',
+  },
+};
+// The microphone (src/mic.js): optional, off by default. Only how loud you are is used.
+export const MIC = {
+  floorDb: -58, topDb: -14,  // this quiet counts as 0, this loud as 1
+  attack: 10, release: 4,    // how fast the level follows your voice up / down (a key click is too short to count)
+  floorRise: 0.03,           // a noise that never stops (a fan) slowly stops counting
+  gate: 0.22,                // below this he hears nothing
+  loud: 0.55,                // from here on it is as loud as a whisper (and counts as "you laughed out loud")
+  minNoise: 0.35,            // the noise he hears at the gate (it grows to 1 at "loud")
+  rearm: 2.5,                // seconds before the next laugh is counted again
+  react: 0.25,               // the chance he stops and asks "What is so funny?" when he hears a laugh (if he is free)
+  text: {
+    asking: 'Asking your browser for the microphone…',
+    on: 'Microphone on: he can hear you now. Only how loud you are is measured. Nothing is recorded or sent.',
+    refused: 'The browser did not allow the microphone, so this setting is off again. Allow the microphone for this page in your browser, then turn it on once more.',
+    missing: 'No microphone was found, so this setting is off again.',
+    insecure: 'The microphone only works on a secure (https) page, so this setting is off again.',
+    failed: 'The microphone could not be started, so this setting is off again.',
+    lost: 'The microphone stopped. The setting is off again.',
+    hint: 'Your <b>microphone</b> is on: laugh out loud and he hears it for real.',
+    heard: 'He heard that! Your <b>real voice</b> counts. Keep it down.',
+  },
+};
+// The chaos scoreboard on the online end screen (src/scoreboard.js).
+// weights: points for every counted thing a player did (game.track, src/stats.js). A key nobody
+// counted is simply worth nothing, so rows for other features can be added before they exist.
+// titles: a player gets the title whose keys gave them the most points (each title is given once).
+export const CHAOS = {
+  weights: {
+    talk: 0.6, phone: 0.3, whispers: 6, echoes: 14, questions: 9, videos: 8, shown: 8, fails: 12, caught: 18, closeCalls: 10, notes: 3,
+    throws: 2, hits: 6, hitHim: 16, glassesOff: 10, soaked: 10, trickShots: 12, notesFound: 4,
+    kickme: 12, paws: 8, blamed: 10, lies: 6, woke: 10,
+    sneaks: 6, sneakTime: 0.3, glasses: 14, secrets: 8, clocks: 10, cushions: 12,
+    breath_hold: 8, dread_spotted: 6,
+    chain_pass: 12, chain_done: 10, chain_lost: 8, ghost: 4, ghost_haunt: 9, mic_noise: 6,
+    blame_friend: 15, team_distract: 20,
+  },
+  minTitle: 8,               // fewer points than this from a title's keys: not that title
+  titles: [
+    { id: 'snitch', name: 'THE SNITCH', keys: ['blame_friend'], why: 'blamed a friend {blame_friend}×' },
+    { id: 'clown', name: 'THE CLOWN', keys: ['echoes', 'questions'], why: 'repeated him {echoes}×, {questions} dumb questions' },
+    { id: 'ghost', name: 'THE GHOST', keys: ['ghost_haunt', 'ghost'], why: 'haunted the class {ghost_haunt}×' },
+    { id: 'sniper', name: 'THE SNIPER', keys: ['hitHim', 'hits', 'glassesOff', 'soaked', 'trickShots'], why: 'hit him {hitHim}× with paper' },
+    { id: 'sneak', name: 'THE SNEAK', keys: ['sneaks', 'glasses', 'secrets', 'clocks', 'cushions'], why: 'left their seat {sneaks}×' },
+    { id: 'liar', name: 'THE LIAR', keys: ['blamed', 'lies', 'kickme'], why: 'blamed {blamed} classmates' },
+    { id: 'chatterbox', name: 'THE CHATTERBOX', keys: ['talk', 'whispers'], why: 'whispered for {talk} seconds' },
+    { id: 'zombie', name: 'THE PHONE ZOMBIE', keys: ['phone', 'videos', 'fails'], why: '{phone} seconds on the phone' },
+    { id: 'mailman', name: 'THE MAILMAN', keys: ['chain_pass', 'chain_done'], why: 'passed the note {chain_pass}×' },
+    { id: 'loudmouth', name: 'THE LOUDMOUTH', keys: ['mic_noise'], why: 'laughed out loud {mic_noise}×' },
+    { id: 'decoy', name: 'THE DECOY', keys: ['team_distract'], why: 'kept him busy {team_distract}×' },
+    { id: 'statue', name: 'THE STATUE', keys: ['breath_hold', 'dread_spotted'], why: 'held their breath {breath_hold}×' },
+    { id: 'magnet', name: 'THE DETENTION MAGNET', keys: ['caught', 'chain_lost'], why: 'caught {caught}×' },
+    { id: 'daredevil', name: 'THE DAREDEVIL', keys: ['closeCalls'], why: '{closeCalls} close calls' },
+    { id: 'influencer', name: 'THE INFLUENCER', keys: ['shown'], why: 'showed {shown} videos around' },
+  ],
+  none: { id: 'angel', name: 'THE ANGEL', why: 'did nothing. Suspicious.' },
+  head: 'WHO CAUSED THE MOST CHAOS',
+};
+
 export const HISTORY = ['how to be a teacher', 'what is 2 + 2', 'how often do people blink', 'how long can a class last', 'mr hale room 13 found?'];
 
 export const CHAPTERS = [
@@ -507,12 +641,16 @@ export const REPORT = {
     ['Whispering', 'whispers', 14, 70, 'Whispered {n} times. I heard... every word.'],
     ['Whispering', 'talk', 0.7, 30, '{n} seconds of talking. In my class... nobody talks.'],
     ['Whispering', 'notes', 9, 27, 'Reads notes. Notes... are not... the lesson.'],
+    ['Whispering', 'chain_pass', 8, 24, 'Passed a note {n} times. I... read it.'],                    // Phase 7
     ['Drama', 'echoes', 24, 96, 'Repeated me {n} times. Repeated me... {n} times.'],
     ['Drama', 'breath_hold', 10, 30, 'Held their breath {n} times. I heard... nothing.'],          // Phase 5
     ['Drama', 'dread_spotted', 8, 24, 'Turned around {n} times. Just as I... got close.'],
+    ['Drama', 'team_distract', 12, 24, 'Asked a question... to distract me. I... noticed.'],        // Phase 7
+    ['Drama', 'mic_noise', 6, 18, 'Laughed out loud {n} times. I... heard you.'],
     ['Science', 'questions', 24, 96, 'Asked {n} questions. Water... is dry.'],
     ['Science', 'paws', 10, 30, 'Made me chase a red dot. I am... not... a cat.'],                // Phase 3
     ['Science', 'clocks', 12, 24, 'Moved my clock. Time... does not... go faster.'],               // Phase 4
+    ['Science', 'ghost_haunt', 8, 24, 'The lights. My chair. My book. The room... is not... haunted.'], // Phase 7
     ['Media Studies', 'videos', 22, 88, 'Watched {n} videos. None of them... were the lesson.'],
     ['Media Studies', 'shown', 12, 36, 'Showed {n} videos to the class. Nobody... showed me.'],
     ['Media Studies', 'phone', 0.4, 24, '{n} seconds on a phone. No... phones.'],
@@ -536,6 +674,7 @@ export const REPORT = {
     ['Behaviour', 'glasses', 14, 28, 'Took my glasses. I saw... nothing.'],                         // Phase 4
     ['Behaviour', 'cushions', 12, 24, 'My chair... made a noise. {n} times.'],
     ['Behaviour', 'woke', 10, 20, 'Woke me up. I was... thinking.'],
+    ['Behaviour', 'blame_friend', 12, 24, 'Blamed a friend. Friends... are... temporary.'],          // Phase 7
     ['Behaviour', 'caught', -30, 90, 'Caught {n} times. I... see you.'],
     ['Attendance', 'survived', 70, 70, 'Stayed until the bell. Nobody... leaves early.'],
     ['Attendance', 'minutes', 6, 30, 'Lasted {n} minutes. Then... detention.'],

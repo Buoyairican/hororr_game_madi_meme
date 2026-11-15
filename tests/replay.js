@@ -89,8 +89,8 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   pass(!r.error && r.before === 50 && r.after.score === 80 && /Blamed 3 classmates/.test(r.after.comment), 'report card: a row added for a new counter grades it, with its comment ' + JSON.stringify(r.after));
   {
     const P = r.phases || {};
-    pass(!r.error && P.n === 7 && P.beh.score === 92 && /Blamed 2 classmates/.test(P.beh.comment) && P.gym.score === 25 && /Left their seat 2 times/.test(P.gym.comment)
-      && P.drama.score === 28 && /Held their breath 2 times/.test(P.drama.comment) && P.sci.score === 22 && /clock/.test(P.sci.comment) && P.media.score === 20 && /laptop/.test(P.media.comment),
+    pass(!r.error && P.n === 7 && P.beh.score === 92 && /Blamed 2 classmates/.test(P.beh.comment) && P.gym.score === 25 && /Left their seat twice/.test(P.gym.comment)
+      && P.drama.score === 28 && /Held their breath twice/.test(P.drama.comment) && P.sci.score === 22 && /clock/.test(P.sci.comment) && P.media.score === 20 && /laptop/.test(P.media.comment),
       'report card: blaming, sneaking, his desk and the dread (Phases 3-5) are graded too ' + JSON.stringify(r.error || P));
     pass(!r.error && P.honest === 44, 'report card: telling him the truth takes a little off Behaviour');
     pass(!r.error && P.note8, 'note 8 ("my spare glasses are missing") also comes from taking his glasses from his desk');
@@ -121,8 +121,8 @@ const { chromium, ROOT, GL, shot } = require('./lib');
     g.bust('noise', g.me);
     const done = until(() => g.state === 'end', 30);
     return { done, title: document.getElementById('end-title').innerText, card: card(), text: endText() };`));
-  pass(!r.error && r.done && /DETENTION/.test(r.title) && r.card && !r.card.win && r.card.hard && r.card.kind === 'caught' && r.card.subs.Behaviour !== 'A' && /Caught 1 times/.test(r.text) && /HARD/.test(r.text),
-    'Free Class on Hard, caught: a report card on the losing screen too (HARD, "Caught 1 times") ' + JSON.stringify(r.error || r.card));
+  pass(!r.error && r.done && /DETENTION/.test(r.title) && r.card && !r.card.win && r.card.hard && r.card.kind === 'caught' && r.card.subs.Behaviour !== 'A' && /Caught once/.test(r.text) && /HARD/.test(r.text),
+    'Free Class on Hard, caught: a report card on the losing screen too (HARD, "Caught once") ' + JSON.stringify(r.error || r.card));
 
   r = await run('mode=story&ch=1', new Function(H + `
     step(40);
