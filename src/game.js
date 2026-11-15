@@ -35,6 +35,8 @@ const MAX_STRIKES = 3;     // per class; every extra player in multiplayer adds 
 // placed so nobody hides behind Sam or Nora
 export const SEATS = [{ row: 0, col: 2 }, { row: 1, col: 0 }, { row: 1, col: 4 }, { row: 1, col: 3 }];
 const SCARE_GAP = [[40, 55], [32, 46], [26, 38], [22, 32]];
+const SCARE_OWED = 80;   // Free Class: this long before the bell, one of his big scares is owed
+const EAR_LINES = ['tw_shh', 'tw_here', 'tw_dr_breathe', 'tw_dr_looking']; // the whisper in your ear
 const CALL_GAP = [[30, 42], [26, 38], [22, 34], [20, 30]];
 const BUZZ_GAP = [[44, 60], [38, 54], [34, 48], [30, 44]];
 const STEPS = ['step_1', 'step_2', 'step_3', 'step_4'];
@@ -191,7 +193,7 @@ export class Game {
     this.qBag = new Bag(QUESTIONS);
     this.msgIndex = [0, 0, 0, 0];
     this.nextCall = 18; this.nextBuzz = 30; this.nextScare = 36; this.nextWipe = 50;
-    this.scareDone = {}; this.lastScare = {};
+    this.scareDone = {}; this.lastScare = {}; this.strongDone = false; this.lastEar = '';
     this.notesGiven = 0;
     this.stats = { caught: 0, talk: 0, phone: 0, echoes: 0, questions: 0, memes: 0, videos: 0, fails: 0, throws: 0, hits: 0, hitHim: 0, kickme: 0, paws: 0, blamed: 0,
       sneaks: 0, glasses: 0, secrets: 0, cushions: 0, clocks: 0 };
@@ -1997,25 +1999,31 @@ export class Game {
       { id: 'headturn', min: 1, w: backTurned ? 2.5 : 0, brain: () => this.headTurn() },
       { id: 'students', min: 2, w: 2, cool: 60, fx: () => this.fxStudentsStare() },
       { id: 'boardmsg', min: 2, w: 2, cool: 50, fx: () => this.fxBoardMessage() },
-      { id: 'whisper', min: 2, w: 1.5, cool: 40, fx: () => this.fxWhisperEar() },
-      { id: 'behind', min: 3, w: 3, cool: 100, brain: () => this.scareBehind() },
-      { id: 'neck', min: 3, w: 1.5, cool: 70, brain: () => this.scareNeck() },
-      { id: 'flickapproach', min: 3, w: 1.5, cool: 70, brain: () => this.scareFlickerApproach() },
+      { id: 'whisper', min: 2, w: 1.5, cool: 75, fx: () => this.fxWhisperEar() },
+      { id: 'behind', min: 2, w: 3, cool: 100, strong: true, brain: () => this.scareBehind() },
+      { id: 'neck', min: 2, w: 1.5, cool: 70, strong: true, brain: () => this.scareNeck() },
+      { id: 'flickapproach', min: 2, w: 1.5, cool: 70, strong: true, brain: () => this.scareFlickerApproach() },
     ];
-    return all.filter((s) => s.w > 0 && p >= s.min && (!this.scarePool || this.scarePool.includes(s.id)) && !(s.once && this.scareDone[s.id]) && !(s.cool && this.t - (this.lastScare[s.id] ?? -1e9) < s.cool));
+    return all.filter((s) => s.w > 0 && (this.scarePool ? this.scarePool.includes(s.id) : p >= s.min) && !(s.once && this.scareDone[s.id]) && !(s.cool && this.t - (this.lastScare[s.id] ?? -1e9) < s.cool));
   }
 
   updateDirector(dt) {
     this.nextScare -= dt;
-    if (this.nextScare > 0 || this.eventLock || this.anger >= 30 || this.choice || !this.present || this.memeBusy) return;
+    if (this.mode === 'free' && !this.strongDone && this.t > FREE_LENGTH - SCARE_OWED) this.nextScare = Math.min(this.nextScare, 0.5);
+    if (this.nextScare > 0 || this.eventLock || this.choice || !this.present) return;
+    const busy = this.anger >= 30 || this.memeBusy; // he is busy with somebody: the room can still act up (the storm, the lights, the door), he can't
     if (this.me.slipK > 0 || this.sneakBusy) { this.nextScare = 3; return; } // (his scares are for you in your chair)
-    const list = this.scareList().filter((s) => s.fx || this.brainIdle);
+    let list = this.scareList().filter((s) => s.fx || (this.brainIdle && !busy));
+    // Free Class: at least one of his big scares before the bell (it waits for a moment he is free)
+    const owed = this.mode === 'free' && !this.strongDone && this.t > FREE_LENGTH - SCARE_OWED && this.t < FREE_LENGTH - 14;
+    if (owed) { list = list.filter((s) => s.strong); if (!list.length) { this.nextScare = 0.5; return; } }
     if (!list.length) { this.nextScare = 4; return; }
     const g = SCARE_GAP[this.phase];
-    this.nextScare = rand(g[0], g[1]);
+    this.nextScare = rand(g[0], g[1]) * (this.mode === 'free' ? 0.7 : 1); // (a Free Class is short: less waiting between scares)
     const s = wpick(list.map((x) => [x.w, x]));
     this.scareDone[s.id] = true;
     this.lastScare[s.id] = this.t;
+    if (s.strong) this.strongDone = true;
     if (s.fx) this.fx.push(s.fx());
     else this.interrupt(s.brain());
   }
@@ -2128,7 +2136,9 @@ export class Game {
   *fxWhisperEar() {
     const side = pick([-1, 1]);
     v1.set(side * 0.3, 0.05, 0.12).applyQuaternion(this.camera.quaternion).add(this.camPos);
-    this.audio.say('tw_shh', { pos: v1.clone(), ear: [side * 0.3, 0.05, 0.12], ref: 0.3, vol: 1.4, reverb: 0.02 });
+    const line = pick(EAR_LINES.filter((x) => x !== this.lastEar && this.audio.buffers[x]).concat(this.lastEar ? [] : ['tw_shh']));
+    this.lastEar = line;
+    this.audio.say(line, { pos: v1.clone(), ear: [side * 0.3, 0.05, 0.12], ref: 0.3, vol: line === 'tw_shh' ? 1.4 : 1.15, reverb: 0.02 });
     this.scareFear = Math.max(this.scareFear, 0.6);
     yield* this.wait(2);
   }
@@ -2169,7 +2179,9 @@ export class Game {
         yield* this.wait(2.3);
         W.setMaster(0); this.blackoutTarget = 1; this.blackout = 1;
         yield* this.wait(0.25);
-        T.place(this.camPos.x, -2.75, 0); T.lookAt(this.camPos, 60);
+        T.place(this.camPos.x, -3.1, 0); T.lookAt(this.camPos, 60);
+        // (folded down to you while it was dark: his face fills your view, not his tie)
+        T.leanTarget = T.lean = 0.95; T.crouchTarget = T.crouch = 0.34; T.stanceTarget = T.stance = 0.25;
         W.setMaster(0.6); this.blackoutTarget = 0; this.blackout = 0;
         A.play('stinger_2', { vol: 1.1 });
         this.scareFear = 1; this.shake = 0.5;
@@ -2183,7 +2195,7 @@ export class Game {
       T.place(0, -5.5, 0);
     } finally {
       W.setMaster(1); this.blackoutTarget = 0;
-      T.eyeGlow = 0.12; T.jawTarget = 0;
+      T.eyeGlow = 0.12; T.jawTarget = 0; T.leanTarget = 0; T.crouchTarget = 0; T.stanceTarget = 0;
       this.eventLock = false;
     }
     yield* this.actStare(1.5);
@@ -2581,6 +2593,7 @@ export class Game {
     yield* this.until(() => this.objDone('echo'), 60);
     if (this.objDone('echo')) { yield* this.until(() => this.ready(), 20); yield* this.whisper(sam, 's_didit'); }
     this.callsOn = true; this.nextCall = 25;
+    this.scaresOn = true; this.nextScare = 30; this.scarePool = ['lightning', 'flicker', 'door', 'book'];
     yield* this.eventSlot(2, 25);
     // the storm
     yield* this.beat(() => this.windowBeat());
@@ -2745,6 +2758,7 @@ export class Game {
     if (!this.objDone('laptop')) yield* this.beat(() => this.laptopLookup('how to teach lesson 7', 'Step 1: Know lesson 7.'), 2);
     yield* this.until(() => this.objDone('laptop'), 25);
     this.callsOn = true; this.nextCall = 20; this.buzzOn = true; this.nextBuzz = 30;
+    this.scaresOn = true; this.nextScare = 35; this.scarePool = ['lightning', 'flicker', 'door', 'book', 'headturn', 'whisper'];
     yield* this.eventSlot(1, 25);
     // his glasses
     yield* this.until(() => this.ready(), 30);
@@ -3496,6 +3510,10 @@ export class Game {
       fear = Math.max(this.anger / 100, prox * 0.8, this.scareFear);
       fear = Math.max(fear, this.dreadFear || 0); // holding your breath, noticing a change: only on your own screen
     }
+    // a scare owns the screen and the room: the task list fades, the class stops giggling
+    const scared = playing && (this.scareFear > 0.4 || (this.dreadFear || 0) > 0.6 || this.redFlash > 0.05 || this.blackout > 0.5);
+    if (scared !== this.hudScared) { this.hudScared = scared; document.body.classList.toggle('scared', scared); }
+    this.audio.hush = playing && (scared || this.scareFear > 0.2 || this.blackout > 0.3);
     this.blackout = damp(this.blackout, this.blackoutTarget, 25, dt);
     this.glitch = Math.max(0, this.glitch - dt * 0.8);
     this.redFlash = Math.max(0, this.redFlash - dt * 0.6);

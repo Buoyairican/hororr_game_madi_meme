@@ -58,7 +58,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
     g.post.render = () => {};
     g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {}; g.startMeme = () => false;
     g.dreadAuto = false; g.nextSit = g.nextDeskGlasses = 1e9; g.chainNext = 1e9;
-    g.eventsOn = false; g.setup.plan = []; g.quirks = new Set(); // (no class events or quirks: an online class has its own setup)
+    g.eventsOn = false; g.scaresOn = false; g.setup.plan = []; g.quirks = new Set(); // (no class events or quirks: an online class has its own setup)
     window.seeOnly = null;
     const uw = g.updateWatching.bind(g);
     g.updateWatching = function () { uw(); for (const p of g.players) { const s = window.seeOnly === p.name; p.watching = s; p.lookDot = s ? 0.97 : -1; } };

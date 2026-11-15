@@ -67,6 +67,7 @@ const { chromium, ROOT, GL, OUT } = require('./lib');
     out.videoTask = g.objDone('video');
     out.nextClip = !ph.feed.done && ph.feed.t < 2;
     g.input.keys.phone = false; step(10);
+    g.scaresOn = false; // (this checks the video, not a scare landing in the middle of it)
     const sh = g.startShow({ npc: g.friend('nora'), to: g.me, key: 9 });
     step(3);
     until(() => sh.over, 30, () => { if (sh.held) aimAt(sh.held.group.getWorldPosition(new V())); });

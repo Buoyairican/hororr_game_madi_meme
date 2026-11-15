@@ -193,7 +193,7 @@ export class AudioSys {
     src.playbackRate.value = opts.rate ?? 1;
     src.loop = !!opts.loop;
     const g = c.createGain();
-    g.gain.value = opts.vol ?? 1;
+    g.gain.value = (opts.vol ?? 1) * (this.hush && name === 'giggle' ? 0.25 : 1); // (nobody giggles through a scare)
     let node = src;
     let filter = null;
     if (opts.lowpass) {

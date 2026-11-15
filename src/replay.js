@@ -36,7 +36,7 @@ const timesText = (comment, n) => comment.replace(/\{n\} times/g, (m, at) => {
   const w = n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`;
   const before = comment.slice(0, at);
   return /(^|[.!?]\s*)$/.test(before) && !/\.\.\.\s*$/.test(before) ? w[0].toUpperCase() + w.slice(1) : w; // (starting a sentence: "Once."; not after "...")
-}).replace(/\{n\}/g, String(n));
+}).replace(/\{n\} minutes/g, n === 1 ? '1 minute' : `${n} minutes`).replace(/\{n\}/g, String(n));
 
 export function makeCard(stats, o = {}) {
   const subjects = [], by = new Map();
@@ -59,7 +59,7 @@ export function makeCard(stats, o = {}) {
   const best = subjects.map((s) => s.score).sort((a, b) => b - a).slice(0, REPORT.best);
   const score = Math.round(clamp(best.reduce((a, b) => a + b, 0) / Math.max(1, best.length) + (o.hard ? REPORT.hardBonus : 0), 0, 100));
   const grade = gradeOf(score);
-  return { name: o.name || '', subjects, score, grade, remark: REPORT.remark[grade], hard: !!o.hard };
+  return { name: o.name || '', subjects, score, grade, remark: (stats.survived === 0 && REPORT.remarkCaught[grade]) || REPORT.remark[grade], hard: !!o.hard };
 }
 
 // ---------------------------------------------------------------- the daily class (pure functions)
