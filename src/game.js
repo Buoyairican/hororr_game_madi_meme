@@ -12,6 +12,7 @@ import { QuirkMixin } from './quirks.js';
 import { SlangMixin } from './slang.js';
 import { BlameMixin } from './blame.js';
 import { SneakMixin } from './sneak.js';
+import { DreadMixin } from './dread.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
@@ -92,6 +93,7 @@ export class Game {
     }
     this.teacher.onStep = (pos, sp) => {
       if (!this.teacher.root.visible || this.state !== 'playing') return;
+      if (this.dreadSilent) return; // he creeps up on somebody: no footsteps (src/dread.js)
       this.audio.play(pick(STEPS), { pos: new THREE.Vector3(pos.x, 0.05, pos.z), vol: 0.32 + Math.min(0.6, sp * 0.28), ref: 1.6, reverb: 0.3, rate: rand(0.92, 1.08) });
     };
     this.track = new RunStats(); // what every player did this class
@@ -100,6 +102,7 @@ export class Game {
     this.setupEvents();
     this.setupBlame();
     this.setupSneak();
+    this.setupDread();
     this.reset('free', 0);
   }
 
@@ -130,6 +133,7 @@ export class Game {
       tool: null, laserOn: false, laserHit: null, laserT: 0, eyesT: 0, lastEyes: -99, notesLeft: NOTE.perClass, watchedT: 0, lastGlare: -99, confessions: 0, lies: 0 });
     p.prankKind = p.prankKind || 'ball';
     this.resetSneakPlayer(p); // off your chair (src/sneak.js)
+    this.resetDreadPlayer(p);
   }
   removePlayer(id) {
     const p = this.players.find((x) => x.id === id);
@@ -235,6 +239,7 @@ export class Game {
     this.resetEvents();
     this.resetQuirks();
     this.resetSlang();
+    this.resetDread();
     this.searching = false;
     this.ui.clearTransient();
     this.ui.setObjectives([]);
@@ -334,6 +339,7 @@ export class Game {
     this.updateChoice(dt);
     this.updateIdle(dt);
     this.updateHand(dt);
+    this.updateDread(dt); // his creeping, his listening at your desk, your breath, things that change (before updateAnger)
     this.phone.update(dt);
     this.updateAnger(dt);
     if (!this.cutscene && !this.memeBusy && !this.eventLock && !this.lockBully && !this.classEvent) { // nothing interrupts a story moment, the class clown getting caught, or an event
@@ -3392,6 +3398,7 @@ export class Game {
     this.ui.show('hud', false);
     this.ui.clearTransient();
     this.ui.closeChoices();
+    this.dreadEnd();
     this.ui.end(title, text, this.statsHtml(), this.endAction ? this.endAction.label : null);
     if (this.mp) this.mp.onEnd(title, text, this.statsHtml());
   }
@@ -3441,6 +3448,7 @@ export class Game {
       const prox = clamp((2.8 - (this.teacherDist ?? 9)) / 2.4, 0, 1) * (this.present ? 1 : 0);
       this.scareFear = Math.max(0, this.scareFear - dt * 0.35);
       fear = Math.max(this.anger / 100, prox * 0.8, this.scareFear);
+      fear = Math.max(fear, this.dreadFear || 0); // holding your breath, noticing a change: only on your own screen
     }
     this.blackout = damp(this.blackout, this.blackoutTarget, 25, dt);
     this.glitch = Math.max(0, this.glitch - dt * 0.8);
@@ -3493,3 +3501,5 @@ function clipLoud(sh) {
   for (const [a, b] of c.loud) if (sh.t >= a && sh.t <= b) return 1;
   return 0;
 }
+
+Object.assign(Game.prototype, DreadMixin); // real dread (src/dread.js)

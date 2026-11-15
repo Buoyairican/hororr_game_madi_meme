@@ -288,6 +288,37 @@ body.touch .desk-only { display: none !important; }
   #mp-room .diff-row button { padding: 6px 14px; }
 }
 
+/* ---------- real dread (Phase 5): the BREATH meter and button, the quiet captions ---------- */
+#breath-hud { position: absolute; left: 50%; top: calc(50% + 84px); transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .25s;
+  font-size: 11px; letter-spacing: 2px; color: #cfe3ea; text-shadow: 0 0 5px #000, 0 0 2px #000; white-space: nowrap; }
+#breath-hud.show { opacity: 1; }
+#breath-hud kbd { margin-left: 4px; }
+#breath-bar { width: 120px; height: 5px; margin: 5px auto 0; background: rgba(255,255,255,.14); }
+#breath-fill { height: 100%; width: 100%; background: #9fd4e6; box-shadow: 0 0 6px rgba(159,212,230,.55); }
+#breath-hud.low #breath-fill, #breath-hud.out #breath-fill { background: var(--blood-hi); box-shadow: 0 0 6px rgba(214,58,42,.7); }
+#breath-hud.lean { font-size: 15px; letter-spacing: 3px; color: #fff; }
+#breath-hud.lean #breath-bar { width: 170px; height: 7px; }
+#breath-hud.now #breath-label { color: #ffb3a1; animation: pulse .45s infinite alternate; }
+#breath-hud.out #breath-label { color: var(--blood-hi); }
+/* (a round touch button like the others, placed by itself: left of TALK) */
+#btn-breath { pointer-events: auto; position: absolute; right: calc(max(18px, env(safe-area-inset-right)) + 98px); bottom: max(14px, env(safe-area-inset-bottom));
+  min-width: 0; width: 70px; height: 70px; border-radius: 50%; margin: 0; padding: 0; font-size: 11px; letter-spacing: 1px;
+  background: rgba(15, 15, 14, .45); border: 2px solid rgba(220, 220, 210, .35); touch-action: none; }
+#btn-breath.active { background: rgba(140, 25, 20, .6); border-color: rgba(255, 140, 120, .8); }
+#btn-breath.ready { border-color: #9fd4e6; color: #dff3fa; background: rgba(20, 60, 75, .6); animation: pulse .45s infinite alternate; }
+#subtitle .dread { color: #a9b6b2; font-style: italic; font-size: .85em; letter-spacing: 1px; }
+#end-dread { margin: -8px 0 18px; color: var(--dim); line-height: 1.8; font-size: 14px; }
+#end-dread:empty { display: none; }
+#end-dread b { color: var(--ink); }
+@media (max-height: 500px) {
+  #breath-hud { top: calc(50% + 62px); }
+  #btn-breath { width: 60px; height: 60px; right: calc(max(18px, env(safe-area-inset-right)) + 86px); }
+}
+@media (max-width: 420px) {
+  /* a narrow phone held upright: there is no room beside TALK, so BREATH sits above ECHO */
+  #btn-breath { right: calc(max(18px, env(safe-area-inset-right)) + 8px); bottom: calc(max(14px, env(safe-area-inset-bottom)) + 178px); }
+}
+
 /* ---------- pranks (Phase 1) ---------- */
 #laugh { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 2px; transition: opacity .4s; }
 #laugh.off { opacity: 0; }

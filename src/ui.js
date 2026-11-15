@@ -68,6 +68,22 @@ export class UI {
     this.set('aimReady', !!ready, (x) => this.el['aim-hud'].classList.toggle('dim', !x));
     if (bar) this.set('aimPow', Math.round(power * 20), (x) => (this.el['aim-pow-fill'].style.width = x * 5 + '%'));
   }
+  /** the BREATH meter (src/dread.js): the air you have left, and what to do while he listens at your desk.
+   *  v: 0..1 (null hides it); mode: '' | 'hold' (hold your breath now!) | 'still' (you are holding it: don't move) | 'out' (gasping) */
+  breath(v, mode = '', label = '') {
+    const el = this.el['breath-hud'] || (this.el['breath-hud'] = $('breath-hud'));
+    if (!el) return;
+    const on = v !== null && v !== undefined;
+    this.set('breathOn', on, () => el.classList.toggle('show', on));
+    this.set('breathMode', on ? mode : '', (m) => {
+      el.classList.toggle('lean', m === 'hold' || m === 'still'); el.classList.toggle('now', m === 'hold'); el.classList.toggle('out', m === 'out');
+      const btn = $('btn-breath');
+      if (btn) btn.classList.toggle('ready', m === 'hold');
+    });
+    if (!on) return;
+    this.set('breathV', Math.round(v * 50), (x) => { $('breath-fill').style.width = x * 2 + '%'; el.classList.toggle('low', x < 13); });
+    this.set('breathLabel', label, (x) => ($('breath-label').innerHTML = x));
+  }
   setEye(state) {
     this.set('eye', state, (st) => {
       this.el.eye.setAttribute('class', st === 'closed' ? '' : st);

@@ -237,6 +237,7 @@ export function buildWorld(scene, renderer) {
     const p = new THREE.Mesh(planeGeo, new THREE.MeshStandardMaterial({ map: T.posterTexture(kind), roughness: 0.9 }));
     p.position.set(x, y, z); p.rotation.y = ry; p.rotation.z = rand(-0.03, 0.03); p.scale.set(0.62 * s, 0.87 * s, 1);
     scene.add(p);
+    p.userData.kind = kind; (W.posters || (W.posters = [])).push(p); // (src/dread.js changes them while nobody looks)
     return p;
   };
   poster('rules', x1 - 0.01, 1.75, -2.4, -Math.PI / 2, 1.1);

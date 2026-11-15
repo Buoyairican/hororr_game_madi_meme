@@ -13,6 +13,7 @@ export const SFX = [
   'm_snore', 'm_boom', 'm_fart', 'm_airhorn', 'm_trombone', 'm_scratch', 'm_crickets', 'm_dun', 'm_pipe', 'm_honk', 'm_slide', 'desk_slap',
   'v_phonk', 'v_lofi', 'v_euro', 'v_kazoo', 'v_mando', 'v_tbc', 'v_bonk', 'v_splash', 'v_pop', 'v_meow', 'v_bark', 'v_quack',
   'v_applause', 'v_laugh', 'v_explode', 'phone_flap', 'phone_point', 'phone_fail',
+  'dread_inhale', 'dread_exhale', 'dread_gasp', 'dread_light', 'dread_breath', 'dread_creak', 'dread_board', 'dread_paper', 'dread_seat', 'dread_notice',
   'prank_crumple', 'prank_fold', 'prank_swish', 'prank_hit', 'prank_board', 'prank_tick', 'bonk', 'class_laugh',
   'net_join', 'net_try', 'net_fail',
   'madi_ring', 'phone_voice', 'phone_static', 'fly_buzz', 'fly_splat', 'door_knock', 'pizza_box', 'munch', 'fire_alarm', 'madi_hum', 'snort', 'class_chatter',

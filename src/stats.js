@@ -15,6 +15,14 @@ export const STAT_KEYS = [
   'caught',      // strikes you caused
   'closeCalls',  // he was about to come over... and didn't
   'notes',       // notes read
+  // real dread (src/dread.js)
+  'dread_creep',        // times he crept up on you while you stared at your phone
+  'dread_spotted',      // ...and you looked up before he got to your desk
+  'dread_seen_change',  // things that changed behind your back, and you noticed
+  'dread_lean',         // times he leaned over your desk to listen
+  'breath_hold',        // ...and heard nothing: you held your breath and kept still
+  'breath_fail',        // ...and heard you (you breathed, moved, made a sound or ran out of air)
+  'breath_time',        // seconds you held your breath
   'throws',      // paper balls / planes thrown
   'hits',        // ...that hit someone (or the board)
   'hitHim',      // ...that hit him

@@ -39,7 +39,7 @@ screenshots looked at. Whatever the review finds gets fixed first.
 | Laser pointer, KICK ME note | **X** / wheel picks them after the paper, hold **G** to use | SWAP, hold PRANK |
 
 Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, X, mouse wheel (X / wheel / G also
-work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow keys (off your chair).
+work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow keys (off your chair), B (hold your breath).
 
 ## Phases
 
@@ -189,10 +189,39 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   carries them); the laptop secret goes to the player who read it. Sounds: `sn_slip`, `sn_grab`, `sn_clock`, `sn_cushion`,
   `sn_squeak`, `sn_drawer`; 18 voice lines. Tests: `tests/sneak.js`, `tests/mp_sneak.js`.
 
-### [ ] Phase 5: Real dread (idea 8)
+### [x] Phase 5: Real dread (idea 8)
 - While you stare at your phone he quietly gets closer.
 - Things change when you look away: the board, an empty seat, a poster.
 - When he leans over you: hold B and keep the mouse still until he leaves (breath meter).
+- Shipped: new `src/dread.js`, numbers, texts and variants in `DREAD` (`src/data.js`).
+  **The creep**: after 9-13 s on your phone (Hard 7-10) while he is at the board, he comes for you
+  **backwards** (his back stays turned, so the catch rules are untouched: he can't see you), in three
+  steps, with no footsteps. The tells: the chalk stops where it is, the lights at the front dim, a
+  breath, a floorboard at your desk, plus the heartbeat that was already there. Easy: a quiet caption
+  for each tell and Sam warns you; Hard: faster, quieter, no captions. Your phone does not make him
+  angrier while he is on his way. Look up before he is there: he stops dead, only his head turns round
+  ("I was... not... moving."), he goes back. Look up too late or never: he turns around at your desk
+  and leans over (on Hard he then sees the phone: the usual instant catch; a video: he takes the phone).
+  **The lean**: he also walks over by himself now and then. He bends over the desk ear first; hold
+  **B** / **BREATH** and keep the view still until he straightens up. The BREATH meter (10 s Easy,
+  8.5 s Hard) refills when you let go; out of air = a loud gasp. He hears you (breath, a move, the
+  phone or talking, the gasp): Easy +30 anger and heat (100 is a strike as always), Hard: he looks
+  right at you, caught (reason `breath`). He hears nothing: mischief, he calms down, "You... may...
+  breathe." While he listens nothing else starts (`eventLock`).
+  **Changes**: a poster (7 posters, two later versions each), a line on the board (written backwards,
+  other words, or a line he never wrote), a seat (a kid gone and back later, two kids swapped, Kevin
+  back for a while in the last hour). Only while the thing is outside every player's view (their real
+  field of view plus a margin, for 0.6 s), each with a very quiet sound; looking at it again counts as
+  noticing. Where: period 1 posters only; period 2 + board and the creep; periods 3-4 and Free Class
+  (by the hour) everything; only in quiet stretches of lesson, never in a story moment.
+  Online: the host runs it for every player (own breath, own lean); friends send "I hold my breath"
+  and their field of view; snapshots carry everyone's breath, who he listens to, the lights, posters
+  and seats; a change that reaches a friend while they look at it waits on their screen. Late joiners
+  get everything; a friend who leaves mid-lean frees him. Stats: `dread_creep`, `dread_spotted`,
+  `dread_seen_change`, `dread_lean`, `breath_hold`, `breath_fail`, `breath_time` (+ events in the
+  log, `dreadChanges` in the class totals) and a line of your own numbers on the end screen.
+  12 voice lines, 10 sounds (`gen_sfx.py dread`). Tests: `tests/dread.js`, `tests/mp_dread.js`; the
+  careful story player holds its breath. Tests that need a class with no surprises: `game.dreadAuto = false`.
 
 ### [ ] Phase 6: Reasons to replay (idea 9)
 - Report card after every class (A to F) built from `game.track`.

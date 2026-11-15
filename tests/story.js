@@ -56,6 +56,12 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
           const t = backThrow();
           if (t) { g.yaw = t.yaw; g.pitch = t.pitch; g.throwFrom(g.me, t); ev.push(g.t.toFixed(0) + ' [THROW] at his back'); }
         }
+        // he leans over your desk to listen: hold your breath and don't move (and put everything away)
+        const lean = g.dreadLeanOn();
+        if (lean && !g.__lean) { ev.push(g.t.toFixed(0) + ' [LEAN] he listens at your desk'); g.__leanYaw = g.yaw; }
+        g.__lean = lean;
+        g.input.keys.breath = !!lean;
+        if (lean) { g.input.keys.talk = g.input.keys.phone = false; g.yaw = g.__leanYaw; g.pitch = 0; }
       }
       if (policy === 'echo' && g.canEcho()) g.input.pressed.echo = true;
       if (policy === 'ask' && g.canAsk()) g.input.pressed.ask = true;
@@ -72,14 +78,15 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
       maxStrikes = Math.max(maxStrikes, g.strikes); maxAnger = Math.max(maxAnger, g.anger);
       if (!isFinite(g.teacher.pos.x) || !isFinite(g.teacher.pos.z)) { ev.push('NaN teacher position!'); break; }
     }
-    g.input.keys.talk = g.input.keys.phone = false;
+    g.input.keys.talk = g.input.keys.phone = g.input.keys.breath = false;
     const T = g.teacher;
     return { state: g.state, end: document.getElementById('end-title').innerText, endText: document.getElementById('end-text').innerText.slice(0, 80),
       primary: document.getElementById('btn-again').innerText, t: +g.t.toFixed(0), clock: document.getElementById('clock-hud').innerText,
       strikes: g.strikes, maxStrikes, maxAnger: +maxAnger.toFixed(0), mischief: Math.floor(g.mischief), objs: g.objectives.map((o) => o.id + (o.done ? '✓' : '✗')).join(' '),
       teacherY: +T.root.position.y.toFixed(2), glassesOnHead: T.glasses.parent === T.head, cut: g.cutscene, memes: g.stats.memes, videos: g.stats.videos, fails: g.stats.fails,
       throws: g.stats.throws, hitHim: g.stats.hitHim, papers: g.papers.length,
-      setup: g.setupInfo(), happened: g.eventsDone.slice(), quirksSeen: g.quirkSeen.slice(), learned: g.track.global.learned.slice(), overlap, events: ev };
+      setup: g.setupInfo(), happened: g.eventsDone.slice(), quirksSeen: g.quirkSeen.slice(), learned: g.track.global.learned.slice(), overlap,
+      dread: (() => { const d = g.track.of(g.me); return { changes: g.dread.changes, noticed: d.dread_seen_change, creeps: d.dread_creep, leans: d.dread_lean, held: d.breath_hold, heard: d.breath_fail }; })(), events: ev };
   }, [policy, +fin, +secs, HARD]);
   console.log(JSON.stringify(res, null, 0));
   // a careful player should get through the period (on Hard one strike ends it, which is allowed)

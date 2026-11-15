@@ -149,6 +149,16 @@
   "text": "I... cannot... see.",
   "dur": 3.5
  },
+ "t_dr_notmoving": {
+  "who": "teacher",
+  "text": "I was... not... moving.",
+  "dur": 3.605
+ },
+ "t_dr_maybreathe": {
+  "who": "teacher",
+  "text": "You... may... breathe.",
+  "dur": 3.448
+ },
  "a_wet": {
   "who": "teacher",
   "text": "Water... is... dry.",
@@ -977,6 +987,18 @@
   "whisper": true,
   "dur": 2.168
  },
+ "tw_dr_breathe": {
+  "who": "teacher",
+  "text": "I can hear you... breathing.",
+  "whisper": true,
+  "dur": 4.31
+ },
+ "tw_dr_looking": {
+  "who": "teacher",
+  "text": "What... are you... looking at?",
+  "whisper": true,
+  "dur": 3.892
+ },
  "tw_shh": {
   "who": "teacher",
   "text": "Shhhhhh...",
@@ -1246,6 +1268,30 @@
   "text": "Throw a paper ball at his back. I dare you.",
   "whisper": true,
   "dur": 2.377
+ },
+ "s_dr_lookup": {
+  "who": "sam",
+  "text": "Psst. Look up. Look up!",
+  "whisper": true,
+  "dur": 2.116
+ },
+ "s_dr_backwards": {
+  "who": "sam",
+  "text": "Was he walking backwards?",
+  "whisper": true,
+  "dur": 1.332
+ },
+ "s_dr_smell": {
+  "who": "sam",
+  "text": "Dude. He was smelling you.",
+  "whisper": true,
+  "dur": 1.62
+ },
+ "s_dr_seat": {
+  "who": "sam",
+  "text": "Wasn't somebody sitting there?",
+  "whisper": true,
+  "dur": 1.593
  },
  "s_hit": {
   "who": "sam",
@@ -1636,6 +1682,30 @@
   "text": "Oh my god. You actually hit him.",
   "whisper": true,
   "dur": 1.985
+ },
+ "n_dr_hold": {
+  "who": "nora",
+  "text": "Hold your breath. Don't move.",
+  "whisper": true,
+  "dur": 1.829
+ },
+ "n_dr_poster": {
+  "who": "nora",
+  "text": "That poster was different before.",
+  "whisper": true,
+  "dur": 1.829
+ },
+ "n_dr_board": {
+  "who": "nora",
+  "text": "He didn't write that. Did he?",
+  "whisper": true,
+  "dur": 1.933
+ },
+ "n_dr_still": {
+  "who": "nora",
+  "text": "You didn't even blink.",
+  "whisper": true,
+  "dur": 1.28
  },
  "n_ow": {
   "who": "nora",
