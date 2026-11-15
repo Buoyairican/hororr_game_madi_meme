@@ -1961,6 +1961,7 @@ export class Game {
   updateDirector(dt) {
     this.nextScare -= dt;
     if (this.nextScare > 0 || this.eventLock || this.anger >= 30 || this.choice || !this.present || this.memeBusy) return;
+    if (this.me.slipK > 0 || this.sneakBusy) { this.nextScare = 3; return; } // (his scares are for you in your chair)
     const list = this.scareList().filter((s) => s.fx || this.brainIdle);
     if (!list.length) { this.nextScare = 4; return; }
     const g = SCARE_GAP[this.phase];
@@ -3054,7 +3055,8 @@ export class Game {
     yield* this.whisper(nora, 'n_quietone');
     this.callsOn = true; this.nextCall = 25; this.buzzOn = true; this.nextBuzz = 40;
     yield* this.eventSlot(2, 25);
-    yield* this.until(() => this.ready(), 30);
+    yield* this.until(() => this.ready() && this.me.slipK <= 0, 30); // (he stands behind your chair: be in it)
+    this.allSeated();
     this.lastScare.behind = this.t;
     yield* this.cmd(() => this.scareBehind(), 1);
     yield* this.lesson(12);

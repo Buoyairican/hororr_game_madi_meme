@@ -321,7 +321,7 @@ body.touch .desk-only { display: none !important; }
 }
 
 /* off your chair (src/sneak.js): how close he is to seeing you; the stick on a phone */
-#sneak-hud { position: absolute; left: 50%; top: calc(50% + 86px); transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .2s; min-width: 170px; }
+#sneak-hud { position: absolute; left: 50%; top: calc(50% - 64px); transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .2s; min-width: 170px; }
 #sneak-hud.show { opacity: 1; }
 #sneak-label { font-size: 12px; letter-spacing: 3px; color: #9fd8b4; text-shadow: 0 0 6px #000, 0 0 2px #000; margin-bottom: 5px; }
 #sneak-bar { width: 170px; height: 6px; margin: 0 auto; background: rgba(255,255,255,.14); }

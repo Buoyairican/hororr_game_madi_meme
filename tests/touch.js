@@ -17,7 +17,7 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
   await check('touch layout detected', `document.body.classList.contains('touch')`);
   await page.tap('#btn-free'); await page.waitForTimeout(1500);
   await check('free class starts by tap', `game.state === 'playing'`);
-  await check('5 touch buttons visible (with PRANK)', `[...document.querySelectorAll('.tbtn')].filter(b => b.offsetParent !== null).length === 5`);
+  await check('6 touch buttons visible (with PRANK and SEAT)', `[...document.querySelectorAll('.tbtn')].filter(b => b.offsetParent !== null).length === 6 && document.getElementById('btn-seat').textContent === 'SEAT'`);
   // drag on the canvas to look around
   const y0 = await page.evaluate(() => game.yaw);
   await page.evaluate(() => {
@@ -61,6 +61,28 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
   await check('tap SWAP: a paper plane', `!!game.me.aim && game.me.aim.kind === 'plane' && document.getElementById('btn-ask').textContent === 'PLANE'`);
   await touch('#btn-prank', 'touchend'); await page.waitForTimeout(500);
   await check('let go of PRANK: thrown, buttons back to TALK / ASK / ECHO', `game.stats.throws === 1 && !game.me.aim && document.getElementById('btn-talk').textContent === 'TALK'`);
+  // off your chair: tap SEAT, the stick crawls, USE / SIT; tap SIT next to your chair
+  await page.evaluate(() => { game.me.prankLatch = false; game.me.qBusy = false; game.me.handT = 0; game.cutscene = false; game.lockBully = false; game.sneakVisible = () => false; for (const p of game.players) p.emptyCool = 999; });
+  await touch('#btn-seat', 'touchstart'); await frames(0.8);
+  await check('tap SEAT: off your chair; the stick, SIT and USE (the other buttons hidden)', `game.me.out && game.me.slipK === 1 && getComputedStyle(document.getElementById('joy')).display === 'block' && document.getElementById('btn-seat').textContent === 'SIT' && document.getElementById('btn-talk').textContent === 'USE' && [...document.querySelectorAll('.tbtn')].filter(b => b.offsetParent !== null).length === 2`);
+  const z0 = await page.evaluate(() => { game.yaw = 0; return game.me.pos.z; });
+  await page.evaluate(() => {
+    const j = document.getElementById('joy'), r = j.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const mk = (y) => new Touch({ identifier: 7, target: j, clientX: cx, clientY: y });
+    j.dispatchEvent(new TouchEvent('touchstart', { touches: [mk(cy)], changedTouches: [mk(cy)], bubbles: true, cancelable: true }));
+    j.dispatchEvent(new TouchEvent('touchmove', { touches: [mk(cy - r.height / 2)], changedTouches: [mk(cy - r.height / 2)], bubbles: true, cancelable: true }));
+  });
+  await frames(0.8);
+  await check('push the stick up: you crawl forward', `game.me.pos.z < ${z0} - 0.4`);
+  await page.evaluate(() => {
+    const j = document.getElementById('joy');
+    const t = new Touch({ identifier: 7, target: j, clientX: 0, clientY: 0 });
+    j.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t], bubbles: true, cancelable: true }));
+    game.me.pos.set(game.me.desk.x + 0.75, 0, game.me.desk.z + 0.55);
+  });
+  await frames(0.1);
+  await touch('#btn-seat', 'touchstart'); await frames(0.8);
+  await check('tap SIT next to your chair: back on it, the buttons are back', `!game.me.out && game.me.slipK === 0 && [...document.querySelectorAll('.tbtn')].filter(b => b.offsetParent !== null).length === 6 && document.getElementById('btn-talk').textContent === 'TALK'`);
   await page.evaluate(() => { game.updateWatching = game.__uw; });
   await page.tap('#btn-pause'); await page.waitForTimeout(300);
   await check('pause button', `game.state === 'paused'`);

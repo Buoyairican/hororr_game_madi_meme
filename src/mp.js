@@ -683,7 +683,7 @@ export class MP {
       h.visible = true;
       h.pose(shoulder, hold, eye);
       const dot = lookDot(eye, g.camFwd, hold);
-      const lk = !g.cutscene && !this.choice && (h.lookLocal ? dot > 0.93 : dot > 0.962);
+      const lk = !g.cutscene && !this.choice && g.me.slipK <= 0 && (h.lookLocal ? dot > 0.93 : dot > 0.962);
       h.lookLocal = lk;
       if (lk) {
         look = id; zoom = true; this.watchedOnce = true;
