@@ -839,6 +839,126 @@
   "text": "This... is... phonk.",
   "dur": 3.318
  },
+ "t_bl_ask": {
+  "who": "teacher",
+  "text": "You... Who... did it?",
+  "dur": 3.579
+ },
+ "t_bl_lie": {
+  "who": "teacher",
+  "text": "You... lie.",
+  "dur": 2.09
+ },
+ "t_bl_honest": {
+  "who": "teacher",
+  "text": "Honest... Do not... do it again.",
+  "dur": 4.336
+ },
+ "t_bl_again": {
+  "who": "teacher",
+  "text": "Again?",
+  "dur": 0.836
+ },
+ "t_bl_no": {
+  "who": "teacher",
+  "text": "No... I do not... believe you.",
+  "dur": 4.153
+ },
+ "t_bl_watch": {
+  "who": "teacher",
+  "text": "I am... watching... you.",
+  "dur": 3.788
+ },
+ "t_bl_back": {
+  "who": "teacher",
+  "text": "What... is on... my back?",
+  "dur": 3.736
+ },
+ "t_bl_kickme": {
+  "who": "teacher",
+  "text": "\u201cKick... me.\u201d",
+  "dur": 1.907
+ },
+ "t_lz_what": {
+  "who": "teacher",
+  "text": "What... is... that?",
+  "dur": 3.109
+ },
+ "t_lz_dot": {
+  "who": "teacher",
+  "text": "The red... dot.",
+  "dur": 2.168
+ },
+ "t_lz_come": {
+  "who": "teacher",
+  "text": "Come... here.",
+  "dur": 2.142
+ },
+ "t_lz_gone": {
+  "who": "teacher",
+  "text": "Where... did it... go?",
+  "dur": 3.579
+ },
+ "t_lz_eyes": {
+  "who": "teacher",
+  "text": "My... eyes.",
+  "dur": 1.959
+ },
+ "t_lz_trick": {
+  "who": "teacher",
+  "text": "A... trick.",
+  "dur": 2.011
+ },
+ "t_lz_give": {
+  "who": "teacher",
+  "text": "Give me... the light.",
+  "dur": 2.456
+ },
+ "t_sn_hmm": {
+  "who": "teacher",
+  "text": "Hm?",
+  "dur": 0.731
+ },
+ "t_sn_where": {
+  "who": "teacher",
+  "text": "Where... did you... go?",
+  "dur": 3.657
+ },
+ "t_sn_back": {
+  "who": "teacher",
+  "text": "Back... to your... seat.",
+  "dur": 3.527
+ },
+ "t_sn_seat": {
+  "who": "teacher",
+  "text": "You do not... leave... your seat.",
+  "dur": 3.997
+ },
+ "t_sn_mine": {
+  "who": "teacher",
+  "text": "And these... are... mine.",
+  "dur": 3.657
+ },
+ "t_sn_spare": {
+  "who": "teacher",
+  "text": "My... spare... pair.",
+  "dur": 3.605
+ },
+ "t_sn_hear": {
+  "who": "teacher",
+  "text": "I can... still... hear you.",
+  "dur": 3.971
+ },
+ "t_sn_time": {
+  "who": "teacher",
+  "text": "That... is not... the time.",
+  "dur": 3.918
+ },
+ "t_sn_whodid": {
+  "who": "teacher",
+  "text": "Who... did... this?",
+  "dur": 3.344
+ },
  "tw_turn": {
   "who": "teacher",
   "text": "Turn... around.",
@@ -1211,6 +1331,60 @@
   "whisper": true,
   "dur": 1.959
  },
+ "s_bl_give": {
+  "who": "sam",
+  "text": "Psst. Take these. A note for his back. And a laser pointer.",
+  "whisper": true,
+  "dur": 3.997
+ },
+ "s_bl_what": {
+  "who": "sam",
+  "text": "Bro! Me? Seriously?",
+  "whisper": true,
+  "dur": 2.168
+ },
+ "s_bl_note": {
+  "who": "sam",
+  "text": "It's on his back. Don't laugh. Don't laugh.",
+  "whisper": true,
+  "dur": 3.082
+ },
+ "s_bl_cat": {
+  "who": "sam",
+  "text": "He's chasing it. Like a cat.",
+  "whisper": true,
+  "dur": 1.881
+ },
+ "s_sn_go": {
+  "who": "sam",
+  "text": "Bro. Where are you going?",
+  "whisper": true,
+  "dur": 1.541
+ },
+ "s_sn_down": {
+  "who": "sam",
+  "text": "Get down! He's looking!",
+  "whisper": true,
+  "dur": 1.75
+ },
+ "s_sn_glasses": {
+  "who": "sam",
+  "text": "You took his glasses? Bro.",
+  "whisper": true,
+  "dur": 1.881
+ },
+ "s_sn_left": {
+  "who": "sam",
+  "text": "He left his glasses on the desk. Go. Go!",
+  "whisper": true,
+  "dur": 3.082
+ },
+ "s_sn_cushion": {
+  "who": "sam",
+  "text": "Oh no. Oh no no no. I can't breathe.",
+  "whisper": true,
+  "dur": 2.664
+ },
  "n_free": {
   "who": "nora",
   "text": "Maybe we get a free period.",
@@ -1541,6 +1715,54 @@
   "whisper": true,
   "dur": 1.411
  },
+ "n_bl_give": {
+  "who": "nora",
+  "text": "Here. A note for his back. And my laser pointer.",
+  "whisper": true,
+  "dur": 3.056
+ },
+ "n_bl_what": {
+  "who": "nora",
+  "text": "Me? Wow. Thanks a lot.",
+  "whisper": true,
+  "dur": 2.168
+ },
+ "n_bl_note": {
+  "who": "nora",
+  "text": "Kick me. Oh my god.",
+  "whisper": true,
+  "dur": 1.384
+ },
+ "n_bl_eyes": {
+  "who": "nora",
+  "text": "Not in his eyes! He'll find you.",
+  "whisper": true,
+  "dur": 1.985
+ },
+ "n_sn_give": {
+  "who": "nora",
+  "text": "His laptop knows what he is. Sneak over there while he isn't looking.",
+  "whisper": true,
+  "dur": 3.736
+ },
+ "n_sn_hide": {
+  "who": "nora",
+  "text": "Get down! Behind the desks!",
+  "whisper": true,
+  "dur": 2.038
+ },
+ "n_sn_back": {
+  "who": "nora",
+  "text": "Get back to your seat! Now!",
+  "whisper": true,
+  "dur": 1.75
+ },
+ "n_sn_hale": {
+  "who": "nora",
+  "text": "Those are Mister Hale's glasses. Take them back.",
+  "whisper": true,
+  "dur": 2.586
+ },
  "s_hey": {
   "who": "sam",
   "text": "HEY! ARE YOU EVEN LISTENING?",
@@ -1692,6 +1914,16 @@
   "who": "you",
   "text": "Fish.",
   "dur": 0.392
+ },
+ "p_bl_them": {
+  "who": "you",
+  "text": "It was them!",
+  "dur": 0.731
+ },
+ "p_bl_me": {
+  "who": "you",
+  "text": "It was me.",
+  "dur": 0.679
  },
  "m_bruh_b": {
   "who": "kid",
@@ -1873,6 +2105,66 @@
   "meme": true,
   "dur": 0.549
  },
+ "k_bl_tell_b": {
+  "who": "kid",
+  "text": "Sir! Sir! Look!",
+  "meme": true,
+  "dur": 1.62
+ },
+ "k_bl_tell_g": {
+  "who": "kid",
+  "text": "Sir! Sir! Look!",
+  "meme": true,
+  "dur": 1.646
+ },
+ "k_bl_them_b": {
+  "who": "kid",
+  "text": "It was them!",
+  "meme": true,
+  "dur": 0.705
+ },
+ "k_bl_them_g": {
+  "who": "kid",
+  "text": "It was them!",
+  "meme": true,
+  "dur": 0.705
+ },
+ "k_bl_back_b": {
+  "who": "kid",
+  "text": "Sir! There's something on your back!",
+  "meme": true,
+  "dur": 1.959
+ },
+ "k_bl_back_g": {
+  "who": "kid",
+  "text": "Sir! There's something on your back!",
+  "meme": true,
+  "dur": 1.985
+ },
+ "k_bl_me_b": {
+  "who": "kid",
+  "text": "Okay... it was me.",
+  "meme": true,
+  "dur": 1.28
+ },
+ "k_bl_me_g": {
+  "who": "kid",
+  "text": "Okay... it was me.",
+  "meme": true,
+  "dur": 1.28
+ },
+ "k_bl_what_b": {
+  "who": "kid",
+  "text": "What?! Me?!",
+  "meme": true,
+  "dur": 0.888
+ },
+ "k_bl_what_g": {
+  "who": "kid",
+  "text": "What?! Me?!",
+  "meme": true,
+  "dur": 0.914
+ },
  "pa_hale": {
   "who": "pa",
   "text": "Attention, please. Mister Hale, please report to the main office. Mister Hale, to the main office.",
@@ -1982,198 +2274,5 @@
   "who": "clip",
   "text": "Let's go!",
   "dur": 0.627
- },
- "t_bl_ask": {
-  "who": "teacher",
-  "text": "You... Who... did it?",
-  "dur": 3.579
- },
- "t_bl_lie": {
-  "who": "teacher",
-  "text": "You... lie.",
-  "dur": 2.09
- },
- "t_bl_honest": {
-  "who": "teacher",
-  "text": "Honest... Do not... do it again.",
-  "dur": 4.336
- },
- "t_bl_again": {
-  "who": "teacher",
-  "text": "Again?",
-  "dur": 0.836
- },
- "t_bl_no": {
-  "who": "teacher",
-  "text": "No... I do not... believe you.",
-  "dur": 4.153
- },
- "t_bl_watch": {
-  "who": "teacher",
-  "text": "I am... watching... you.",
-  "dur": 3.788
- },
- "t_bl_back": {
-  "who": "teacher",
-  "text": "What... is on... my back?",
-  "dur": 3.736
- },
- "t_bl_kickme": {
-  "who": "teacher",
-  "text": "\u201cKick... me.\u201d",
-  "dur": 1.907
- },
- "t_lz_what": {
-  "who": "teacher",
-  "text": "What... is... that?",
-  "dur": 3.109
- },
- "t_lz_dot": {
-  "who": "teacher",
-  "text": "The red... dot.",
-  "dur": 2.168
- },
- "t_lz_come": {
-  "who": "teacher",
-  "text": "Come... here.",
-  "dur": 2.142
- },
- "t_lz_gone": {
-  "who": "teacher",
-  "text": "Where... did it... go?",
-  "dur": 3.579
- },
- "t_lz_eyes": {
-  "who": "teacher",
-  "text": "My... eyes.",
-  "dur": 1.959
- },
- "t_lz_trick": {
-  "who": "teacher",
-  "text": "A... trick.",
-  "dur": 2.011
- },
- "t_lz_give": {
-  "who": "teacher",
-  "text": "Give me... the light.",
-  "dur": 2.456
- },
- "s_bl_give": {
-  "who": "sam",
-  "text": "Psst. Take these. A note for his back. And a laser pointer.",
-  "whisper": true,
-  "dur": 3.997
- },
- "s_bl_what": {
-  "who": "sam",
-  "text": "Bro! Me? Seriously?",
-  "whisper": true,
-  "dur": 2.168
- },
- "s_bl_note": {
-  "who": "sam",
-  "text": "It's on his back. Don't laugh. Don't laugh.",
-  "whisper": true,
-  "dur": 3.082
- },
- "s_bl_cat": {
-  "who": "sam",
-  "text": "He's chasing it. Like a cat.",
-  "whisper": true,
-  "dur": 1.881
- },
- "n_bl_give": {
-  "who": "nora",
-  "text": "Here. A note for his back. And my laser pointer.",
-  "whisper": true,
-  "dur": 3.056
- },
- "n_bl_what": {
-  "who": "nora",
-  "text": "Me? Wow. Thanks a lot.",
-  "whisper": true,
-  "dur": 2.168
- },
- "n_bl_note": {
-  "who": "nora",
-  "text": "Kick me. Oh my god.",
-  "whisper": true,
-  "dur": 1.384
- },
- "n_bl_eyes": {
-  "who": "nora",
-  "text": "Not in his eyes! He'll find you.",
-  "whisper": true,
-  "dur": 1.985
- },
- "p_bl_them": {
-  "who": "you",
-  "text": "It was them!",
-  "dur": 0.731
- },
- "p_bl_me": {
-  "who": "you",
-  "text": "It was me.",
-  "dur": 0.679
- },
- "k_bl_tell_b": {
-  "who": "kid",
-  "text": "Sir! Sir! Look!",
-  "meme": true,
-  "dur": 1.62
- },
- "k_bl_tell_g": {
-  "who": "kid",
-  "text": "Sir! Sir! Look!",
-  "meme": true,
-  "dur": 1.646
- },
- "k_bl_them_b": {
-  "who": "kid",
-  "text": "It was them!",
-  "meme": true,
-  "dur": 0.705
- },
- "k_bl_them_g": {
-  "who": "kid",
-  "text": "It was them!",
-  "meme": true,
-  "dur": 0.705
- },
- "k_bl_back_b": {
-  "who": "kid",
-  "text": "Sir! There's something on your back!",
-  "meme": true,
-  "dur": 1.959
- },
- "k_bl_back_g": {
-  "who": "kid",
-  "text": "Sir! There's something on your back!",
-  "meme": true,
-  "dur": 1.985
- },
- "k_bl_me_b": {
-  "who": "kid",
-  "text": "Okay... it was me.",
-  "meme": true,
-  "dur": 1.28
- },
- "k_bl_me_g": {
-  "who": "kid",
-  "text": "Okay... it was me.",
-  "meme": true,
-  "dur": 1.28
- },
- "k_bl_what_b": {
-  "who": "kid",
-  "text": "What?! Me?!",
-  "meme": true,
-  "dur": 0.888
- },
- "k_bl_what_g": {
-  "who": "kid",
-  "text": "What?! Me?!",
-  "meme": true,
-  "dur": 0.914
  }
 }

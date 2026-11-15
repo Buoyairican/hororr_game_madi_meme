@@ -119,7 +119,7 @@ export const PRANK_NAMES = { ball: 'PAPER BALL', plane: 'PAPER PLANE', laser: 'L
 // whether a lie works: below lieLimit he believes you. The choice says which side you are on.
 export const BLAME = {
   lieLimit: 0.5,
-  sure: { base: 0.1, heat: 0.008, echo: 0.3, echoWithin: 20, streak: 0.05, lie: 0.25, evidence: { prank: 0.1, echo: 0.05, note: 0.2, laser: 0.35 } },
+  sure: { base: 0.1, heat: 0.008, echo: 0.3, echoWithin: 20, streak: 0.05, lie: 0.25, evidence: { prank: 0.1, echo: 0.05, note: 0.2, laser: 0.35, cushion: 0.15 } },
   answerTime: 7,                    // seconds to answer (no answer: you said nothing)
   silentAnger: 10, watchFor: 25,    // "I am watching you.": he glares at you when you make a sound
   watchGlareGap: 6,
@@ -155,6 +155,48 @@ export const LASER = {
   onHim: { laugh: 7, mischief: 8, gap: 3 }, // the dot on his back or his belly: the class giggles
   anger: { trick: 14, eyes: 18 },
 };
+
+// ---------------- Phase 4 (src/sneak.js): leave your seat, crawl, his desk
+export const SNEAK = {
+  speed: 0.95,             // crawling, metres per second (he walks 0.85 when he is calm)
+  eye: 0.52,               // your eyes on the floor (seated: 1.17)
+  slip: 0.55,              // seconds to slip off your chair (or back on)
+  sitReach: 0.75,          // how close to your chair you must be to sit back down
+  slipNoise: 0.25, crawlNoise: 0.06, // a chair creaks; knees on the floor
+  // his sight: a meter fills while he can see you (in front of him, nothing between his eyes and you).
+  // Full while he looks right at you (lookDot > 0.8): caught. At the edge of his eye it only fills to `side`.
+  see: {
+    front: 1.7, edge: 0.5,  // per second at arm's length: straight ahead / at the edge of his eye
+    far: 9, near: 1.4,      // it fills more slowly far away (a quarter as fast at `far`)
+    dark: 0.45,             // ...and in the dark (gloom 1: this much slower)
+    side: 0.95,             // the edge of his eye alone never fills it past this
+    notice: 0.45,           // here he notices something: "Hm?" and he looks at you
+    forget: 0.55,           // per second while he can't see you
+  },
+  bump: 0.42,              // he walks into you: caught (he feels you even without his glasses)
+  emptySeat: { look: 0.86, time: 1.3, cool: 25 }, // looking at your empty chair this long: "Where did you go?"
+  search: { stay: 4, scan: 1.2 },                  // he stands at your desk looking around, then goes back
+  watchFor: 20,            // back in your seat in time: "Hmm." and he watches you this long
+  outAnger: 10,            // when he finds your chair empty
+  reach: 0.8,              // how close to a thing on (or at) his desk you must be to use it
+  glasses: { gap: [50, 75], first: [35, 55], rub: 3.2, halfSee: 2.4, lost: 28, mischief: 60, anger: 12 },
+  laptop: { hold: 1.6, mischief: 40, open: 2.5 },
+  clock: { hold: 2.2, minutes: 15, max: 45, mischief: 50, anger: 10 }, // Free Class: the bell rings sooner
+  reachUp: { glasses: 0.98, laptop: 1.02, cushion: 0.72, clock: 1.62 }, // your eyes while you hold E there (up on your knees, or standing for the clock)
+  cushion: { perClass: 1, mischief: 80, laugh: 45, anger: 16 },
+  sit: { gap: [45, 70], first: [25, 45], soon: 8, for: [7, 11], crouch: 0.42, chance: 0.5 },
+};
+// what is on his laptop (one per read; Free Class picks at random, period 4 goes in order)
+export const SECRETS = [
+  ['SEARCH HISTORY', 'what is my name<br>what is a face<br>how to keep a face<br>how to give back a face'],
+  ['EMAIL (not sent)', 'To: the principal<br>Mr. Hale will not be coming back.<br>I will take his classes.<br><b>All of them.</b>'],
+  ['NOTES.txt', 'Sam: talks.<br>Nora: writes notes.<br>Kevin: done.<br>The new one: <b>soon.</b>'],
+  ['CALENDAR', 'Friday: Mr. Hale, last lesson.<br>Monday: Room 13.<br>Tuesday: Room 13.<br><b>Every day: Room 13.</b>'],
+  ['LESSON 7.doc', '<i>(empty)</i><br>0 words<br>Last changed: <b>1987</b>'],
+  ['PHOTOS (1)', 'Mr. Hale at the board, from behind, in this classroom.<br>It was taken <b>from the ceiling.</b>'],
+  ['SEARCH HISTORY', 'can a teacher hear a whisper<br>how far<br>how to hear through a desk<br>do children taste of chalk'],
+  ['SEARCH HISTORY', 'questions I can not look up<br>what am i<br><b>No results found.</b>'],
+];
 
 // ---------------- a different teacher every class (src/events.js, src/quirks.js, src/slang.js)
 // One seeded setup per class (classSetup in src/events.js) draws the events and his quirks: the same

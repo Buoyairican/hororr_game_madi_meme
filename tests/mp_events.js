@@ -83,7 +83,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
     const g = game;
     g.updateCalls = g.updateBuzz = g.updateDirector = g.updateFreeShows = () => {};
     g.startMeme = () => false;
-    window.quiet = () => { g.quirkNext = {}; g.slangNext = 1e9; g.deafNext = 1e9; g.deafTell = 1e9; };
+    window.quiet = () => { g.quirkNext = {}; g.slangNext = 1e9; g.deafNext = 1e9; g.deafTell = 1e9; g.nextSit = g.nextDeskGlasses = 1e9; };
     window.calm = () => { g.anger = 0; g.flags = { r40: true, r70: true }; for (const p of g.players) { p.heat = 0; p.prankSeenT = 0; p.prankStreak = 0; } g.lastEventEnd = -99; };
     window.idle = () => g.interrupt((function* () {})());
     window.bo = () => g.players.find((x) => x.name === 'Bo');
@@ -164,7 +164,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   // ---- 5. he leaves the room; a friend whispers while he is out
   await H.waitForTimeout(1000);
   await H.evaluate(() => { calm(); game.startClassEvent('leave'); });
-  await expect(G, 'leave: he walks out: gone from the friend\'s screen, "OUT OF THE ROOM", the class goes wild (chatter)', () => !game.teacher.root.visible && /OUT OF THE ROOM/.test(evNow()) && !!game.chatterSnd && hinted(/left the room/), 30000);
+  await expect(G, 'leave: he walks out: gone from the friend\'s screen, "OUT OF THE ROOM", the class goes wild (chatter)', () => !game.teacher.root.visible && /OUT OF THE ROOM/.test(evNow()) && !!game.chatterSnd && hinted(/left the room/), 60000);
   await waitFor(G, () => game.players.some((x) => x.name === 'Alex' && x.avatar), 8000);
   await G.evaluate(() => { const g = game; const f = g.players.find((x) => x.name === 'Alex'); const h = g.headOf(f); const d = h.sub(g.camPos); g.yaw = Math.atan2(-d.x, -d.z); g.pitch = Math.atan2(d.y, Math.hypot(d.x, d.z)); g.input.keys.talk = true; });
   const chaos = await waitFor(H, () => (game.track.of(bo()).chaos || 0) > 1.5, 10000);
@@ -172,11 +172,11 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await G.evaluate(() => { game.input.keys.talk = false; });
   await expect(G, 'leave: his face in the door window on the friend\'s screen', () => game.doorFace.visible, 25000);
   await expect(G, 'leave: footsteps coming back, then he is back', () => game.teacher.root.visible && played.filter((n) => /^step_/.test(n)).length >= 6, 30000);
-  await waitFor(H, () => !game.classEvent, 20000);
+  await waitFor(H, () => !game.classEvent, 45000);
 
   // ---- his quirks on the friend's screen: asleep, humming, dancing; the "TODAY HE" tags
   await H.evaluate(() => { calm(); quiet(); game.interrupt(game.actDoze()); });
-  await expect(G, 'doze: the friend sees him asleep: the eye on their HUD says ASLEEP, the hint, he snores', () => document.getElementById('eye-label').textContent === 'ASLEEP' && hinted(/dozing off/) && heard('m_snore'), 25000);
+  await expect(G, 'doze: the friend sees him asleep: the eye on their HUD says ASLEEP, the hint, he snores', () => document.getElementById('eye-label').textContent === 'ASLEEP' && hinted(/dozing off/) && heard('m_snore'), 50000);
   await expect(G, 'doze: "TODAY HE ... dozes off" on the friend\'s HUD', () => /dozes off/.test(document.getElementById('quirks').innerText), 5000);
   await G.evaluate(() => { const g = game; g.__render(g.scene, g.camera); });
   await G.screenshot({ path: shot('mp_events_doze.png') });

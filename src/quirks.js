@@ -221,7 +221,7 @@ export const QuirkMixin = {
       this.dozing = true; slept = true;
       T.eyeGlow = 0;
       this.noticeQuirk('doze');
-      this.friendQuip(chance(0.5) ? 'sam' : 'nora', chance(0.5) ? 's_asleep' : 'n_asleep', 2.2);
+      this.friendQuip(...(chance(0.5) ? ['sam', 's_asleep'] : ['nora', 'n_asleep']), 2.2);
       const dur = rand(Q.dur[0], Q.dur[1]);
       let t = 0, snore = 0.4;
       while (t < dur) {
@@ -288,7 +288,8 @@ export const QuirkMixin = {
       const c = this.clock, late = c.fixed === null && c.dur > 0 && (this.t - c.t0) / c.dur > 0.8;
       yield* this.wait(rand(Q.look[0], Q.look[1]) * (late ? 1.5 : 1));
       T.setPose('rest');
-      yield* this.say(chance(0.5) ? 't_qc_tick' : 't_qc_notyet', 0.4);
+      if (this.clockMinutes && this.clockMinutes() > 0) yield* this.clockNoticed(); // somebody moved it forward (src/sneak.js)
+      else yield* this.say(chance(0.5) ? 't_qc_tick' : 't_qc_notyet', 0.4);
       if (!this.clockQuipped) { this.clockQuipped = true; this.friendQuip('sam', 's_clock', 0.3); }
       T.lookAt(null, 3);
     } finally { this.quirkBusy = false; T.setPose('rest'); }
@@ -309,7 +310,8 @@ export const QuirkMixin = {
       // everyone, row by row from the front (and Kevin's empty chair: one too many)
       const heads = [];
       for (const k of this.allKids()) if (!k.gone) heads.push({ row: k.seat.row, x: k.seat.x, head: () => k.headWorld(new V()) });
-      for (const p of this.players) heads.push({ row: p.desk.row, x: p.desk.x, player: p, head: () => this.headOf(p, new V()) });
+      // (off their chair: he points at the chair; he sees it is empty, src/sneak.js)
+      for (const p of this.players) heads.push({ row: p.desk.row, x: p.desk.x, player: p, head: () => (p.slipK > 0 ? p.camPos.clone() : this.headOf(p, new V())) });
       const kevin = this.kevin;
       const empty = !kevin || kevin.gone;
       if (empty && W.kevinSeat) heads.push({ row: 1, x: W.kevinSeat.x, empty: true, head: () => W.kevinSeat.clone() });

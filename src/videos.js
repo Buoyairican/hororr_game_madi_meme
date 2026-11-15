@@ -237,7 +237,7 @@ export const VideoMixin = {
       const gone = !this.players.includes(p) || (sh.npc && sh.npc.gone) || (sh.fromP && (!this.players.includes(sh.fromP) || !sh.fromP.phoneUp)) || this.ending;
       if (gone) { this.endShow(sh, 'cancel'); continue; }
       let look = p.local ? this.localShow(sh, dt) : p.in.lk === sh.id;
-      if (this.cutscene || p.choice || (p.local && this.choice)) look = false;
+      if (this.cutscene || p.choice || (p.local && this.choice) || p.slipK > 0) look = false; // (off your chair: you can't watch it)
       sh.look = look;
       if (look) {
         sh.state = 'play'; sh.t = Math.min(sh.dur, sh.t + dt); sh.missT = 0;

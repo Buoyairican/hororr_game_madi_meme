@@ -121,6 +121,7 @@ export class Teacher {
     this.lean = 0; this.leanTarget = 0;
     this.crouch = 0; this.crouchTarget = 0;     // metres the hips sink
     this.stance = 0; this.stanceTarget = 0;     // extra foot spread
+    this.footFwd = 0; this.footFwdTarget = 0;   // feet out in front of the hips (sitting on his chair)
     this.stretch = 0; this.stretchTarget = 0;
     this.jaw = 0; this.jawTarget = 0;
     this.talk = 0;                              // 0..1 voice loudness, moves the jaw
@@ -207,6 +208,7 @@ export class Teacher {
     this.lean = damp(this.lean, this.leanTarget + clamp(fwd * 0.025, -0.06, 0.1), 5, dt);
     this.crouch = damp(this.crouch, this.crouchTarget, 4, dt);
     this.stance = damp(this.stance, this.stanceTarget, 4, dt);
+    this.footFwd = damp(this.footFwd, this.footFwdTarget, 4, dt);
     B.root.position.y = this.rest.root.y - 0.04 - this.crouch;
     B.spine.rotation.x = this.lean * 0.5;
     B.chest.rotation.x = this.lean * 0.5;
@@ -309,7 +311,7 @@ export class Teacher {
     let swinging = null, best = null, bestD = 0;
     for (const f of this.feet) {
       const w = f.side * (this.hipW + this.stance);
-      f.hx = this.pos.x + c * w; f.hz = this.pos.z - s * w;
+      f.hx = this.pos.x + c * w + s * this.footFwd; f.hz = this.pos.z - s * w + c * this.footFwd;
       if (f.swing >= 0) swinging = f;
     }
     const lead = sp > 0.05 ? stride * 0.5 / sp : 0;
@@ -333,7 +335,8 @@ export class Teacher {
     const trig = sp > 0.05 ? stride * 0.5 : 0.09;
     if (best && bestD > trig && (!swinging || (sp > 1.8 && swinging.swing > 0.55))) { best.swing = 0; best.from.copy(best.pos); }
     // legs
-    const spider = clamp(this.crouch / 0.35, 0, 1);
+    // (sitting, his feet are out in front: the knees point forward instead)
+    const spider = clamp(this.crouch / 0.35, 0, 1) * (1 - clamp(this.footFwd / 0.25, 0, 1));
     _q2.setFromAxisAngle(UP, yaw);
     for (const f of this.feet) {
       _T.set(f.pos.x, ground + this.ankleH + f.lift, f.pos.z);
@@ -452,6 +455,13 @@ export class Teacher {
         else this.local(0.0, this.chestY - 0.05 + Math.max(0, Math.sin(this.time * 6)) * 0.03, 0.38, a.desired);
         this.local(s * 1.0, 0.6, -0.3, a.pole);
         a.k = 9;
+      } else if (P === 'rub') {
+        // both hands at his eyes, rubbing them (his glasses are off)
+        const rub = Math.sin(this.time * 7 + s) * 0.015;
+        this.headPoint(s * 0.045 + rub, 0.0, 0.13, a.desired);
+        a.aim = this.headPoint(s * 0.02, 0.04, 0.3, new THREE.Vector3());
+        this.local(s * 1.0, 0.6, -0.3, a.pole);
+        a.k = 8;
       } else if (P === 'wipe') {
         // right hand holds the glasses at his chest, left hand rubs them
         const rub = key === 'L' ? Math.sin(this.time * 9) * 0.03 : 0;

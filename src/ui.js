@@ -8,7 +8,7 @@ export class UI {
       'subtitle', 'toast', 'blackout', 'flash', 'note', 'note-text', 'title', 'loading', 'load-fill', 'load-text', 'menu', 'how', 'settings',
       'pause', 'end', 'end-title', 'end-text', 'end-stats', 'rotate', 'err', 'crosshair', 'objectives', 'strikes', 'bully', 'echo-cue', 'echo-bar',
       'choices', 'choices-title', 'choices-list', 'choices-bar', 'card', 'card-time', 'card-title', 'card-sub', 'chapters', 'chapter-list', 'btn-again', 'btn-echo', 'mp',
-      'laugh', 'laugh-fill', 'laugh-mult', 'aim-hud', 'aim-kind', 'aim-pow-fill', 'quirks', 'ev-now']) this.el[id] = $(id);
+      'laugh', 'laugh-fill', 'laugh-mult', 'aim-hud', 'aim-kind', 'aim-pow-fill', 'quirks', 'ev-now', 'sneak-hud', 'sneak-label', 'sneak-fill']) this.el[id] = $(id);
     this.subTimer = 0;
     this.hintTimer = 0;
     this.toastTimer = 0;
@@ -71,8 +71,27 @@ export class UI {
   setEye(state) {
     this.set('eye', state, (st) => {
       this.el.eye.setAttribute('class', st === 'closed' ? '' : st);
-      this.el['eye-label'].textContent = { open: 'WATCHING', blind: "CAN'T SEE", busy: 'TYPING', asleep: 'ASLEEP', dance: 'DANCING', away: '', closed: '' }[st] || '';
+      this.el['eye-label'].textContent = { open: 'WATCHING', blind: "CAN'T SEE", busy: 'TYPING', asleep: 'ASLEEP', dance: 'DANCING', half: 'HALF BLIND', away: '', closed: '' }[st] || '';
     });
+  }
+  /** off your chair: how close he is to seeing you (null hides it) */
+  sneak(st) {
+    const on = !!st, el = this.el['sneak-hud'];
+    if (!el) return;
+    this.set('snOn', on, () => el.classList.toggle('show', on));
+    if (!on) return;
+    this.set('snCls', st.cls, (c) => { el.className = 'show ' + c; });
+    this.set('snLabel', st.label, (x) => (this.el['sneak-label'].textContent = x));
+    this.set('snK', Math.round(st.k * 50), (x) => (this.el['sneak-fill'].style.width = x * 2 + '%'));
+  }
+  /** the SEAT / SIT button on a phone ('' hides it) */
+  seatButton(label) {
+    this.seatKey = !!label;
+    this.cache.phonectl = null; // (the key legend lists C now)
+    const b = $('btn-seat');
+    if (!b) return;
+    b.classList.toggle('hidden', !label);
+    if (label) b.textContent = label;
   }
   /** what kind of teacher he is today (his quirks you have noticed): small tags under the tasks */
   setQuirks(list) {
@@ -180,8 +199,16 @@ export class UI {
       const lg = document.getElementById('keys-legend');
       const T = document.getElementById('btn-talk'), A = document.getElementById('btn-ask'), E = document.getElementById('btn-echo');
       if (lg && this.legendHtml == null) this.legendHtml = lg.innerHTML;
+      const tb = document.getElementById('touch-buttons');
+      if (tb) tb.classList.toggle('out', mode === 'out');
+      if (mode === 'out') {
+        // off your chair: the stick crawls, TALK is USE (his desk), SIT sits you back down
+        if (lg) lg.innerHTML = '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> crawl · hold <kbd>E</kbd> use · <kbd>C</kbd> at your desk: sit down';
+        if (T) T.textContent = 'USE'; if (A) A.textContent = 'ASK'; if (E) E.textContent = 'ECHO';
+        return;
+      }
       if (!mode) {
-        if (lg) lg.innerHTML = this.legendHtml;
+        if (lg) lg.innerHTML = this.legendHtml + (this.seatKey ? ' · <kbd>C</kbd> sneak' : '');
         if (T) T.textContent = 'TALK'; if (A) A.textContent = 'ASK'; if (E) E.textContent = 'ECHO';
         return;
       }

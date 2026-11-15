@@ -33,13 +33,13 @@ screenshots looked at. Whatever the review finds gets fixed first.
 | | PC | Phone |
 |---|---|---|
 | Prank | hold **G** to aim, release to throw; **X** or mouse wheel switches | PRANK |
-| Leave your seat | **C**, then **WASD** to crawl, **C** at your desk to sit | SEAT + joystick |
+| Leave your seat | **C**, then **WASD** (or the arrows) to crawl, hold **E** at his desk, **C** at your desk to sit | SEAT / SIT + the stick, hold USE |
 | Hold your breath | hold **B** | BREATH |
 | Blame | the 1-3 choice menu you already know | the choice buttons |
 | Laser pointer, KICK ME note | **X** / wheel picks them after the paper, hold **G** to use | SWAP, hold PRANK |
 
 Taken today: E / Space, Q / F / right click, R, T, 1-3, Esc / P, left click, G, X, mouse wheel (X / wheel / G also
-work the laser pointer and the KICK ME note).
+work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow keys (off your chair).
 
 ## Phases
 
@@ -156,13 +156,38 @@ work the laser pointer and the KICK ME note).
   screen. Sounds: `bl_stick`, `bl_rip`, `bl_click`, `bl_paw`, `bl_ooh`; 35 voice lines. Tests: `tests/blame.js`,
   `tests/mp_blame.js`.
 
-### [ ] Phase 4: Leave your seat (idea 3, the biggest phase)
+### [x] Phase 4: Leave your seat (idea 3, the biggest phase)
 - C: slip out of your seat, crawl with WASD along the aisles (the same aisle graph he walks),
   hide behind desks. His sight uses your real position.
 - At his desk: steal his glasses (he is half blind and searches), read his laptop (story
   secrets), move the clock forward, put a whoopee cushion on his chair.
 - Caught out of your seat = a strike and he walks you back. Online: positions in input,
   avatars crawl.
+- Shipped (`src/sneak.js`, numbers in `SNEAK` and the laptop texts in `SECRETS`, `src/data.js`): Nora gives you the idea in period 4
+  (after Mr. Hale's message: "His laptop knows what he is") and Free Class has it from the start (a hint and a task at 100 s, two
+  more tasks at 150 s). **C / SEAT** slips you off your chair into the aisle on the side you look at; WASD / the stick crawl
+  (0.95 m/s) on the floor in front of and behind the rows, along the walls and in the aisles between the columns (not through
+  desks, his desk or his chair, not into him); **C / SIT** next to your chair sits you back down. On the floor nothing else works
+  (no phone, whisper, paper, questions). Everything he does still looks at your chair (`p.camPos`); only his sight looks at where
+  you really are (`p.view`): a ray from his eyes to your head and your back, against the desks, chair backs, his desk, the kids
+  and the seated players. A bar fills while he can see you (faster close up, slower in the dark, `SNEAK.see`); at the edge of his
+  eye (lookDot 0.55..0.8) it stops at 0.95, half full he says "Hm?" and looks at you (a glance during a scene), full while he looks
+  right at you (lookDot > 0.8) = caught, reason `seat` (Easy and Hard alike). He walks into you: caught too. Looking at your empty
+  chair for 1.3 s: "Where did you go?" (a little anger), he walks to your desk scanning the floor; back in your chair in time:
+  "Hmm." and he watches you (the glares from "Say nothing"), still gone: "I will find you." Caught: he comes to you, takes you by
+  the collar (your view turns to his face), "Back to your seat.", walks you to your desk, then the usual strike ("You do not leave
+  your seat."). **His desk** (hold E / USE; you come up off the floor to reach, easier to see): his **glasses** (a new habit: he
+  puts them on his desk to rub his eyes, blind for 3 s, then writes without them: half blind, he only sees what is within 2.4 m,
+  the eye says HALF BLIND; taken: "My glasses.", he pats the desk and hunts for them up and down the rows, then his spare pair
+  from the drawer; caught with them: "And these are mine."), his **laptop** (the lid opens and glows while you read; one of 8
+  secrets on your screen, in order in period 4), the **clock** (Free Class: stand up under it, +15 minutes, up to 45; the bell
+  rings when it says 12:30; with the clock quirk he notices and puts it right), a **whoopee cushion** on his chair (one per player;
+  a new habit: he sits down for a while and watches the class; on the cushion: the class laughs, he jumps up, "Who did it?"). Kids
+  next to you look down at you; Sam and Nora react. The bell and the last strike put everybody back in their chairs. Online: each
+  player crawls on their own screen and sends where they are; the host follows at crawling speed along the same floor, runs his
+  sight and the desk, and sends everyone's position, the bar and the desk; avatars crawl on hands and knees (held up when he
+  carries them); the laptop secret goes to the player who read it. Sounds: `sn_slip`, `sn_grab`, `sn_clock`, `sn_cushion`,
+  `sn_squeak`, `sn_drawer`; 18 voice lines. Tests: `tests/sneak.js`, `tests/mp_sneak.js`.
 
 ### [ ] Phase 5: Real dread (idea 8)
 - While you stare at your phone he quietly gets closer.

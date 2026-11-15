@@ -17,6 +17,7 @@ export const SFX = [
   'net_join', 'net_try', 'net_fail',
   'madi_ring', 'phone_voice', 'phone_static', 'fly_buzz', 'fly_splat', 'door_knock', 'pizza_box', 'munch', 'fire_alarm', 'madi_hum', 'snort', 'class_chatter',
   'bl_stick', 'bl_rip', 'bl_click', 'bl_paw', 'bl_ooh',
+  'sn_slip', 'sn_grab', 'sn_clock', 'sn_cushion', 'sn_squeak', 'sn_drawer',
 ];
 
 const _v = new THREE.Vector3();
