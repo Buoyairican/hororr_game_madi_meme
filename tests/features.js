@@ -27,6 +27,7 @@ const { chromium, ROOT, GL, OUT } = require('./lib');
   // helpers available inside every check: g, step, until, blind (he sees nobody), aimAt
   const H = `
     const g = game, V = g.camPos.constructor;
+    g.dreadAuto = false; // (no creeping, leaning or changes by themselves: these checks are about other things, src/dread.js)
     const step = (n, each) => { for (let i = 0; i < n && g.state === 'playing'; i++) { if (each) each(); g.playTick(0.05); } };
     const until = (fn, max, each) => { let n = 0; while (!fn() && n < max / 0.05 && g.state === 'playing') { if (each) each(); g.playTick(0.05); n++; } return fn(); };
     const uw = g.updateWatching.bind(g);
