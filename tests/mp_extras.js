@@ -178,7 +178,11 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await waitFor(G, () => document.getElementById('choices').classList.contains('hidden'), 6000);
 
   // ---------------------------------------------------------------- 4. the decoy
-  await H.evaluate(() => { const g = game; atBoard(); g.allowSneak = true; });
+  await H.evaluate(() => { const g = game; atBoard(); g.allowSneak = true;
+    // (what happens to the question, for the message if it fails)
+    window.qlog = []; const oa = g.openAsk.bind(g); g.openAsk = (p) => { qlog.push('openAsk ' + p.name + ' t=' + g.t.toFixed(1)); return oa(p); };
+    const pc = g.pickChoice.bind(g); g.pickChoice = (i, p = g.me) => { qlog.push('pick ' + i + ' ' + (p && p.name) + ' has=' + !!(p && (p.local ? g.choice : p.choice)) + ' t=' + g.t.toFixed(1)); return pc(i, p); };
+    const aq = g.askQuestion.bind(g); g.askQuestion = (q, p) => { qlog.push('ask ' + q.id + ' ' + p.name); return aq(q, p); }; });
   await stepUntil(() => game.canAsk(game.players.find((p) => p.name === 'Bo')), 200);
   // the friend asks him something...
   await G.keyboard.press('t');
@@ -187,7 +191,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await G.keyboard.press('1');
   const qb = await stepUntil(() => game.players.find((p) => p.name === 'Bo').qBusy, 200);
   let qwhy = '';
-  if (!qb) qwhy = ' ' + JSON.stringify(await H.evaluate(() => { const g = game, bo = g.players.find((p) => p.name === 'Bo'); return { qs: g.track.log.filter((e) => e.type === 'question').length, choice: !!bo.choice, qCount: bo.qCount }; }))
+  if (!qb) qwhy = ' ' + JSON.stringify(await H.evaluate(() => { const g = game, bo = g.players.find((p) => p.name === 'Bo'); return { qlog, qs: g.track.log.filter((e) => e.type === 'question').length, choice: !!bo.choice, qCount: bo.qCount, cut: g.cutscene, t: g.t }; }))
     + JSON.stringify(await G.evaluate(() => ({ ch: document.getElementById('choices-title').innerText, open: !document.getElementById('choices').classList.contains('hidden') })));
   pass(qb, 'the friend asks him a question (it keeps him busy)' + qwhy);
   // ...while the host slips off their chair (the friend is told to keep him busy) and moves his clock
