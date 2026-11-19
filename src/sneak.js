@@ -87,7 +87,7 @@ export const SneakMixin = {
     this.sitting = false; this.sneakBusy = false; this.sneakScan = null;
     this.nextSit = 1e9; this.nextDeskGlasses = 1e9;
     this.secretBag = new Bag(LAPTOP_SECRETS.map((_, i) => i)); this.secretNext = 0;
-    this.laptopShutAt = 0; this.sneakAimOn = false; this.sneakQuipped = false; this.sneakSeatOn = '';
+    this.laptopShutAt = 0; this.sneakAimOn = false; this.sneakQuipped = false; this.sneakSeatOn = null;
     if (this.cushionMesh) this.cushionMesh.visible = false;
   },
   resetSneakPlayer(p) {
