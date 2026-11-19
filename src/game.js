@@ -1912,6 +1912,7 @@ export class Game {
 
   /** start a busted scene right now (nothing else can jump in before it begins) */
   bust(reason, p = this.focus) {
+    if (this.ui.noteOpen) { this.ui.closeNote(); this.noteLatch = true; }
     this.focus = p;
     this.closeArm = null;
     this.cutscene = true;
@@ -1990,6 +1991,7 @@ export class Game {
   }
 
   *jumpscare(kind) {
+    if (this.ui.noteOpen) { this.ui.closeNote(); this.noteLatch = true; }
     this.jumping = true; // (nothing replaces this scene: interrupt() checks it)
     try {
       const T = this.teacher, W = this.world, A = this.audio;
