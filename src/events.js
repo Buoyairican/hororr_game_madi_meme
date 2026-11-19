@@ -235,33 +235,10 @@ export const EventMixin = {
     this.showHint(html, dur);
     return true;
   },
-  /** a hint for everybody. The one on screen now gets a few seconds to be read first (a new hint would hide it). */
-  showHint(html, dur = 6) {
-    if (this.ui.hintTimer > 1.2 && this.hintAge < HINT_READ || this.hintQueue.length) { this.hintQueue.push([html, dur, 0]); return; }
-    this.putHint(html, dur, 0);
-  },
-  putHint(html, dur, again) {
-    this.ui.hint(html, dur);
-    this.hintAge = 0; this.hintSeqSeen = this.ui.hintSeq;
-    this.hintMine = [html, dur, again];
-  },
-  /** every frame: how long the hint on screen has been up; the next one in the queue when it has been read */
-  pumpHints(dt) {
-    const ht = this.ui.hintTimer, seq = this.ui.hintSeq || 0;
-    // another hint went up over ours (a control tip, a story task), or a picker cleared it
-    const over = seq !== this.hintSeqSeen, cleared = !over && this.hintMine && ht <= 0 && this.hintAge < this.hintMine[1] - 0.5;
-    if (over || cleared) {
-      const m = this.hintMine;
-      this.hintMine = null; this.hintSeqSeen = seq;
-      // one of ours had no time to be read: it comes back once, after the new one
-      if (m && !m[2] && this.hintAge < HINT_READ - 0.7) this.hintQueue.unshift([m[0], m[1], 1]);
-      this.hintAge = 0;
-    } else this.hintAge += dt;
-    if (!this.hintQueue.length || this.choice || this.cutscene) return;
-    if (ht > 0.2 && this.hintAge < HINT_READ) return;
-    const [h, d, again] = this.hintQueue.shift();
-    this.putHint(h, d, again);
-  },
+  /** a hint for everybody (it waits its turn: src/ui.js) */
+  showHint(html, dur = 6) { this.ui.hint(html, dur, true); },
+  /** (the reading time and the queue live in src/ui.js now: every hint gets them, not only these) */
+  pumpHints() {},
   /** Sam or Nora says something about it (only while he can't catch them at it) */
   friendQuip(kind, id, delay = 0) {
     this.timers.after(delay, () => {
@@ -729,10 +706,10 @@ export const EventMixin = {
       A.fadeBus('amb', 0.35, 0.4);
       for (const b of this.world.lights.banks) if (!b.dead) b.flicker = 0.5;
       let t = 0;
-      while (t < dur && this.state === 'playing') { t += this.dt; yield; }
+      while (t < dur && this.state === 'playing' && !this.ending) { t += this.dt; yield; }
     } finally {
       this.alarmOn = false; this.alarm = 0;
-      A.fadeBus('amb', 1, 1.5);
+      if (!this.ending) A.fadeBus('amb', 1, 1.5);
     }
   },
 
@@ -929,7 +906,7 @@ export const EventMixin = {
   /** a looping sound on this screen while `on`: started, moved along, faded out */
   loopWhile(key, on, name, pos, o, fadeOut = 0.1) {
     let h = this[key];
-    if (on && pos && this.state === 'playing') {
+    if (on && pos && this.state === 'playing' && !this.ending) {
       if (!h || h.ended) {
         h = this[key] = this.audio.play(name, { ...o, loop: true, pos: pos.clone(), local: true, vol: o.fadeIn ? 0.02 : o.vol });
         if (h && o.fadeIn) h.setVol(o.vol, o.fadeIn / 3);
@@ -960,6 +937,7 @@ export const EventMixin = {
     // the sounds that go with a state: every screen plays its own (a friend who joins in the middle hears them too)
     const here = this.present && T.root.visible;
     this.loopWhile('flySnd', fp && fmode === 0, 'fly_buzz', fp, { ref: 0.55, vol: 0.9, reverb: 0.05, offset: rand(0, 1) }, 0.08); // silent while it sits
+    this.loopWhile('snoreSnd', this.dozing && here, 'm_snore', here ? T.headWorld(_c) : null, { ref: 2, vol: 0.85, reverb: 0.25, rate: 0.62 }, 0.3);
     this.loopWhile('humSnd', this.humming && here, 'madi_hum', here ? T.headWorld(_c) : null, { ref: 1.8, vol: 0.85, reverb: 0.3, offset: rand(0, 4) }, 0.25);
     this.loopWhile('ringSnd', this.madiRinging && here, 'madi_ring', here ? T.local(-0.2, 0.95, 0.06, _c) : null, { ref: 2.4, vol: 1.05, reverb: 0.15 }, 0.05);
     this.loopWhile('danceSnd', this.dancing && here, 'v_phonk', here ? T.handPos('R', _c) : null, { ref: 2.2, vol: 0.95, reverb: 0.25 }, 0.04);

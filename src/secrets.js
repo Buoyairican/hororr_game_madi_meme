@@ -180,7 +180,7 @@ export const SecretMixin = {
     T.rollTarget = 0.35;
     yield* this.say('t_isthere', 0.4);
     yield* this.wait(1.5); // nobody says a word
-    A.play('giggle', { pos: V3(0, 1.1, 1.5), vol: 0.7, ref: 3, reverb: 0.2 });
+    this.classGiggle(V3(0, 1.1, 1.5), 0.7);
     yield* this.wait(1.2);
     T.rollTarget = 0;
     yield* this.say('t_notteacher', 0.6);

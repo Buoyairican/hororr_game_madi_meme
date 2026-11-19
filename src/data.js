@@ -841,3 +841,13 @@ export function clockLabel(mins) {
   const h = ((h24 + 11) % 12) + 1;
   return { text: `${h}:${String(m).padStart(2, '0')} ${h24 >= 12 ? 'PM' : 'AM'}`, h: h24, m, s: Math.floor((total * 60) % 60) };
 }
+
+// ---- his stomach pat: a funny habit while he thinks at the board (src/game.js bellyPat, src/teacher.js pose 'belly'). It changes nothing else.
+export const BELLY = {
+  afterWrite: 0.25,       // chance that he does it right after writing a line
+  turn: 0.72,             // how far he turns from the board so the class sees his hand (x PI; 1 = his back to the class)
+  pats: [4, 8],           // pats in one burst
+  every: [0.2, 0.26],     // seconds between two pats: soft, but quick
+  pause: [0.45, 0.9],     // seconds between two bursts
+  vol: [0.2, 0.3], rate: [1.15, 1.4], // the sound (bl_paw, quiet and a little higher)
+};

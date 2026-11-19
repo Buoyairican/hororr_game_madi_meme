@@ -25,7 +25,7 @@ import { ScaresMixin } from './scares.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
-  FREE_LENGTH, SCARES, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
+  BELLY, FREE_LENGTH, SCARES, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
   QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, PRANK, QUIRKS, EVENTS, SLANG, NOTE, SNEAK, mock, clockLabel,
 } from './data.js';
 
@@ -143,7 +143,7 @@ export class Game {
     Object.assign(p, { talk: null, whisperSnd: null, noise: 0, heat: 0, watching: false, near: false, dist: 9, phoneUp: false,
       echoStreak: 0, lastEcho: -99, qCount: 0, qLast: -99, qBusy: false, choice: null, handT: 0, talkLatch: false,
       // pranks: the paper you are aiming, folding the next one, how long he has seen your arm up, hits on him in a row
-      aim: null, aiming: false, foldT: 0, exposeT: 0, prankSeenT: 0, prankStreak: 0, lastPrankHit: -99, lastThrow: -99, crumpleT: 0, bonkT: 0, prankLatch: false,
+      showCool: 0, aim: null, aiming: false, foldT: 0, exposeT: 0, prankSeenT: 0, prankStreak: 0, lastPrankHit: -99, lastThrow: -99, crumpleT: 0, bonkT: 0, prankLatch: false,
       // the laser pointer, the KICK ME notes, "Who did it?" (src/blame.js)
       tool: null, laserOn: false, laserHit: null, laserT: 0, eyesT: 0, lastEyes: -99, notesLeft: NOTE.perClass, watchedT: 0, lastGlare: -99, confessions: 0, lies: 0 });
     p.prankKind = p.prankKind || 'ball';
@@ -217,7 +217,8 @@ export class Game {
     this.yaw = 0; this.pitch = 0.0;
     this.clock = { from: 0, to: 240, t0: 0, dur: FREE_LENGTH, fixed: null };
     this.clockMin = 0; this.lastTick = -1;
-    this.teacherVoice = null; this.chalkSnd = null;
+    this.teacherVoice = null; this.chalkSnd = null; this.voiceUntil = 0;
+    this.jumping = false; this.inBrain = false; this.pendingBrain = null; this.glaring = false; this.noteWasOpen = false;
     for (const p of this.players) this.resetPlayer(p);
     this.focus = this.me;
     this.hard = this.difficulty === 'hard';
@@ -234,18 +235,18 @@ export class Game {
     this.doorFace.visible = false;
     if (T.glassesHeld || T.glasses.parent !== T.head) T.wearGlasses(true);
     T.root.visible = true;
-    T.root.position.y = 0;
+    T.root.position.y = 0; T.root.rotation.x = T.root.rotation.z = 0;
     T.place(-1.9, -6.38, Math.PI);
     T.lookAt(null); T.setPose('rest');
     T.leanTarget = T.stretchTarget = T.rollTarget = T.jawTarget = T.crouchTarget = T.stanceTarget = 0;
     T.jitter = 0; T.talk = 0;
-    T.eyeGlow = 0.12; T.faceGlow = 0.08; T.lensGlow = 0; T.clap = null;
+    T.eyeGlow = 0.12; T.faceGlow = 0.08; T.lensGlow = 0; T.clap = null; T.pat = null;
     for (const f of this.friends) {
       f.setGone(false); f.setHollow(false); f.lookTarget = null; f.forcePitch = null; f.tremble = 0; f.leanRollTarget = 0;
       f.leanFwdTarget = 0; f.leanFwd = 0;
-      f.call = null; f.bag = new Bag(FRIEND_LINES[f.kind]); f.earlyBag = new Bag(FRIEND_EARLY[f.kind]); f.linesDone = 0; f.speaking = null; f.speakNoise = 0; f.talking = 0;
+      f.call = null; f.bag = new Bag(FRIEND_LINES[f.kind]); f.earlyBag = new Bag(FRIEND_EARLY[f.kind]); f.linesDone = 0; f.speaking = null; f.speakUntil = 0; f.speakNoise = 0; f.talking = 0;
     }
-    for (const s of this.students) { s.leanFwdTarget = 0; s.leanFwd = 0; s.lookTarget = null; s.speed = 4; s.taken = false; s.setHollow(false); s.setGone(false); s.forcePitch = null; s.tremble = 0; s.talking = 0; }
+    for (const s of this.students) { s.leanFwdTarget = 0; s.leanFwd = 0; s.lookTarget = null; s.speed = 4; s.taken = false; s.setHollow(false); s.setGone(false); s.forcePitch = null; s.tremble = 0; s.talking = 0; s.speaking = null; s.speakUntil = 0; }
     if (this.kevin) { this.kevin.setGone(true); this.kevin.setHollow(true); this.kevin.lookTarget = null; }
     this.resetVideos();
     this.resetPranks();
@@ -324,11 +325,15 @@ export class Game {
     }
     this.updateLook(dt);
     this.timers.update(dt);
-    if (this.script && this.script.next().done) this.script = null;
+    if (this.script && !this.jumping && this.script.next().done) this.script = null;
     if (this.state !== 'playing') return; // the script may have ended the game
     // the teacher's brain runs as a coroutine; reactions and story beats replace it
     if (!this.brain) { this.brain = this.idleBrain(); this.brainIdle = true; }
-    if (this.brain.next().done) { this.brain = null; this.brainIdle = false; }
+    this.inBrain = true;
+    let step;
+    try { step = this.brain.next(); } finally { this.inBrain = false; }
+    if (this.pendingBrain) { const g = this.pendingBrain; this.pendingBrain = null; if (this.state === 'playing') this.interrupt(g); }
+    else if (step.done) { this.brain = null; this.brainIdle = false; }
     if (this.state !== 'playing') return;
     this.fx = this.fx.filter((g) => !g.next().done);
     T.talk = this.t < (this.voiceUntil || 0) ? 0.5 + 0.5 * Math.abs(Math.sin(this.t * 11) * Math.sin(this.t * 4.3 + 1)) : 0;
@@ -508,7 +513,9 @@ export class Game {
     let blocked = false;
     // a note is open: pressing a key folds it away (needed with pointer lock)
     // (not the E you are still holding from reading his laptop: noteHold, src/sneak.js)
-    if (this.noteHold && !inp.talk) this.noteHold = false;
+    if (ui.noteOpen && !this.noteWasOpen && (inp.talk || inp.phone)) this.noteHold = true; // (it opened while E / Q was down)
+    this.noteWasOpen = ui.noteOpen;
+    if (this.noteHold && !inp.talk && !inp.phone) this.noteHold = false;
     if (ui.noteOpen && !this.noteHold && (inp.talk || inp.phone || pressed.echo || pressed.ask)) { ui.closeNote(); this.noteLatch = true; blocked = true; }
     if (this.noteLatch && !inp.talk && !inp.phone) this.noteLatch = false;
     blocked = blocked || ui.noteOpen || this.noteLatch || !!this.choice;
@@ -527,8 +534,8 @@ export class Game {
     const aiming = me.aiming = !!me.aim;
     me.tool = aiming ? me.aim.kind : null;
     if (away || aiming || (!blocked && inp.phone)) { /* with the phone up, R and T are phone buttons */ }
-    else if (!blocked && pressed.echo && !this.canEcho(me) && this.allowEcho && !this.lockBully) ui.hint('Repeat him right after he says something.', 2.5);
-    if (!away && !aiming && !blocked && !inp.phone && pressed.ask && !this.canAsk(me) && this.allowAsk && me.qBusy) ui.hint('Wait for him to answer first.', 2.5);
+    else if (!blocked && pressed.echo && !this.canEcho(me) && this.allowEcho && !this.lockBully) this.uiTo(me, 'status', 'Repeat him right after he says something.', 2.5);
+    if (!away && !aiming && !blocked && !inp.phone && pressed.ask && !this.canAsk(me) && this.allowAsk && me.qBusy) this.uiTo(me, 'status', 'Wait for him to answer first.', 2.5);
     this.playerActs(me, blocked || aiming || away ? { talk: false, phone: false, echo: false, ask: false, tap: false } : { talk: inp.talk && !me.talkLatch, phone: inp.phone, echo: pressed.echo, ask: pressed.ask, tap: pressed.tap }, dt);
     this.remoteActs(dt);
     this.noise = me.noise;
@@ -550,6 +557,7 @@ export class Game {
     for (const p of this.players) {
       if (p.local) continue;
       // with their phone up, R means "show this video" and T switches apps on their own screen
+      if (p.heard && performance.now() - p.heard > 1500) { p.in.talk = p.in.phone = p.in.aim = false; p.in.mc = 0; } // (nothing heard from them: they are not holding anything)
       const a = { talk: p.in.talk, phone: p.in.phone, echo: p.in.phone ? !!p.in.show : p.in.echo, ask: p.in.phone ? false : p.in.ask, tap: false };
       p.in.echo = p.in.ask = p.in.show = false;
       if (!p.ghost) this.remoteSneak(p, dt); // off their chair: where they crawl
@@ -570,7 +578,7 @@ export class Game {
     else {
       if (a.echo && this.canEcho(p)) this.doEcho(p);
       if (a.ask && this.canAsk(p)) this.openAsk(p);
-      else if (a.ask && this.classEvent && this.allowAsk && this.present) this.uiTo(p, 'hint', 'He is busy right now. <b>Ask him later.</b>', 2.2);
+      else if (a.ask && this.classEvent && this.allowAsk && this.present) this.uiTo(p, 'status', 'He is busy right now. <b>Ask him later.</b>', 2.2);
     }
     const aim = this.aimFriend(p);
     const wantTalk = a.talk && !wantPhone;
@@ -736,7 +744,7 @@ export class Game {
     const f = this.friends.find((x) => x.kind === who && !x.gone) || this.friends.find((x) => !x.gone);
     if (!f) return false;
     this.audio.play('paper', { pos: f.headWorld(new THREE.Vector3()), vol: 0.8 });
-    this.ui.showNote(`<small>from ${f.name}:</small><br>${text}`);
+    this.uiTo(this.me, 'showNote', `<small>from ${f.name}:</small><br>${text}`);
     this.mischief += 15;
     this.note(this.me, 'notes');
     return true;
@@ -765,7 +773,7 @@ export class Game {
     this.mischief += 35;
     this.completeObjective('echo');
     this.timers.after(0.9, () => {
-      this.audio.play('giggle', { pos: new THREE.Vector3(0, 1.1, 0.5), vol: 0.9, ref: 3, reverb: 0.2 });
+      this.classGiggle(new THREE.Vector3(0, 1.1, 0.5), 0.9);
       if (this.quirkOn('laugh') && this.state === 'playing') this.laughQuirk(QUIRKS.laugh.giggle, null, true); // he hates that
       for (const k of this.allKids()) {
         if (k.gone || k.hollow || !chance(0.6)) continue;
@@ -936,7 +944,7 @@ export class Game {
   }
 
   giggle() {
-    this.timers.after(0.3, () => this.audio.play('giggle', { pos: new THREE.Vector3(0, 1.1, 0.8), vol: 0.75, ref: 3, reverb: 0.2 }));
+    this.timers.after(0.3, () => this.classGiggle(new THREE.Vector3(0, 1.1, 0.8), 0.75));
     if (this.quirkOn('laugh')) this.timers.after(0.4, () => this.state === 'playing' && this.laughQuirk(QUIRKS.laugh.giggle, null, true)); // he hates that
     const f = this.friends.filter((x) => !x.gone);
     if (f.length && chance(0.5)) { const ff = pick(f); this.timers.after(0.8, () => this.sayAt(ff, ff.kind === 'sam' ? 's_laugh' : 'n_laugh', 0.15, 0.8)); }
@@ -1242,6 +1250,8 @@ export class Game {
 
   // ------------------------------------------------------------- coroutine helpers
   interrupt(gen) {
+    if (this.jumping) return; // the last jump scare always plays to the end
+    if (this.inBrain) { this.pendingBrain = gen; return; } // (asked from inside his brain: swap when this step is over, so its finally blocks run)
     if (this.brain) { try { this.brain.return(); } catch (e) { console.warn(e); } }
     this.cleanupTeacher();
     this.brain = gen;
@@ -1268,7 +1278,7 @@ export class Game {
     if (B.job && B.job.type === 'write') B.stopJob();
     if (B.job && B.job.type === 'erase') { B.stopJob(); this.boardRow = 4; }
     if (this.chalkSnd) { this.chalkSnd.stop(0.08); this.chalkSnd = null; }
-    T.clap = null;
+    T.clap = null; T.pat = null;
     T.owl = false;
     T.setPose('rest');
     T.moveTarget = null;
@@ -1339,6 +1349,9 @@ export class Game {
     return h;
   }
   *say(id, after = 0.4) {
+    // (a line of his that is still in the air finishes first: no half sentences)
+    let w = 0;
+    while (this.t < (this.voiceUntil || 0) && w < 2.5) { w += this.dt; yield; }
     const h = this.teacherSay(id);
     yield* this.wait((h ? h.duration : 1.6) + after);
   }
@@ -1423,7 +1436,8 @@ export class Game {
       T.lookAt(null, 3);
       yield* this.wait(0.5);
     }
-    if (!forced && chance(0.3)) yield* this.actClap(4 + ((Math.random() * 3) | 0));
+    if (!forced && chance(BELLY.afterWrite)) { T.lookAt(this.writePose.point.clone(), 2.5); yield* this.bellyPat(rand(2.5, 4)); T.lookAt(null, 3); }
+    else if (!forced && chance(0.3)) yield* this.actClap(4 + ((Math.random() * 3) | 0));
   }
 
   *actErase() {
@@ -1505,8 +1519,32 @@ export class Game {
     T.lookAt(v1.clone(), 2.5);
     T.rollTarget = pick([-1, 1]) * rand(0.2, 0.45);
     if (chance(0.5)) { yield* this.wait(1); this.teacherSay('t_hmm', 1.1); }
-    yield* this.wait(rand(3.5, 6));
+    yield* this.bellyPat(rand(3.5, 6));
     T.rollTarget = 0;
+  }
+
+  /** a habit of his: he stares at the board and pats his stomach, a few quick soft pats at a time (it means nothing: he is thinking) */
+  *bellyPat(sec) {
+    const T = this.teacher, B = BELLY;
+    const face0 = T.facingTarget;
+    try {
+      // (a quarter turn, so the class sees the hand; his eyes stay where they were)
+      T.faceTo(Math.PI * B.turn, 2.5); // (always this way round: it is his right hand)
+      let t = 0;
+      while (t < sec) {
+        T.startPat(B.pats[0] + ((Math.random() * (B.pats[1] - B.pats[0] + 1)) | 0), rand(B.every[0], B.every[1]), (pos) => {
+          this.audio.play('bl_paw', { pos, vol: rand(B.vol[0], B.vol[1]), rate: rand(B.rate[0], B.rate[1]), ref: 1.6, reverb: 0.1 });
+        });
+        while (T.pat && T.pose === 'belly') { t += this.dt; yield; }
+        const gap = rand(B.pause[0], B.pause[1]);
+        for (let w = 0; w < gap && T.pose === 'belly'; w += this.dt) { t += this.dt; yield; }
+        if (T.pose !== 'belly') break;
+      }
+    } finally {
+      T.pat = null;
+      if (T.pose === 'belly') T.setPose('rest');
+      if (face0 !== undefined) T.faceTo(face0, 2.5);
+    }
   }
 
   *actStroll() {
@@ -1665,7 +1703,7 @@ export class Game {
       T.clap = null; T.setPose('rest');
       yield* this.wait(Math.min(dur, 1.1) + 0.3);
       if (m.react !== 'snore') {
-        this.timers.after(0.15, () => A.play('giggle', { pos: new THREE.Vector3(kid.seat.x * 0.5, 1.1, kid.seat.z), vol: 0.75, ref: 3, reverb: 0.2 }));
+        this.timers.after(0.15, () => this.classGiggle(new THREE.Vector3(kid.seat.x * 0.5, 1.1, kid.seat.z), 0.75));
         for (const s of this.students) if (s !== kid && !s.gone && !s.hollow && chance(0.4)) s.talking = 1.2;
       }
       // his head turns first. Then the rest of him.
@@ -1799,12 +1837,20 @@ export class Game {
 
   /** a warning without stopping what he is doing: his head turns to you, one word, and back */
   *glareWarn(at = null, line = null) {
-    const T = this.teacher, before = T.lookTarget, look = at || this.focus.camPos;
-    if (!this.present || this.dozing) return;
-    T.lookAt(look, 7);
-    this.teacherSay(line || pick(WARN));
-    yield* this.wait(1.9);
-    if (T.lookTarget === look) T.lookAt(before, 4);
+    const T = this.teacher;
+    if (!this.present || this.dozing || this.glaring) return;
+    this.glaring = true;
+    try {
+      // (he finishes his sentence first)
+      let quiet = 0, t = 0;
+      while (quiet < 0.25 && t < 4) { t += this.dt; quiet = this.t >= (this.voiceUntil || 0) ? quiet + this.dt : 0; yield; }
+      if (quiet < 0.25 || !this.present || this.dozing || this.cutscene) return;
+      const before = T.lookTarget, look = at || this.focus.camPos;
+      T.lookAt(look, 7);
+      this.teacherSay(line || pick(WARN));
+      yield* this.wait(1.9);
+      if (T.lookTarget === look) T.lookAt(before, 4);
+    } finally { this.glaring = false; }
   }
 
   *reactPhone() {
@@ -1928,7 +1974,7 @@ export class Game {
     } finally {
       if (br) br.stop(0.4);
       if (p.out || p.slipK > 0) this.seatNow(p);
-      A.fadeBus('amb', 1, 1);
+      if (this.state === 'playing' && !this.ending) A.fadeBus('amb', 1, 1);
       T.leanTarget = 0; T.crouchTarget = 0; T.stanceTarget = 0; T.setPose('rest');
       T.faceGlow = 0.08; T.eyeGlow = 0.12;
       this.scareFriends(false);
@@ -1942,53 +1988,58 @@ export class Game {
   }
 
   *jumpscare(kind) {
-    const T = this.teacher, W = this.world, A = this.audio;
-    this.cutscene = true;
-    this.ending = true;
-    this.input.enable(false);
-    if (this.choice) this.pickChoice(-1);
-    if (this.teacherVoice) { this.teacherVoice.stop(0.05); this.voiceUntil = 0; }
-    for (const p of this.players) if (p.whisperSnd) { p.whisperSnd.stop(0.05); p.whisperSnd = null; }
-    A.fadeBus('amb', 0, 0.05);
-    A.play('lights_off', { vol: 1.1 });
-    W.setMaster(0); this.blackoutTarget = 1; this.blackout = 1;
-    this.scareFear = 0.8;
-    yield* this.wait(rand(1.6, 2.4));
-    // he is right in front of whatever you are looking at
-    const dir = new THREE.Vector3(this.camFwd.x, 0, this.camFwd.z).normalize();
-    const start = 1.3, end = 0.5;
-    const yawTo = Math.atan2(-dir.x, -dir.z);
-    T.root.visible = true;
-    T.root.position.y = 0;
-    T.place(this.camPos.x + dir.x * start, this.camPos.z + dir.z * start, yawTo);
-    T.setPose('grab');
-    T.lookAt(this.camPos, 80);
-    T.update(0.016, {});
-    const hy = T.headWorld(new THREE.Vector3()).y;
-    T.root.position.y = this.camPos.y - hy + 0.04;
-    T.jawTarget = 0.8; T.jitter = 0.55; T.eyeGlow = 3; T.faceGlow = 0.85;
-    W.setMaster(0.15);
-    this.redFlash = 1; this.underLight = 1;
-    this.blackoutTarget = 0; this.blackout = 0;
-    if (this.mp) this.mp.jumpscare(kind); // every friend gets one in their own face
-    A.play('scream', { vol: 1.5, reverb: 0.15 });
-    A.play('sub_hit', { vol: 1.3, reverb: 0 });
-    A.play('glitch', { vol: 0.9, reverb: 0 });
-    this.shake = 0.9; this.glitch = 0.85; this.scareFear = 1;
-    let t = 0;
-    while (t < 0.16) {
-      t += this.dt;
-      const d = lerp(start, end, Math.min(1, t / 0.16));
-      T.pos.x = this.camPos.x + dir.x * d; T.pos.z = this.camPos.z + dir.z * d;
-      yield;
+    this.jumping = true; // (nothing replaces this scene: interrupt() checks it)
+    try {
+      const T = this.teacher, W = this.world, A = this.audio;
+      this.cutscene = true;
+      this.ending = true;
+      this.input.enable(false);
+      if (this.choice) this.pickChoice(-1);
+      if (this.teacherVoice) { this.teacherVoice.stop(0.05); this.voiceUntil = 0; }
+      for (const p of this.players) if (p.whisperSnd) { p.whisperSnd.stop(0.05); p.whisperSnd = null; }
+      A.fadeBus('amb', 0, 0.05);
+      A.play('lights_off', { vol: 1.1 });
+      W.setMaster(0); this.blackoutTarget = 1; this.blackout = 1;
+      this.scareFear = 0.8;
+      yield* this.wait(rand(1.6, 2.4));
+      // he is right in front of whatever you are looking at
+      const dir = new THREE.Vector3(this.camFwd.x, 0, this.camFwd.z).normalize();
+      const start = 1.3, end = 0.5;
+      const yawTo = Math.atan2(-dir.x, -dir.z);
+      T.root.visible = true;
+      T.root.position.y = 0;
+      T.place(this.camPos.x + dir.x * start, this.camPos.z + dir.z * start, yawTo);
+      T.setPose('grab');
+      T.lookAt(this.camPos, 80);
+      T.update(0.016, {});
+      const hy = T.headWorld(new THREE.Vector3()).y;
+      T.root.position.y = this.camPos.y - hy + 0.04;
+      T.jawTarget = 0.8; T.jitter = 0.55; T.eyeGlow = 3; T.faceGlow = 0.85;
+      W.setMaster(0.15);
+      this.redFlash = 1; this.underLight = 1;
+      this.blackoutTarget = 0; this.blackout = 0;
+      if (this.mp) this.mp.jumpscare(kind); // every friend gets one in their own face
+      A.play('scream', { vol: 1.5, reverb: 0.15 });
+      A.play('sub_hit', { vol: 1.3, reverb: 0 });
+      A.play('glitch', { vol: 0.9, reverb: 0 });
+      this.shake = 0.9; this.glitch = 0.85; this.scareFear = 1;
+      let t = 0;
+      while (t < 0.16) {
+        t += this.dt;
+        const d = lerp(start, end, Math.min(1, t / 0.16));
+        T.pos.x = this.camPos.x + dir.x * d; T.pos.z = this.camPos.z + dir.z * d;
+        yield;
+      }
+      yield* this.wait(1.15);
+      this.blackout = this.blackoutTarget = 1;
+      this.underLight = 0;
+      A.stopAll();
+      T.jitter = 0; T.jawTarget = 0;
+      yield* this.wait(1.0);
+    } finally {
+      this.jumping = false;
+      if (this.state === 'playing') this.finish(kind); // always the end screen, also if the scene is cut short
     }
-    yield* this.wait(1.15);
-    this.blackout = this.blackoutTarget = 1;
-    this.underLight = 0;
-    A.stopAll();
-    T.jitter = 0; T.jawTarget = 0;
-    yield* this.wait(1.0);
-    this.finish(kind);
   }
 
   // ------------------------------------------------------------- scares
@@ -2017,7 +2068,7 @@ export class Game {
     const owe = this.scareOwed();
     if (owe) this.nextScare = Math.min(this.nextScare, 0.5);
     if (this.nextScare > 0 || this.eventLock || this.choice || !this.present) return;
-    const busy = this.anger >= 30 || this.memeBusy; // he is busy with somebody: the room can still act up (the storm, the lights, the door), he can't
+    const busy = this.anger >= 30 || this.memeBusy || this.quirkBusy || this.sitting || this.blind || this.typing; // he is busy with somebody: the room can still act up (the storm, the lights, the door), he can't
     if (this.me.slipK > 0 || this.sneakBusy) { this.nextScare = 3; return; } // (his scares are for you in your chair)
     let list = this.scareList().filter((s) => s.fx || (this.brainIdle && !busy));
     // Free Class: at least one of his big scares before the bell (it waits for a moment he is free)
@@ -3367,7 +3418,7 @@ export class Game {
     const h = this.hintControls();
     h(8, touch ? 'Look at Sam (left) or Nora (right) and hold <b>TALK</b> to whisper. Hold <b>PHONE</b> to play.' : 'Look at Sam or Nora and hold <b>E</b> to whisper. Hold <b>Q</b> to play on your phone.', 7);
     h(18, touch ? 'Tap <b>ECHO</b> right after he speaks to repeat him. Tap <b>ASK</b> to ask a dumb question.' : 'Press <b>R</b> right after he speaks to repeat him. Press <b>T</b> to ask a dumb question.', 7);
-    h(30, 'Three strikes and you are done.', 5);
+    h(30, this.hard ? 'One strike and you are done.' : this.mp ? `${this.maxStrikes} strikes for the whole class.` : 'Three strikes and you are done.', 5);
     h(44, touch ? 'Your phone has a game and memes: hold <b>PHONE</b>, tap <b>APP</b> to switch. Crash in the game and it gets <b>LOUD</b>.' : 'Your phone has a game and memes: hold <b>Q</b>, press <b>T</b> to switch apps. Crash in the game and it gets <b>LOUD</b>.', 8);
     h(58, touch ? 'Hold <b>PRANK</b> to aim a paper ball, let go to throw. Hit his back while he isn\'t looking!' : 'Hold <b>G</b> to aim a paper ball (<b>X</b>: a paper plane), let go to throw. Hit his back while he isn\'t looking!', 8);
     this.timers.after(76, () => {
@@ -3391,7 +3442,8 @@ export class Game {
       { id: 'prank', text: 'Hit him with a paper ball' }, { id: 'bell', text: 'Survive until 12:30' }]);
     yield* this.cmd(() => this.freeIntro(), 1);
     this.idleKind = 'lesson'; this.memesOn = true;
-    this.callsOn = true; this.buzzOn = true; this.scaresOn = true;
+    this.callsOn = this.buzzOn = !this.mp; // (online they could only be answered by the host, and the whole class paid for it)
+    this.scaresOn = true;
     this.eventsOn = true; // today's events start at their times (src/events.js)
     // (the bell rings when the clock says 12:30: sooner if somebody moved it forward)
     yield* this.until(() => (this.t >= FREE_LENGTH || this.clockMin >= 240) && !this.cutscene);

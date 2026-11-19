@@ -164,6 +164,8 @@ export class Teacher {
   setPose(name, data = {}) { this.pose = name; this.poseData = data; }
   /** clap the chalk dust off: hands come up first, then `count` claps, one every `interval` seconds */
   startClap(count, interval, onClap) { this.clap = { left: count, interval, phase: Math.PI, delay: 0.3, onClap }; this.setPose('clap'); }
+  /** pat his stomach while he thinks: `count` soft quick pats, one every `interval` seconds (the leg-shake of a man who is stuck) */
+  startPat(count, interval, onPat) { this.pat = { left: count, interval, phase: 0, delay: 0.25, onPat }; this.setPose('belly'); }
 
   /** something small in his right hand (his phone, a slice of pizza): placed like the chalk, hidden until used */
   holdInHand(obj) {
@@ -379,6 +381,14 @@ export class Teacher {
         a.aim = this.local(-s * 0.02, this.chestY + 0.35, 0.62, new THREE.Vector3());
         a.twist = s * 1.25;
         a.k = quick ? 60 : 40;
+      } else if (P === 'belly' && key === 'R') {
+        // his right hand flat on his stomach: it lifts a little and comes down again, quickly
+        const lift = this.pat && this.pat.delay <= 0 ? (1 - Math.cos(this.pat.phase)) / 2 : 0;
+        this.local(-0.05, this.chestY - 0.27, 0.15 + lift * 0.1, a.desired);
+        a.aim = this.local(0.12, this.chestY - 0.31, 0.02, new THREE.Vector3());
+        this.local(-1.0, 0.7, 0.25, a.pole);
+        a.twist = -0.5;
+        a.k = 38;
       } else if (P === 'gesture' && key === 'R') {
         this.local(-0.26, this.chestY - 0.02 + Math.sin(this.time * 1.3) * 0.03, 0.42, a.desired);
         this.local(-0.9, 0.9, -0.2, a.pole);
@@ -489,6 +499,17 @@ export class Teacher {
         const mid = this.handPos('L', new THREE.Vector3()).add(this.handPos('R', new THREE.Vector3())).multiplyScalar(0.5);
         c.onClap && c.onClap(mid, c.left);
         if (c.left <= 0) { this.clap = null; this.setPose('rest'); }
+      }
+    }
+    const b = this.pat;
+    if (b && P === 'belly') {
+      const prev = b.phase;
+      if (b.delay > 0) b.delay -= dt; // his hand comes up to his stomach first
+      else b.phase += dt * (Math.PI * 2) / b.interval;
+      if (Math.floor(prev / (Math.PI * 2)) !== Math.floor(b.phase / (Math.PI * 2))) {
+        b.left--;
+        b.onPat && b.onPat(this.handPos('R', new THREE.Vector3()), b.left);
+        if (b.left <= 0) this.pat = null; // (the hand stays on his stomach until the pose changes)
       }
     }
   }

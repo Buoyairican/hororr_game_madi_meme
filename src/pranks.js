@@ -201,7 +201,7 @@ export const PrankMixin = {
   resetPranks() {
     this.clearPapers();
     this.laugh = 0; this.laughHold = 0; this.laughAbout = null;
-    this.misSeen = 0; this.lastLaughSnd = -99;
+    this.misSeen = 0; this.lastLaughSnd = -99; this.lastGiggleSnd = -99;
     this.allowPrank = false; this.prankBusy = false; this.prankHinted = false;
     this.hidePrankVisuals();
   },
@@ -267,7 +267,7 @@ export const PrankMixin = {
     me.aim = null;
     if (a.kind === 'laser') return null;
     if (a.kind === 'note') return { note: true };
-    if (me.foldT > 0) { this.uiTo(me, 'hint', 'Still folding the next one…', 1.5); return null; }
+    if (me.foldT > 0) { this.uiTo(me, 'status', 'Still folding the next one…', 1.5); return null; }
     return { yaw: this.yaw, pitch: this.pitch, power: a.power, kind: a.kind, curve: a.curve };
   },
 
@@ -281,8 +281,8 @@ export const PrankMixin = {
     if (p.aim) { p.aim.kind = p.prankKind; p.aim.curve = this.newCurve(); }
     if (!p.local) return;
     this.audio.play('page', { vol: 0.35, local: true, reverb: 0 });
-    if (p.prankKind === 'laser' || p.prankKind === 'note') this.toolHint(p.prankKind);
-    if (!p.aim) this.uiTo(p, 'hint', `<b>${PRANK_NAMES[p.prankKind]}</b> ready`, 1.5);
+    if (p.prankKind === 'laser' || p.prankKind === 'note') this.toolHint(p.prankKind, p);
+    if (!p.aim) this.uiTo(p, 'status', `<b>${PRANK_NAMES[p.prankKind]}</b> ready`, 1.5);
   },
 
   /** the paper in your hand and the arc (drawn on your screen only) */
@@ -693,6 +693,12 @@ export const PrankMixin = {
 
   // ---------------------------------------------------------------- the laugh meter
   /** the class laughs (at a prank, at whoever got hit): louder for bigger pranks */
+  /** the class giggles: one giggle at a time (every joke used to add its own on top) */
+  classGiggle(pos, vol = 0.6, ref = 3) {
+    if (this.t - this.lastGiggleSnd < 1.6 || this.t - this.lastLaughSnd < 1.0) return;
+    this.lastGiggleSnd = this.t;
+    this.audio.play('giggle', { pos, vol, ref, reverb: 0.2 });
+  },
   addLaugh(n, at, about) {
     if (!n) return;
     this.laugh = Math.min(100, this.laugh + n);
@@ -705,7 +711,7 @@ export const PrankMixin = {
     if (n >= 18 && this.t - this.lastLaughSnd > 2.2) {
       this.lastLaughSnd = this.t;
       this.audio.play('class_laugh', { pos: where, vol: 0.45 + 0.4 * this.laugh / 100, ref: 3, reverb: 0.25 });
-    } else this.audio.play('giggle', { pos: where, vol: 0.6, ref: 3, reverb: 0.2 });
+    } else this.classGiggle(where, 0.6);
     const look = about ? this.headOf(about, new THREE.Vector3()) : this.laughAt.clone();
     for (const k of this.allKids()) {
       if (k.gone || k.hollow || k.call || this.anyTalkWith(k) || !chance(0.35 + n / 160)) continue;

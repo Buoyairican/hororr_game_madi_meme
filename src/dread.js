@@ -535,7 +535,7 @@ export const DreadMixin = {
         // EASY: heat. (If he was angry already, this is one too many: at 100 it is a strike, as always.)
         if (!this.hard) {
           this.anger = Math.min(100, this.anger + B.failAnger.easy);
-          if (this.anger >= 100) { unlock(); L.phase = 'bust'; out = 'caught'; yield* this.bustedSeq('noise', p); return; }
+          if (this.anger >= 100) { unlock(); L.phase = 'bust'; out = 'caught'; if (br) { br.stop(0.2); br = null; } yield* this.bustedSeq('noise', p); return; }
         }
         yield* this.wait(0.55);
         const h = this.dreadWhisper('tw_dr_breathe');
@@ -545,17 +545,20 @@ export const DreadMixin = {
           if (p.lookDot > 0.8) {
             // HARD: he is looking right at you, and he heard you
             unlock(); L.phase = 'bust'; out = 'caught';
+            if (br) { br.stop(0.2); br = null; }
             yield* this.bustedSeq('breath', p);
             return;
           }
           this.anger = Math.min(100, this.anger + B.failAnger.hard); // (he can't see you right now: no glasses, no light)
         }
         unlock(); L.phase = 'leave';
+        if (br) { br.stop(0.6); br = null; }
         yield* this.wait(1.6);
       } else {
         // he heard nothing
         out = 'ok'; L.phase = 'leave';
         unlock();
+        if (br) { br.stop(0.6); br = null; }
         this.note(p, 'breath_hold');
         this.track.event(this.t, p, 'breathHold', { held: r1(L.dur) });
         this.mischief += B.okMischief;
@@ -570,7 +573,7 @@ export const DreadMixin = {
       }
     } finally {
       if (br) br.stop(0.4);
-      if (ducked) A.fadeBus('amb', 1, 1);
+      if (ducked && this.state === 'playing' && !this.ending) A.fadeBus('amb', 1, 1);
       unlock();
       T.leanTarget = 0; T.crouchTarget = 0; T.stanceTarget = 0; T.rollTarget = 0; T.jawTarget = 0; T.setPose('rest');
       T.eyeGlow = 0.12;

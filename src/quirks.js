@@ -227,9 +227,8 @@ export const QuirkMixin = {
       while (t < dur) {
         t += this.dt; snore -= this.dt;
         if (snore <= 0) {
-          snore = 3.3;
-          A.play('m_snore', { pos: T.headWorld(new V()), rate: 0.62, vol: 0.85, ref: 2, reverb: 0.25 });
-          this.ui.subtitle('', '<i>*snoring*</i> 💤', 'teacher', 2.4);
+          snore = 4; // (the sound: one loop while he sleeps, on every screen: eventVisuals in src/events.js)
+          if (!(this.ui.subTimer > 0)) this.ui.subtitle('', '<i>*snoring*</i> 💤', 'teacher', 2.4);
         }
         woke = this.wakeCheck(a0);
         if (woke) break;

@@ -77,7 +77,7 @@ export const VideoMixin = {
   phoneButtons(p, a) {
     if (p.local && !this.phoneHinted && this.phone.raise > 0.6 && this.phone.mode === 'game') {
       this.phoneHinted = true;
-      this.ui.hint(this.input.touch ? 'Your phone: <b>TAP</b> to fly, <b>APP</b> for memes. If you crash, it gets <b>LOUD</b>.' : 'Your phone: <b>E</b> / click to fly, <b>T</b> for the meme app. If you crash, it gets <b>LOUD</b>.', 5);
+      this.uiTo(this.me, 'hint', this.input.touch ? 'Your phone: <b>TAP</b> to fly, <b>APP</b> for memes. If you crash, it gets <b>LOUD</b>.' : 'Your phone: <b>E</b> / click to fly, <b>T</b> for the meme app. If you crash, it gets <b>LOUD</b>.', 5);
     }
     if (p.local) {
       if (a.tap) this.phone.tap();
@@ -143,7 +143,7 @@ export const VideoMixin = {
       aim.lookTarget = p.camPos;
       this.timers.after(1.6, () => {
         if (this.state !== 'playing' || aim.gone) return;
-        this.audio.play('giggle', { pos: aim.headWorld(new THREE.Vector3()), vol: 0.8, ref: 1 });
+        this.classGiggle(aim.headWorld(new THREE.Vector3()), 0.8, 1);
         aim.talking = 1.2;
         this.mischief += 12;
         this.timers.after(2, () => { if (!aim.call && !aim.showing && !this.anyTalkWith(aim)) aim.lookTarget = null; });
@@ -190,7 +190,7 @@ export const VideoMixin = {
       this.note(p, 'videos');
       if (sh.fromP) this.note(sh.fromP, 'shown');
       this.track.event(this.t, p, 'video', { how: f ? 'shown by ' + f.name : 'shown by ' + sh.fromP.name });
-      if (f) { this.audio.play('giggle', { pos: f.headWorld(new THREE.Vector3()), vol: 0.7, ref: 1 }); f.talking = 1.5; }
+      if (f) { this.classGiggle(f.headWorld(new THREE.Vector3()), 0.7, 1); f.talking = 1.5; }
       if (sh.fromP) { this.uiTo(sh.fromP, 'toast', `${p.name} watched your video 😂`, 2.5); this.uiTo(p, 'toast', '😂😂😂', 1.6); }
       if (!sh.mission) this.completeObjective('video');
     }

@@ -78,7 +78,7 @@ export const GhostMixin = {
     for (const q of this.players) if (q !== p) this.uiTo(q, 'hint', GHOST.text.others.replace('{name}', p.name), 5);
   },
   /** your own screen: you are a ghost now */
-  ghostHint() { this.ui.hint(this.input.touch ? GHOST.text.youTouch : GHOST.text.you, 7); },
+  ghostHint() { (this.ui.hint.local || this.ui.hint).call(this.ui, this.input.touch ? GHOST.text.youTouch : GHOST.text.you, 7); }, // (your own screen only)
 
   /** the ghost floats back to their chair (time is up, the bell, the last strike, a new class) */
   ghostEnd(p, now = false) {
@@ -87,7 +87,7 @@ export const GhostMixin = {
     if (p.ghost.out) return;
     p.ghost.out = true;
     this.track.event(this.t, p, 'ghostBack');
-    this.uiTo(p, 'hint', GHOST.text.back, 2.5);
+    this.uiTo(p, 'status', GHOST.text.back, 2.5);
   },
   allGhostsBack() { for (const p of this.players) if (p.ghost) this.ghostEnd(p, true); },
 
@@ -126,7 +126,7 @@ export const GhostMixin = {
   haunt(p, i) {
     const H = GHOST.haunts[i];
     if (!H || !this.players.includes(p)) return false;
-    if (!this.hauntReady(p, i)) { if (p.ghost && !p.ghost.out) this.uiTo(p, 'hint', GHOST.text.wait, 1.2); return false; }
+    if (!this.hauntReady(p, i)) { if (p.ghost && !p.ghost.out) this.uiTo(p, 'status', GHOST.text.wait, 1.2); return false; }
     p.ghost.cd[i] = this.t + H.cd;
     this.mischief += H.mischief;
     this.anger = Math.max(0, this.anger - H.calm);

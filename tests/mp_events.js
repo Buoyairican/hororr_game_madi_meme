@@ -177,15 +177,15 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   // ---- his quirks on the friend's screen: asleep, humming, dancing; the "TODAY HE" tags
   await H.evaluate(() => { calm(); quiet(); game.interrupt(game.actDoze()); });
   await expect(G, 'doze: the friend sees him asleep: the eye on their HUD says ASLEEP, the hint, he snores', () => document.getElementById('eye-label').textContent === 'ASLEEP' && hinted(/dozing off/) && heard('m_snore'), 50000);
-  await expect(G, 'doze: "TODAY HE ... dozes off" on the friend\'s HUD', () => /dozes off/.test(document.getElementById('quirks').innerText), 5000);
+  await expect(G, 'doze: no "TODAY HE" list on the friend\'s HUD', () => /dozes off/.test(game.ui.quirkList.join(' ')) && !document.getElementById('quirks').innerText.trim(), 5000);
   await G.evaluate(() => { const g = game; g.__render(g.scene, g.camera); });
   await G.screenshot({ path: shot('mp_events_doze.png') });
-  await check(C, 'doze: the friend who joined late sees the tags too', `/dozes off/.test(document.getElementById('quirks').innerText)`);
+  await check(C, 'doze: the friend who joined late sees the tags too', `/dozes off/.test(game.ui.quirkList.join(' '))`);
   await H.evaluate(() => { game.dozing && game.wakeUp(null); idle(); });
   await expect(G, 'doze: awake again (eye back)', () => document.getElementById('eye-label').textContent !== 'ASLEEP', 8000);
   await H.waitForTimeout(1500);
   await H.evaluate(() => { calm(); game.interrupt(game.actWrite('WE LEARN HUMMING')); });
-  await expect(G, 'hum: the friend hears him hum while he writes; the tag', () => game.humming && !!game.humSnd && /hums/.test(document.getElementById('quirks').innerText), 15000);
+  await expect(G, 'hum: the friend hears him hum while he writes; the tag', () => game.humming && !!game.humSnd && /hums/.test(game.ui.quirkList.join(' ')), 15000);
   await H.evaluate(() => idle());
   await expect(G, 'hum: the humming stops on the friend\'s screen too', () => !game.humming && !game.humSnd, 8000);
   await H.waitForTimeout(1000);

@@ -236,7 +236,6 @@ export const BlameMixin = {
           this.lastOnHim = this.t;
           this.addLaugh(LASER.onHim.laugh, h.pt, null); // (they laugh at him: the noise is around him, not you)
           this.mischief += LASER.onHim.mischief;
-          this.audio.play('giggle', { pos: new V(rand(-2, 2), 1.1, rand(-1, 2)), vol: 0.55, ref: 3, reverb: 0.2 });
         }
         continue;
       }
@@ -476,7 +475,7 @@ export const BlameMixin = {
     const back = this.present && T.root.visible && !this.away && Math.cos(T.root.rotation.y) < -0.5;
     if (back && !k.back && this.t - k.lastLaugh > NOTE.laughGap && !this.cutscene && this.state === 'playing') {
       k.lastLaugh = this.t; k.laughs++;
-      this.audio.play('giggle', { pos: new V(rand(-1.5, 1.5), 1.1, rand(-1, 2)), vol: 0.9, ref: 3, reverb: 0.2 });
+      this.classGiggle(new V(rand(-1.5, 1.5), 1.1, rand(-1, 2)), 0.9);
       if (this.players.includes(k.owner)) {
         this.addLaugh(NOTE.laugh, T.local(0, T.chestY, -0.3, new V()), null); // (at his back)
         this.mischief += NOTE.laughMischief;
@@ -799,10 +798,10 @@ export const BlameMixin = {
   },
 
   /** the first time you pick up the laser / the note: what to do with it */
-  toolHint(kind) {
-    if (this.toolHinted[kind]) return;
+  toolHint(kind, p = this.me) {
+    if (!p.local || this.toolHinted[kind]) return;
     this.toolHinted[kind] = true;
-    if (kind === 'laser') this.ui.hint('A red dot where you look. <b>He chases it</b> when he sees it in front of him. Not in his eyes!', 5);
-    else if (kind === 'note') this.ui.hint('Hold it while he walks <b>past your desk with his back to you</b>, then let go to stick it on.', 5);
+    if (kind === 'laser') this.uiTo(p, 'hint', 'A red dot where you look. <b>He chases it</b> when he sees it in front of him. Not in his eyes!', 5);
+    else if (kind === 'note') this.uiTo(p, 'hint', 'Hold it while he walks <b>past your desk with his back to you</b>, then let go to stick it on.', 5);
   },
 };

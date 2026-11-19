@@ -90,7 +90,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   await check('nor through his desk or his chair (the floor in front of the board, the aisles, the back: yes)', `!game.canBe(game.me, SPOT.desk.x, SPOT.desk.z) && !game.canBe(game.me, SPOT.cushion.x, SPOT.cushion.z) && game.canBe(game.me, 2, -6.2) && game.canBe(game.me, -2.25, 1) && game.canBe(game.me, 3, 5) && !game.canBe(game.me, 0, 1.35)`);
   await page.keyboard.press('c');
   await page.evaluate(() => run(0.2));
-  await check('C far from your desk: still on the floor ("crawl back first")', `game.me.out && /back to your desk/.test(document.getElementById('hint').innerText)`);
+  await check('C far from your desk: still on the floor ("crawl back first")', `game.me.out && /back to your desk/.test(document.getElementById('status').innerText)`);
   await page.evaluate(() => { putAt(-0.7, -1.4); });
   await check('next to your chair: "[C] · sit down"', `/sit down/.test(document.getElementById('prompt').textContent)`);
   await page.keyboard.press('c');

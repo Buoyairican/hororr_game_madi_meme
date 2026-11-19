@@ -616,3 +616,24 @@ body:not(.touch) .k-touch { display: none !important; }
   .how-card { grid-template-columns: 1fr; gap: 10px; align-content: start; overflow: auto; }
   .how-pic { max-height: 34vh; }
 }
+
+/* ---------- HUD: nothing covers anything else (DEBUG.md D10-D13) ---------- */
+/* the eye stays in the middle however wide the task column is, so the hint on the right never reaches it */
+#hud-top { display: grid; grid-template-columns: 1fr auto 1fr; }
+#hud-left { justify-self: start; }
+#clock-hud { justify-self: end; }
+#hint { width: min(400px, calc(50vw - 84px)); }
+/* captions: a few lines, one per speaker */
+#subtitle .cap + .cap { margin-top: 3px; }
+/* small feedback ("Not now.", "PAPER BALL ready"): its own line above the crosshair, never on a tip */
+#status { position: absolute; left: 50%; top: calc(50% - 36px); transform: translateX(-50%); font-size: 13px; letter-spacing: 1px; color: #e9e3cf; white-space: nowrap;
+  text-shadow: 0 0 6px #000, 0 0 2px #000; opacity: 0; transition: opacity .25s; }
+#status.show { opacity: 1; }
+/* "your phone is buzzing": on the right, away from the prompt and the "repeat him" cue in the middle */
+#phone-alert { left: auto; right: max(18px, env(safe-area-inset-right)); bottom: auto; top: 38%; transform: none; }
+/* a toast or a choice menu: the task list fades out of its way for that moment */
+#hud-left { transition: opacity .25s; }
+body.toasting #objectives, body.toasting #quirks, body.choosing #hud-left, body.choosing #toast { opacity: .1; }
+/* touch screens: captions stay between the two groups of buttons */
+@media (max-height: 500px) { body.touch #subtitle { width: max(180px, calc(100vw - 380px)); } }
+@media (orientation: portrait) { body.touch #subtitle { bottom: calc(max(22px, env(safe-area-inset-bottom)) + 200px); } }

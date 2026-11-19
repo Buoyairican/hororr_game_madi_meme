@@ -1,16 +1,18 @@
 // DOM overlay: HUD, subtitles, hints, objectives, choices, menus.
 const $ = (id) => document.getElementById(id);
+const HINT_READ = 3.2;  // seconds a tip stays up before the next one may take its place
+const CAP_MIN = 1.2;    // seconds a caption stays up at least
 
 export class UI {
   constructor() {
     this.el = {};
-    for (const id of ['hud', 'score-val', 'eye', 'eye-label', 'anger', 'anger-fill', 'clock-hud', 'prompt', 'hint', 'call-left', 'call-right', 'phone-alert',
+    for (const id of ['status', 'hud', 'score-val', 'eye', 'eye-label', 'anger', 'anger-fill', 'clock-hud', 'prompt', 'hint', 'call-left', 'call-right', 'phone-alert',
       'subtitle', 'toast', 'blackout', 'flash', 'note', 'note-text', 'title', 'loading', 'load-fill', 'load-text', 'menu', 'how', 'settings',
       'pause', 'end', 'end-title', 'end-text', 'end-stats', 'rotate', 'err', 'crosshair', 'objectives', 'strikes', 'bully', 'echo-cue', 'echo-bar',
       'choices', 'choices-title', 'choices-list', 'choices-bar', 'card', 'card-time', 'card-title', 'card-sub', 'chapters', 'chapter-list', 'btn-again', 'btn-echo', 'mp',
       'laugh', 'laugh-fill', 'laugh-mult', 'aim-hud', 'aim-kind', 'aim-pow-fill', 'quirks', 'ev-now', 'sneak-hud', 'sneak-label', 'sneak-fill', 'notebook', 'ghost-hud', 'ghost-veil', 'ghost-left', 'ghost-haunts']) this.el[id] = $(id);
-    this.subTimer = 0;
-    this.hintTimer = 0;
+    this.subTimer = 0; this.caps = [];
+    this.hintTimer = 0; this.hintAge = 99; this.hintQ = []; this.statusTimer = 0;
     this.toastTimer = 0;
     this.cardTimer = 0;
     this.subsOn = true;
@@ -128,9 +130,9 @@ export class UI {
   /** what kind of teacher he is today (his quirks you have noticed): small tags under the tasks */
   setQuirks(list) {
     const l = Array.isArray(list) ? list.filter((x) => typeof x === 'string').slice(0, 4) : [];
-    this.quirkList = l;
-    this.el.quirks.innerHTML = l.map((q) => `<span class="q">${q.replace(/[<>&"]/g, '')}</span>`).join('');
-    this.el.quirks.classList.toggle('off', !l.length);
+    this.quirkList = l; // (kept for the class log; it is no longer listed on screen)
+    this.el.quirks.innerHTML = '';
+    this.el.quirks.classList.add('off');
   }
   /** what is going on in class right now (one of today's events), under his eye ('' hides it) */
   setEventNow(text) {
@@ -190,9 +192,10 @@ export class UI {
       list.appendChild(b);
     });
     this.show('choices', true);
+    document.body.classList.add('choosing'); // (the task list and toasts fade out of its way)
     this.el.hint.classList.remove('show'); this.hintTimer = 0; // nothing behind the picker
   }
-  closeChoices() { this.show('choices', false); }
+  closeChoices() { this.show('choices', false); document.body.classList.remove('choosing'); }
   choiceTimer(k) { this.el['choices-bar'].style.width = Math.round(k * 100) + '%'; }
 
   prompt(text) {
@@ -201,26 +204,56 @@ export class UI {
     this.el.prompt.textContent = text;
   }
 
-  hint(text, dur = 5) {
+  /** a hint. tip = true (a how-to or what-is-going-on tip for the class): it waits until the one on screen was read
+   *  (HINT_READ seconds). Otherwise it is about right now and goes up at once; a tip it covers comes back after it. */
+  hint(text, dur = 5, tip = false) {
+    if (text === this.hintText && this.hintTimer > 0) { this.hintTimer = Math.max(this.hintTimer, dur); return; }
+    const unread = this.hintTimer > 0.2 && this.hintAge < HINT_READ;
+    if (tip && (unread || this.hintQ.length || this.choosing())) {
+      if (!this.hintQ.some((h) => h[0] === text)) this.hintQ.push([text, dur, 0]);
+      if (this.hintQ.length > 4) this.hintQ.shift();
+      return;
+    }
+    if (unread && this.hintIsTip && !this.hintQ.some((h) => h[0] === this.hintText)) this.hintQ.unshift([this.hintText, Math.max(3, this.hintTimer), 0]);
+    this.putHint(text, dur, tip);
+  }
+  putHint(text, dur, tip = false) {
     this.el.hint.innerHTML = text;
     this.el.hint.classList.add('show');
-    this.hintTimer = dur;
-    this.hintSeq = (this.hintSeq || 0) + 1; // (a new hint went up: src/events.js lets each one be read)
+    this.hintTimer = dur; this.hintAge = 0; this.hintText = text; this.hintIsTip = !!tip;
+    this.hintSeq = (this.hintSeq || 0) + 1;
+  }
+  choosing() { return !this.el.choices.classList.contains('hidden'); }
+  /** one short line under the crosshair for small feedback ("Not now.", "PAPER BALL ready"): it never touches a tip */
+  status(text, dur = 1.6) {
+    this.el.status.innerHTML = text;
+    this.el.status.classList.add('show');
+    this.statusTimer = dur;
   }
 
   toast(text, dur = 3) {
     this.el.toast.innerHTML = text;
     this.el.toast.classList.add('show');
+    document.body.classList.add('toasting'); // (the task list fades out of its way)
     this.toastTimer = dur;
   }
 
+  /** captions: a few lines, one per speaker, newest at the bottom. A new speaker never wipes the line before it. */
   subtitle(who, text, cls = '', dur = 3) {
     if (!this.subsOn) return;
-    const name = who === 'you' ? 'YOU' : who;
-    const label = name ? `<span class="who">${name}</span><br>` : '';
-    this.el.subtitle.innerHTML = `${label}<span class="${cls}">${text}</span>`;
-    this.el.subtitle.style.opacity = 1;
-    this.subTimer = dur;
+    const name = who === 'you' ? 'YOU' : who || '';
+    const line = { name, html: `${name ? `<span class="who">${name}</span> ` : ''}<span class="${cls}">${text}</span>`, left: dur, age: 0, out: false };
+    const same = this.caps.find((c) => c.name === name && !c.out);
+    if (same) Object.assign(same, line); else this.caps.push(line);
+    this.drawCaps();
+  }
+  drawCaps() {
+    const L = this.caps, max = innerHeight > 600 ? 3 : 2;
+    // more speakers than lines: the oldest goes, but not before it was up long enough to read
+    while (L.filter((c) => !c.out).length > max) { const o = L.find((c) => !c.out); o.out = true; o.left = Math.min(o.left, Math.max(0, CAP_MIN - o.age)); }
+    this.el.subtitle.innerHTML = L.map((c) => `<div class="cap">${c.html}</div>`).join('');
+    this.el.subtitle.style.opacity = L.length ? 1 : 0;
+    this.subTimer = L.reduce((m, c) => Math.max(m, c.left), 0);
   }
 
   call(side, on) { this.set('call' + side, on, () => this.el[side === 'left' ? 'call-left' : 'call-right'].classList.toggle('show', on)); }
@@ -303,17 +336,30 @@ export class UI {
   error(msg) { this.el.err.textContent = msg; this.show('err', true); }
 
   update(dt) {
-    if (this.subTimer > 0) { this.subTimer -= dt; if (this.subTimer <= 0) this.el.subtitle.style.opacity = 0; }
+    if (this.caps.length) {
+      for (const c of this.caps) { c.left -= dt; c.age += dt; }
+      if (this.caps.some((c) => c.left <= 0)) { this.caps = this.caps.filter((c) => c.left > 0); this.drawCaps(); }
+      else this.subTimer = this.caps.reduce((m, c) => Math.max(m, c.left), 0);
+    }
+    this.hintAge += dt;
     if (this.hintTimer > 0) { this.hintTimer -= dt; if (this.hintTimer <= 0) this.el.hint.classList.remove('show'); }
-    if (this.toastTimer > 0) { this.toastTimer -= dt; if (this.toastTimer <= 0) this.el.toast.classList.remove('show'); }
+    if (this.hintQ.length && !this.choosing() && (this.hintTimer <= 0.2 || this.hintAge >= HINT_READ)) {
+      for (const h of this.hintQ) h[2] += dt;
+      const [text, dur, waited] = this.hintQ.shift();
+      if (waited < 25) this.putHint(text, dur, true); // (a tip that waited too long is stale)
+    } else for (const h of this.hintQ) h[2] += dt;
+    if (this.statusTimer > 0) { this.statusTimer -= dt; if (this.statusTimer <= 0) this.el.status.classList.remove('show'); }
+    if (this.toastTimer > 0) { this.toastTimer -= dt; if (this.toastTimer <= 0) { this.el.toast.classList.remove('show'); document.body.classList.remove('toasting'); } }
     if (this.cardTimer > 0) { this.cardTimer -= dt; if (this.cardTimer <= 0) this.show('card', false); }
   }
 
   clearTransient() {
-    this.subTimer = this.hintTimer = this.toastTimer = this.cardTimer = 0;
-    this.el.subtitle.style.opacity = 0;
+    this.subTimer = this.hintTimer = this.toastTimer = this.cardTimer = this.statusTimer = 0;
+    this.caps = []; this.hintQ = []; this.hintText = '';
+    this.el.subtitle.innerHTML = ''; this.el.subtitle.style.opacity = 0;
     this.el.hint.classList.remove('show');
-    this.el.toast.classList.remove('show');
+    this.el.status.classList.remove('show');
+    this.el.toast.classList.remove('show'); document.body.classList.remove('toasting');
     this.show('card', false);
     this.call('left', false); this.call('right', false);
     this.phoneAlert(false);

@@ -22,7 +22,7 @@ const SNAP_DT = 1 / 15;      // snapshots per second
 const TIMEOUT = 20;          // seconds of silence before a connection counts as gone
 const INPUT_DT = 1 / 20;     // friend input per second
 const BONES = ['root', 'spine', 'chest', 'neck', 'uarmL', 'farmL', 'handL', 'uarmR', 'farmR', 'handR', 'thighL', 'shinL', 'footL', 'thighR', 'shinR', 'footR'];
-const UI_EVENTS = new Set(['subtitle', 'hint', 'toast', 'card', 'showNote', 'clearTransient', 'setObjectives', 'setQuirks']);
+const UI_EVENTS = new Set(['status', 'subtitle', 'hint', 'toast', 'card', 'showNote', 'clearTransient', 'setObjectives', 'setQuirks']);
 const BOARD_EVENTS = new Set(['write', 'writeInstant', 'scrawl', 'erase', 'clear', 'stopJob']);
 const PROJ_EVENTS = new Set(['setOn', 'search', 'history', 'news', 'glitch', 'noSignal', 'reset']);
 
@@ -471,6 +471,7 @@ export class MP {
       case 'bye': if (!this.refused(ONLINE.text.closed) && CURRENT === this) this.hook('lost', ONLINE.text.closed); break;
       case 'ping': break;
       case 'toLobby':
+        this.stopScare();
         g.state = 'title'; g.input.enable(false); g.audio.stopAll(); g.ui.show('hud', false); g.ui.closeChoices(); g.dropEventState();
         this.clearHelds(); g.vidZoom = false; g.phone.reset();
         this.choice = null;
@@ -545,12 +546,12 @@ export class MP {
       case 'sstop': { const h = this.handles.get(e.i); if (h) { h.stop(e.f); this.handles.delete(e.i); } break; }
       case 'spos': { const h = this.handles.get(e.i); if (h) h.setPos(V(e.p)); break; }
       case 'svol': { const h = this.handles.get(e.i); if (h) h.setVol(e.v, e.tm); break; }
-      case 'bus': A.fadeBus(e.b, e.v, e.tm); break;
+      case 'bus': if (!g.localScare) A.fadeBus(e.b, e.v, e.tm); break;
       case 'stopAll': A.stopAll(); this.handles.clear(); break;
       case 'ui': if (UI_EVENTS.has(e.f)) g.ui[e.f](...(e.a || [])); break;
       case 'board': if (BOARD_EVENTS.has(e.f)) W.board[e.f](...(e.a || [])); break;
       case 'proj': if (PROJ_EVENTS.has(e.f)) W.projector[e.f](...(e.a || [])); break;
-      case 'flash': W.flash(e.s); break;
+      case 'flash': if (!g.localScare) W.flash(e.s); break;
       case 'dread': g.dreadNet(e); break;
       case 'chalk': W.chalkBurst(V(e.p), e.n, e.sp); break;
       case 'choice':
@@ -586,6 +587,7 @@ export class MP {
 
   showEnd(e) {
     const g = this.g;
+    this.stopScare();
     g.state = 'end';
     g.input.enable(false);
     g.audio.fadeBus('amb', 0, 0.5);
@@ -645,7 +647,7 @@ export class MP {
       g.blackoutTarget = fx[0];
       if (Math.abs(fx[1] - g.blackout) > 0.35) g.blackout = fx[1];
     }
-    g.shake = Math.max(g.shake, fx[2]); g.glitch = Math.max(g.glitch, fx[3]); g.scareFear = Math.max(g.scareFear, fx[4]); g.redFlash = Math.max(g.redFlash, fx[5]);
+    if (!g.localScare) { g.shake = Math.max(g.shake, fx[2]); g.glitch = Math.max(g.glitch, fx[3]); g.scareFear = Math.max(g.scareFear, fx[4]); g.redFlash = Math.max(g.redFlash, fx[5]); }
     g.applyDreadSnap(s.dr);
     // the other players
     for (const row of s.P) {
@@ -791,7 +793,9 @@ export class MP {
     const g = this.g, inp = g.input, ui = g.ui, me = g.me;
     const pressed = inp.takePressed();
     let blocked = false;
-    if (g.noteHold && !inp.talk) g.noteHold = false; // (the E you still hold from reading his laptop)
+    if (ui.noteOpen && !g.noteWasOpen && (inp.talk || inp.phone)) g.noteHold = true; // (it opened while E / Q was down)
+    g.noteWasOpen = ui.noteOpen;
+    if (g.noteHold && !inp.talk && !inp.phone) g.noteHold = false; // (also the E you still hold from reading his laptop)
     if (ui.noteOpen && !g.noteHold && (inp.talk || inp.phone || pressed.echo || pressed.ask)) { ui.closeNote(); g.noteLatch = true; blocked = true; }
     if (g.noteLatch && !inp.talk && !inp.phone) g.noteLatch = false;
     blocked = blocked || ui.noteOpen || g.noteLatch || !!this.choice || g.cutscene;
@@ -817,7 +821,7 @@ export class MP {
     } else {
       if (!blocked && !away && pressed.echo) {
         if (this.ec >= 0) this.send({ t: 'press', k: 'echo' });
-        else ui.hint('Repeat him right after he says something.', 2.5);
+        else ui.status('Repeat him right after he says something.', 2.5);
       }
       if (!blocked && !away && pressed.ask) this.send({ t: 'press', k: 'ask' });
     }
@@ -913,6 +917,7 @@ export class MP {
   leave() {
     const g = this.g;
     this.refused('cancelled', { cancelled: true });
+    this.stopScare();
     this.gone = true;
     clearInterval(this.pinger);
     if (this.role === 'host') { this.flush(); this.net.broadcast({ t: 'bye' }); }
