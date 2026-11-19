@@ -92,7 +92,8 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
         const T = g.teacher, p = T.pos;
         if (!isFinite(p.x) || !isFinite(p.z) || !isFinite(g.anger)) { issue('nan', 'NaN teacher position/anger'); break; }
         if (g.present && T.root.visible && !g.ending) {
-          if (!(p.x > 3.5 && Math.abs(p.z + 5) < 0.6) && (p.x < -5.05 || p.x > 5.2) || p.z < -7.05 || p.z > 6.05) issue('room' + Math.round(p.x) + Math.round(p.z), `teacher outside room at ${p.x.toFixed(2)},${p.z.toFixed(2)} | ${subs.slice(-2).join(' / ')}`);
+          // (the window scare puts him outside the glass on purpose: src/scares.js)
+          if (g.scareBusy !== 'window' && !(p.x > 3.5 && Math.abs(p.z + 5) < 0.6) && (p.x < -5.05 || p.x > 5.2) || p.z < -7.05 || p.z > 6.05) issue('room' + Math.round(p.x) + Math.round(p.z), `teacher outside room at ${p.x.toFixed(2)},${p.z.toFixed(2)} | ${subs.slice(-2).join(' / ')}`);
           if (T.root.position.y === 0) for (const z of ROWS) for (const x of COLS) {
             if (Math.abs(p.x - x) < 0.42 && Math.abs(p.z - z) < 0.33) issue('desk' + x + z, `teacher inside desk (${x},${z}) at ${p.x.toFixed(2)},${p.z.toFixed(2)} | last: ${subs.slice(-2).join(' / ')}`);
           }
