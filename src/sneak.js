@@ -209,8 +209,8 @@ export const SneakMixin = {
       if (!me.out && this.canLeave(me)) {
         this.startOut(me);
         if (host) this.onOut(me);
-        this.firstHint('sneak:out', touch ? 'Crawl with the <b>stick</b>. Desks and kids hide you; <b>don\'t let him see you</b>. Tap <b>SIT</b> at your desk to sit down.'
-          : 'Crawl with <b>WASD</b>. Desks and kids hide you; <b>don\'t let him see you</b>. Press <b>C</b> at your desk to sit down.', 7);
+        this.firstHint('sneak:out', `<span class="touch-only">Crawl with the <b>stick</b>. Desks and kids hide you; <b>don't let him see you</b>. Tap <b>SIT</b> at your desk to sit down.</span>`
+          + `<span class="desk-only">Crawl with <b>WASD</b>. Desks and kids hide you; <b>don't let him see you</b>. Press <b>C</b> at your desk to sit down.</span>`, 7);
       } else if (me.out && this.canSit(me)) {
         this.sitDown(me);
         if (host) this.onSit(me);
@@ -593,9 +593,8 @@ export const SneakMixin = {
     T.leanTarget = 0;
     if (this.mode === 'story') this.friendQuip('nora', 'n_sn_hale', 1.2); // "Those are Mr. Hale's glasses."
     else this.friendQuip('sam', 's_sn_left', 1.2);
-    this.firstHint('sneak:glasses', this.input.touch
-      ? 'He left his <b>glasses</b> on his desk. Without them he only sees what is close. Tap <b>SEAT</b> and go take them!'
-      : 'He left his <b>glasses</b> on his desk. Without them he only sees what is close. Press <b>C</b> and go take them!', 7);
+    this.firstHint('sneak:glasses', 'He left his <b>glasses</b> on his desk. Without them he only sees what is close. '
+      + '<span class="touch-only">Tap <b>SEAT</b></span><span class="desk-only">Press <b>C</b></span> and go take them!', 7);
     if (!this.objectives.some((o) => o.id === 'steal')) this.addObjective({ id: 'steal', text: 'Steal his glasses from his desk' });
     try {
       T.setPose('rub');

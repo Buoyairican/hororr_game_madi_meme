@@ -2370,9 +2370,8 @@ export class Game {
   }
 
   hintControls() {
-    const touch = this.input.touch;
     const h = (t, s, d = 6) => this.timers.after(t, () => this.state === 'playing' && !this.cutscene && this.showHint(s, d));
-    h(1.0, touch ? 'Drag anywhere to look around.' : 'Move the mouse to look around. <kbd>Esc</kbd> pauses.');
+    h(1.0, `<span class="touch-only">Drag anywhere to look around.</span><span class="desk-only">Move the mouse to look around. <kbd>Esc</kbd> pauses.</span>`);
     return h;
   }
 
@@ -3025,8 +3024,8 @@ export class Game {
     this.giveTools();
     this.addObjective({ id: 'kickme', text: 'Stick KICK ME on his back' });
     this.addObjective({ id: 'laser', text: 'Make him chase the red dot' });
-    this.showHint(this.input.touch ? 'Hold <b>PRANK</b> and tap <b>SWAP</b> for the <b>laser pointer</b> or the <b>KICK ME note</b>.'
-      : 'Press <b>X</b> for the <b>laser pointer</b> or the <b>KICK ME note</b>, then hold <b>G</b> to use it.', 7);
+    this.showHint(`<span class="touch-only">Hold <b>PRANK</b> and tap <b>SWAP</b> for the <b>laser pointer</b> or the <b>KICK ME note</b>.</span>`
+      + `<span class="desk-only">Press <b>X</b> for the <b>laser pointer</b> or the <b>KICK ME note</b>, then hold <b>G</b> to use it.</span>`, 7);
     yield* this.lesson(7);
     // he starts walking between the desks
     this.ui.hint('He walks between the desks. <b>When he is close, he can hear you whisper.</b>', 6);
@@ -3227,8 +3226,8 @@ export class Game {
     yield* this.whisper(nora, 'n_sn_give');
     this.giveSneak();
     this.addObjective({ id: 'secret', text: 'Sneak to his desk and read his laptop' });
-    this.showHint(touch ? 'Tap <b>SEAT</b> to slip off your chair. Crawl with the <b>stick</b>; desks hide you. <b>SIT</b> at your desk to sit down.'
-      : 'Press <b>C</b> to slip off your chair. Crawl with <b>WASD</b>; desks hide you. <b>C</b> at your desk to sit down.', 9);
+    this.showHint(`<span class="touch-only">Tap <b>SEAT</b> to slip off your chair. Crawl with the <b>stick</b>; desks hide you. <b>SIT</b> at your desk to sit down.</span>`
+      + `<span class="desk-only">Press <b>C</b> to slip off your chair. Crawl with <b>WASD</b>; desks hide you. <b>C</b> at your desk to sit down.</span>`, 9);
     yield* this.eventSlot(1, 22);
     yield* this.beat(() => this.saySomething('t_quietfav'));
     yield* this.whisper(nora, 'n_quietone');
@@ -3414,24 +3413,23 @@ export class Game {
     this.allowEcho = true; this.allowAsk = true; this.allowPrank = true;
     this.giveTools(); // the laser pointer, KICK ME notes, and "Who did it?" (src/blame.js)
     this.giveSneak(100); // leave your seat (src/sneak.js); his new habits after the hint at 100 s
-    const touch = this.input.touch;
     const h = this.hintControls();
-    h(8, touch ? 'Look at Sam (left) or Nora (right) and hold <b>TALK</b> to whisper. Hold <b>PHONE</b> to play.' : 'Look at Sam or Nora and hold <b>E</b> to whisper. Hold <b>Q</b> to play on your phone.', 7);
-    h(18, touch ? 'Tap <b>ECHO</b> right after he speaks to repeat him. Tap <b>ASK</b> to ask a dumb question.' : 'Press <b>R</b> right after he speaks to repeat him. Press <b>T</b> to ask a dumb question.', 7);
+    h(8, `<span class="touch-only">Look at Sam (left) or Nora (right) and hold <b>TALK</b> to whisper. Hold <b>PHONE</b> to play.</span><span class="desk-only">Look at Sam or Nora and hold <b>E</b> to whisper. Hold <b>Q</b> to play on your phone.</span>`, 7);
+    h(18, `<span class="touch-only">Tap <b>ECHO</b> right after he speaks to repeat him. Tap <b>ASK</b> to ask a dumb question.</span><span class="desk-only">Press <b>R</b> right after he speaks to repeat him. Press <b>T</b> to ask a dumb question.</span>`, 7);
     h(30, this.hard ? 'One strike and you are done.' : this.mp ? `${this.maxStrikes} strikes for the whole class.` : 'Three strikes and you are done.', 5);
-    h(44, touch ? 'Your phone has a game and memes: hold <b>PHONE</b>, tap <b>APP</b> to switch. Crash in the game and it gets <b>LOUD</b>.' : 'Your phone has a game and memes: hold <b>Q</b>, press <b>T</b> to switch apps. Crash in the game and it gets <b>LOUD</b>.', 8);
-    h(58, touch ? 'Hold <b>PRANK</b> to aim a paper ball, let go to throw. Hit his back while he isn\'t looking!' : 'Hold <b>G</b> to aim a paper ball (<b>X</b>: a paper plane), let go to throw. Hit his back while he isn\'t looking!', 8);
+    h(44, `<span class="touch-only">Your phone has a game and memes: hold <b>PHONE</b>, tap <b>APP</b> to switch.</span><span class="desk-only">Your phone has a game and memes: hold <b>Q</b>, press <b>T</b> to switch apps.</span> Crash in the game and it gets <b>LOUD</b>.`, 8);
+    h(58, `<span class="touch-only">Hold <b>PRANK</b> to aim a paper ball, let go to throw.</span><span class="desk-only">Hold <b>G</b> to aim a paper ball (<b>X</b>: a paper plane), let go to throw.</span> Hit his back while he isn't looking!`, 8);
     this.timers.after(76, () => {
       if (this.state !== 'playing' || this.ending) return;
       this.addObjective({ id: 'kickme', text: 'Stick KICK ME on his back' });
-      this.showHint(touch ? 'Hold <b>PRANK</b>, tap <b>SWAP</b>: a <b>laser pointer</b> (he chases the dot) and <b>KICK ME</b> notes (when he walks past your desk).'
-        : '<b>X</b> also picks a <b>laser pointer</b> (he chases the dot) and <b>KICK ME</b> notes (stick one on when he walks past your desk).', 8);
+      this.showHint(`<span class="touch-only">Hold <b>PRANK</b>, tap <b>SWAP</b>: a <b>laser pointer</b> (he chases the dot) and <b>KICK ME</b> notes (when he walks past your desk).</span>`
+        + `<span class="desk-only"><b>X</b> also picks a <b>laser pointer</b> (he chases the dot) and <b>KICK ME</b> notes (stick one on when he walks past your desk).</span>`, 8);
     });
     this.timers.after(100, () => {
       if (this.state !== 'playing' || this.ending) return;
       this.addObjective({ id: 'secret', text: 'Sneak to his desk and read his laptop' });
-      this.showHint(touch ? 'Tap <b>SEAT</b> to slip off your chair and crawl to <b>his desk</b>: his laptop, his chair, the clock. Desks hide you.'
-        : 'Press <b>C</b> to slip off your chair and crawl (<b>WASD</b>) to <b>his desk</b>: his laptop, his chair, the clock. Desks hide you.', 9);
+      this.showHint(`<span class="touch-only">Tap <b>SEAT</b> to slip off your chair and crawl to <b>his desk</b>: his laptop, his chair, the clock. Desks hide you.</span>`
+        + `<span class="desk-only">Press <b>C</b> to slip off your chair and crawl (<b>WASD</b>) to <b>his desk</b>: his laptop, his chair, the clock. Desks hide you.</span>`, 9);
     });
     this.timers.after(150, () => {
       if (this.state !== 'playing' || this.ending) return;
