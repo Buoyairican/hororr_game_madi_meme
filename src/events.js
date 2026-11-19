@@ -658,6 +658,7 @@ export const EventMixin = {
       this.pizzaOpen = false;
       if (doorOpen) door.openTarget = 0;
       T.setPose('rest');
+      this.lookAllBack();
     }
   },
   /** where his hands are while he carries the box */
