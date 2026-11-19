@@ -215,6 +215,7 @@ export class Phone {
 
   switchApp() {
     if (this.mode === 'message' || this.mode === 'face') return;
+    if (this.mission && !this.mission.player.done) { if (this.mode !== 'video') { this.feed.pause(); this.game.pause(); this.psst.pause(); this.mode = 'video'; this.redraw = 0; } return; }
     this.feed.pause(); this.game.pause(); this.psst.pause();
     this.app = this.apps[(this.apps.indexOf(this.app) + 1) % this.apps.length];
     this.mode = this.app;
