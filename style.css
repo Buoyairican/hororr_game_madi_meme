@@ -506,3 +506,113 @@ body.ghosting #btn-breath, body.ghosting #breath-hud { display: none; }
 /* a scare owns the screen: the task list, today's habits and the key list fade out of its way */
 #objectives, #keys-legend, #laugh, #score { transition: opacity .35s; }
 body.scared #objectives, body.scared #quirks, body.scared #keys-legend, body.scared #laugh, body.scared #score { opacity: .08; }
+
+/* ---- the new jump scares (src/scares.js) ---- */
+/* the fake bell: a "you made it" screen like the real one, then it tears */
+#fake-end { position: fixed; inset: 0; z-index: 17; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(0, 0, 0, .74); pointer-events: none; animation: fe-in .45s ease-out; }
+#fake-end.hidden { display: none; }
+#fake-end .panel { max-width: 560px; }
+#fake-end .fe-title { font-family: "Nosifer", "Special Elite", serif; color: var(--blood-hi); font-size: clamp(26px, 6vw, 46px); letter-spacing: 2px; }
+#fake-end .fe-text { font-size: 16px; line-height: 1.55; }
+#fake-end .fe-next { display: inline-block; margin-top: 14px; padding: 12px 34px; border: 1px solid var(--line); color: var(--ink); letter-spacing: 3px; }
+#fake-end .fe-next.hidden { display: none; }
+#fake-end.tear { background: rgba(30, 0, 0, .82); }
+#fake-end.tear .panel { border-color: #b01414; animation: fe-tear .11s steps(2) infinite; }
+#fake-end.tear .fe-title { color: #ff2a2a; text-shadow: 4px 0 rgba(0, 255, 255, .7), -4px 0 rgba(255, 0, 0, .8); }
+@keyframes fe-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fe-tear {
+  0% { transform: translate(-7px, 2px) skewX(-7deg); clip-path: inset(0 0 38% 0); }
+  50% { transform: translate(6px, -3px) skewX(6deg); clip-path: inset(24% 0 0 0); }
+  100% { transform: translate(-2px, 4px) skewX(-2deg); clip-path: inset(8% 0 12% 0); }
+}
+body.fake-ending #hud { opacity: 0; }
+/* his face for a blink (the face flash) */
+#face-flash { position: fixed; inset: 0; z-index: 19; pointer-events: none; opacity: 0;
+  background: #000 url("assets/textures/teacher_portrait.jpg") center / contain no-repeat;
+  filter: contrast(1.9) brightness(.85) sepia(1) hue-rotate(-28deg) saturate(3.2); }
+#face-flash.on { opacity: 1; }
+
+/* ---- HOW TO PLAY: short picture pages (src/howto.js) ---- */
+#how .panel.how-panel { max-width: 900px; width: 100%; max-height: 96%; display: flex; flex-direction: column; overflow: hidden; padding: 16px 22px 12px; }
+.how-head { display: flex; align-items: baseline; gap: 14px; }
+.how-head h2 { margin: 0 0 10px; flex: 1; }
+#how-skip { display: none; }
+#how.first #how-skip { display: inline-block; }
+#how-deck { position: relative; flex: 1 1 auto; min-height: 0; touch-action: pan-y; display: flex; flex-direction: column; overflow: hidden; }
+.how-card { display: none; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: center; flex: 1 1 auto; min-height: 0; }
+.how-card.on { display: grid; animation: how-in .28s ease-out; }
+.how-card.how-more.on { display: block; overflow: auto; overscroll-behavior: contain; }
+@keyframes how-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+.how-pic { position: relative; border: 1px solid var(--line); background: #000; aspect-ratio: 16 / 9; overflow: hidden; box-shadow: 0 6px 24px rgba(0, 0, 0, .6); }
+.how-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.how-tag { position: absolute; transform: translate(-50%, -100%); padding: 3px 8px; font-size: 12px; letter-spacing: 2px; color: #111; background: #e9e3cf;
+  border-radius: 3px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0, 0, 0, .6); }
+.how-tag::after { content: ""; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: #e9e3cf; }
+.how-tag.red { background: var(--blood-hi); color: #fff; }
+.how-tag.red::after { border-top-color: var(--blood-hi); }
+.how-body h3 { margin: 0 0 10px; font-size: 26px; letter-spacing: 3px; color: #e9e3cf; font-weight: normal; }
+.how-body h3 .dim { font-size: 13px; letter-spacing: 1px; margin-left: 8px; }
+.how-big { font-size: 20px; line-height: 1.45; margin: 0 0 10px; }
+.how-small { font-size: 14px; line-height: 1.5; color: var(--dim); margin: 8px 0 0; }
+.how-body b.red { color: var(--blood-hi); }
+.how-body b.go { color: #8fd18a; }
+.how-warn { font-size: 13px; color: #e0b46a; margin: 10px 0 0; }
+.how-list, .how-keys { list-style: none; padding: 0; margin: 6px 0 4px; display: grid; gap: 9px; }
+.how-list li, .how-keys li { display: flex; align-items: center; gap: 10px; font-size: 15px; line-height: 1.35; }
+.mini-eye { width: 44px; height: 22px; flex: 0 0 auto; }
+.mini-eye path { fill: none; stroke: #e9e3cf; stroke-width: 3; }
+.mini-eye circle { fill: var(--blood-hi); }
+.mini-eye.off circle { fill: #555; }
+.mini-eye .slash { stroke: #e9e3cf; stroke-width: 4; }
+.how-strikes { font-size: 18px; margin: 4px 0 6px; }
+.how-strikes span { color: var(--blood-hi); font-size: 26px; margin-right: 6px; }
+/* a key on the keyboard, a touch button on a phone */
+.key { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 32px; padding: 0 8px; flex: 0 0 auto;
+  border: 1px solid #cfc8b0; border-bottom-width: 3px; border-radius: 6px; background: rgba(255, 255, 255, .06); font-size: 14px; color: #fff; }
+.tb { display: inline-flex; align-items: center; justify-content: center; width: 54px; height: 54px; flex: 0 0 auto; border-radius: 50%;
+  border: 2px solid rgba(233, 227, 207, .6); background: rgba(20, 22, 20, .6); font-size: 10px; letter-spacing: 1px; color: #fff; }
+body.touch .k-desk { display: none !important; }
+body:not(.touch) .k-touch { display: none !important; }
+.how-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.how-nav button { margin: 0; min-width: 120px; }
+#how-prev[disabled] { visibility: hidden; }
+#how-dots { display: flex; gap: 8px; }
+#how-dots button { width: 12px; height: 12px; min-width: 0; padding: 0; border-radius: 50%; margin: 0; background: rgba(233, 227, 207, .25); border: 0; }
+#how-dots button.on { background: var(--blood-hi); }
+.how-hint { text-align: center; font-size: 11px; margin: 8px 0 0; }
+/* more tricks: tiles that open */
+.how-body.wide { max-width: none; }
+.tricks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.tricks details { border: 1px solid var(--line); background: rgba(20, 22, 20, .55); padding: 8px 10px; }
+.tricks details[open] { grid-column: 1 / -1; border-color: rgba(214, 58, 42, .6); }
+.tricks summary { cursor: pointer; list-style: none; font-size: 15px; }
+.tricks summary::-webkit-details-marker { display: none; }
+.tricks summary span { display: block; font-size: 12px; color: var(--dim); margin-top: 2px; }
+.tricks details p { font-size: 14px; line-height: 1.5; margin: 8px 0 2px; }
+/* phones: landscape, short screens */
+@media (max-height: 500px) {
+  #how.screen { padding: 6px; }
+  #how .panel.how-panel { max-height: 100%; padding: 8px 14px 8px; }
+  .how-head h2 { font-size: 16px; margin-bottom: 4px; }
+  .how-card { gap: 14px; }
+  .how-pic { max-height: calc(100vh - 130px); }
+  .how-body h3 { font-size: 18px; margin-bottom: 6px; }
+  .how-big { font-size: 15px; margin-bottom: 6px; }
+  .how-small { font-size: 12px; margin-top: 4px; }
+  .how-list li, .how-keys li { font-size: 13px; gap: 8px; }
+  .how-keys, .how-list { gap: 6px; }
+  .tb { width: 44px; height: 44px; font-size: 9px; }
+  .key { height: 26px; min-width: 28px; font-size: 12px; }
+  .how-nav { margin-top: 6px; }
+  .how-nav button { padding: 6px 14px; min-width: 90px; }
+  .how-hint { display: none; }
+  .how-warn { font-size: 11px; margin-top: 4px; }
+  .tricks { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; }
+  .tricks summary { font-size: 13px; }
+}
+/* narrow (portrait): the picture on top */
+@media (max-width: 620px) {
+  .how-card { grid-template-columns: 1fr; gap: 10px; align-content: start; overflow: auto; }
+  .how-pic { max-height: 34vh; }
+}

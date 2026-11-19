@@ -15,6 +15,7 @@ import { CHAPTERS, ONLINE, MIC } from './data.js';
 import { MP, cleanName } from './mp.js';
 import { cleanCode } from './net.js';
 import { initNotebook, renderNotebook } from './notebook.js';
+import { setupHowTo, howSeen } from './howto.js';
 
 const ui = new UI();
 window.addEventListener('error', (e) => {
@@ -174,10 +175,19 @@ async function boot() {
       list.appendChild(b);
     });
   };
-  $('btn-story').onclick = () => { audio.unlock(); if (progress() === 0) launch('story', 0); else { buildChapters(); backTo = 'title'; go('chapters'); } };
-  $('btn-free').onclick = () => launch('free', 0);
+  // HOW TO PLAY (src/howto.js): from the menus, and once by itself before the very first class
+  const how = setupHowTo({ onClose: (mode, start) => { if (start) { go(null); start(); } else go(backTo); } });
+  const firstTime = (mode, ch) => {
+    if (howSeen() || (query.has('debug') && query.get('howto') !== 'first')) return false; // (tests: only when asked)
+    backTo = 'title';
+    how.open('first', () => launch(mode, ch));
+    go('how');
+    return true;
+  };
+  $('btn-story').onclick = () => { audio.unlock(); if (progress() === 0) { if (!firstTime('story', 0)) launch('story', 0); } else { buildChapters(); backTo = 'title'; go('chapters'); } };
+  $('btn-free').onclick = () => { if (!firstTime('free', 0)) launch('free', 0); };
   $('btn-rotate-ok').onclick = () => { launch.rotateOk = true; if (pending) launch(...pending); };
-  $('btn-how').onclick = () => { backTo = 'title'; go('how'); };
+  $('btn-how').onclick = () => { backTo = 'title'; how.open('menu'); go('how'); };
   $('btn-settings').onclick = () => { backTo = 'title'; go('settings'); };
   document.querySelectorAll('.back').forEach((b) => (b.onclick = () => go(backTo)));
 
@@ -213,12 +223,13 @@ async function boot() {
   $('btn-pause').addEventListener('touchend', (e) => { e.preventDefault(); pause(); });
   $('btn-resume').onclick = resume;
   $('btn-pause-settings').onclick = () => { backTo = 'pause'; go('settings'); };
+  $('btn-pause-how').onclick = () => { backTo = 'pause'; how.open('menu'); go('how'); };
   $('btn-restart').onclick = () => { if (audio.ctx) audio.ctx.resume(); go(null); if (game.daily) game.startDaily(game.daily); else game.start(game.mode, game.chapter); };
   $('btn-again').onclick = () => { go(null); if (!game.endPrimary()) toTitle(); };
   // ---------------- Phase 6: the daily class and the notebook (src/replay.js, src/notebook.js) ----------------
   initNotebook(game);
   const openNotebook = (from) => { backTo = from; renderNotebook(game); go('notebook'); };
-  $('btn-daily').onclick = () => launch('daily');
+  $('btn-daily').onclick = () => { if (!firstTime('daily')) launch('daily'); };
   $('btn-notebook').onclick = () => { audio.unlock(); openNotebook('title'); };
   $('btn-pause-notebook').onclick = () => openNotebook('pause');
   // ---------------- multiplayer ----------------

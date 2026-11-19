@@ -1777,9 +1777,138 @@ def make_p7():
     save("gh_haunt", reverb(low + hiss, 0.5, dur=2.0, decay=0.65), 0.65)
 
 
+def make_p8():
+    """The new jump scares (src/scares.js): the pencil, the window, the sprint, the hanging, the fake bell,
+    the face flash. Uses its own random numbers, so building only this group gives the same files."""
+    r = np.random.default_rng(808)
+
+    def nz(d):
+        return r.standard_normal(int(d * SR))
+
+    def tick(f, dur=0.05, bright=1.0):
+        t = t_axis(dur)
+        x = np.sin(2 * np.pi * f * t) * np.exp(-t / 0.012) + biquad(nz(dur), "hp", 2500) * np.exp(-t / 0.004) * 0.6 * bright
+        return x
+
+    def varispeed(x, rate):
+        """play x back at a per-sample rate (1 = normal, 0.5 = an octave down and half speed)"""
+        pos = np.cumsum(rate)
+        pos = pos[pos < len(x) - 1]
+        i = pos.astype(int); fr = pos - i
+        return x[i] * (1 - fr) + x[i + 1] * fr
+
+    # a pencil: drops on the desk, rolls (a hexagon: clicks that slow down), falls off, bounces on the floor
+    d = 2.4; x = np.zeros(int(d * SR))
+    place(x, tick(1900, 0.06) * 0.9, 0.02)
+    at, gap = 0.12, 0.055
+    while at < 1.05:
+        place(x, tick(2300 + r.uniform(-150, 150), 0.03, 0.6) * 0.35, at)
+        at += gap; gap *= 1.07
+    place(x, tick(1500, 0.07) * 0.8, 1.42)
+    place(x, tick(1650, 0.05) * 0.45, 1.6)
+    place(x, tick(1700, 0.04) * 0.25, 1.71)
+    save("pencil_roll", reverb(x, 0.18, dur=0.8, decay=0.35), 0.7)
+
+    # three slow knocks on a window pane: a dull thump, the glass ringing
+    def knock(k=1.0):
+        dd = 0.5; t = t_axis(dd)
+        thump = np.sin(2 * np.pi * np.cumsum(170 * np.exp(-t * 18) + 95) / SR) * np.exp(-t / 0.05)
+        ring = sum(np.sin(2 * np.pi * f * t + r.uniform(0, 6)) * np.exp(-t / tau) for f, tau in ((880, 0.09), (1430, 0.06), (2710, 0.035)))
+        click = biquad(nz(dd), "bp", 3200, 1.0) * np.exp(-t / 0.006)
+        return (thump * 1.0 + ring * 0.12 + click * 0.5) * k
+    d = 2.6; x = np.zeros(int(d * SR))
+    for i, (at, k) in enumerate(((0.05, 0.8), (0.85, 0.85), (1.65, 1.0))):
+        place(x, knock(k), at)
+    save("knock_glass", reverb(x, 0.3, dur=1.4, decay=0.5), 0.85)
+
+    # hands and a face slam into the glass: a crack, the pane booming and rattling in its frame
+    d = 2.2; t = t_axis(d)
+    boom = np.sin(2 * np.pi * np.cumsum(120 * np.exp(-t * 9) + 48) / SR) * np.exp(-t / 0.28)
+    crack = biquad(nz(d), "hp", 1500) * np.exp(-t / 0.02)
+    rattle = biquad(nz(d), "bp", 1900, 2.0) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 23 * t))) * np.exp(-t / 0.22) * 0.6
+    ring = sum(np.sin(2 * np.pi * f * t + r.uniform(0, 6)) * np.exp(-t / tau) for f, tau in ((740, 0.5), (1210, 0.35), (2230, 0.2), (3330, 0.12)))
+    x = np.tanh((boom * 1.3 + crack * 0.9 + rattle + ring * 0.12) * 1.6)
+    save("glass_bang", reverb(x, 0.35, dur=2.0, decay=0.7), 0.97)
+
+    # one drip of water on the desk
+    d = 0.7; t = t_axis(d)
+    f = 700 + 1300 * np.clip(t / 0.025, 0, 1)
+    x = osc_sin(f) * np.exp(-t / 0.035)
+    place(x, tick(3200, 0.02, 0.4) * 0.2, 0.0)
+    save("drip", reverb(x, 0.35, dur=0.7, decay=0.4), 0.6)
+
+    # he runs: heavy, fast steps getting closer (from the game's own footsteps)
+    steps = [read_mp3(os.path.join(OUT, f"step_{i}.mp3")) for i in (1, 2, 3, 4)]
+    d = 1.9; x = np.zeros(int(d * SR))
+    at, gap, k = 0.0, 0.24, 0.45
+    for i in range(9):
+        st = steps[i % 4]
+        st = biquad(st, "lp", 1800) * 1.6 + biquad(st, "lp", 160) * 1.2
+        place(x, st * k, at)
+        at += gap; gap = max(0.13, gap * 0.9); k = min(1.4, k * 1.13)
+    save("run_steps", np.tanh(x * 1.3), 0.95)
+
+    # a new stab: a low dissonant brass/string cluster with a hard transient and a sub thump
+    d = 2.6; t = t_axis(d)
+    c = np.zeros_like(t)
+    for semis in (0, 1, 6, 11, 12, 13):
+        fr = 196 * 2 ** (semis / 12) * (1 + 0.004 * np.sin(2 * np.pi * (6 + semis * 0.3) * t))
+        c += osc_saw(fr)
+    c = biquad(c / 6, "lp", 2600) * np.clip(t / 0.004, 0, 1) * np.exp(-t / 0.75)
+    hit = biquad(nz(d), "bp", 2400, 0.7) * np.exp(-t / 0.01) * 0.8
+    sub = np.sin(2 * np.pi * np.cumsum(90 * np.exp(-t * 7) + 38) / SR) * np.exp(-t / 0.5)
+    save("stab", reverb(np.tanh((c + hit + sub * 0.9) * 1.4), 0.45, dur=2.6, decay=0.85), 0.97)
+
+    # the scream, backwards: a swell that ends on a cut (right before a lunge)
+    sc = read_mp3(os.path.join(OUT, "scream.mp3"))
+    sw = sc[::-1][-int(1.9 * SR):]
+    t = t_axis(len(sw) / SR)
+    sw = sw * (t / t[-1]) ** 2.2
+    save("rev_scream", sw, 0.85)
+
+    # a door opening by itself, very slowly: stick-slip creaks through resonant wood
+    d = 2.8; t = t_axis(d)
+    rate = 34 - 18 * t / d + 6 * np.sin(2 * np.pi * 0.9 * t)
+    ph = np.cumsum(rate) / SR
+    pulses = (np.diff(np.floor(ph), prepend=0) > 0).astype(float) * (0.6 + 0.4 * r.random(len(t)))
+    body = biquad(pulses, "bp", 420, 6) + biquad(pulses, "bp", 980, 8) * 0.7 + biquad(pulses, "bp", 2100, 10) * 0.35
+    env = np.clip(t / 0.15, 0, 1) * np.clip((d - t) / 0.4, 0, 1)
+    save("door_creak", reverb(body * env, 0.35, dur=1.6, decay=0.6), 0.75)
+
+    # a rope creaking under weight (he hangs from the ceiling)
+    d = 2.2; x = np.zeros(int(d * SR))
+    for at, f0 in ((0.1, 520), (1.15, 610)):
+        dd = 0.6; t = t_axis(dd)
+        ph = np.cumsum(55 + 25 * np.sin(np.pi * t / dd)) / SR
+        p = (np.diff(np.floor(ph), prepend=0) > 0).astype(float)
+        cr = (biquad(p, "bp", f0, 9) + biquad(p, "bp", f0 * 2.3, 9) * 0.5) * np.sin(np.pi * t / dd)
+        place(x, cr, at)
+    save("rope_creak", reverb(x, 0.3, dur=1.2, decay=0.5), 0.6)
+
+    # the face flash: a sharp tick of noise with a high whine and a thump
+    d = 0.45; t = t_axis(d)
+    x = biquad(nz(d), "hp", 900) * np.exp(-t / 0.03) * 0.9 + osc_sin(np.full(len(t), 3150.0)) * np.exp(-t / 0.08) * 0.35
+    x += np.sin(2 * np.pi * np.cumsum(110 * np.exp(-t * 20) + 45) / SR) * np.exp(-t / 0.09) * 0.8
+    save("flash_tick", np.tanh(x * 1.5), 0.9)
+
+    # the school bell rings, then winds down like a dying tape (the fake bell)
+    bl = read_mp3(os.path.join(OUT, "bell.mp3"))
+    n = len(bl)
+    tt = np.arange(n) / SR
+    rate = np.where(tt < 1.4, 1.0, np.maximum(0.28, 1.0 - (tt - 1.4) * 0.42))
+    y = varispeed(bl, rate)
+    y = y[: int(4.2 * SR)]
+    t = t_axis(len(y) / SR)
+    y *= np.clip((4.2 - t) / 1.2, 0, 1)
+    save("bell_bend", y, 0.9)
+
+
 if __name__ == "__main__":
     import sys
     print("Synthesising sound effects ->", OUT)
+    if "p8" in sys.argv:  # the new jump scares
+        make_p8()
+        raise SystemExit(0)
     if "p3" in sys.argv:  # Phase 3: blame, the note on his back, the laser pointer
         make_p3()
         raise SystemExit(0)

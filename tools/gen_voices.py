@@ -763,6 +763,37 @@ SUBS.update({
     "t_bl_friend": "Your... friend. Interesting.",
 })
 
+# ---------------- New jump scares (src/scares.js): the pencil, the wrong seat, the sprint, the hanging,
+# the window, the fake bell.
+TEACHER.update({
+    "t_wrongseat": "Wrong | seat.",
+    "t_norunning": "No | running | in | class.",
+    "t_lookingfor": "Looking | for | this?",
+    "t_notover2": "The bell | is | not | for | you.",
+})
+SUBS.update({
+    "t_wrongseat": "Wrong... seat.",
+    "t_norunning": "No... running... in... class.",
+    "t_lookingfor": "Looking... for... this?",
+    "t_notover2": "The bell... is... not... for... you.",
+})
+TEACHER_WHISPER.update({
+    "tw_found": ("Found | you.", "Found... you."),
+    "tw_uphere": ("Up | here.", "Up... here."),
+    "tw_letmein": ("Let | me | in.", "Let... me... in."),
+})
+SAM.update({
+    "s_pencil": "Dude. You dropped your pencil.",
+    "s_where": "Wait. Where did he go?",
+    "s_stare": "Bro. Why are you staring at me?",
+})
+NORA.update({
+    "n_knock": "Did you hear that? The window.",
+    "n_door": "Who opened the door?",
+    "n_stare": "What? Why are you staring at me like that?",
+    "n_psst": "Psst! Hey! Over here!",
+})
+
 # Voices inside the meme clips on the phones: (espeak voice, speed, pitch, rubberband pitch, text)
 CLIPV = {
     "v_br_pencil": ("it", 125, 30, 0.86, "Matitino Gommarino!"),

@@ -632,6 +632,39 @@ export const ENDINGS = {
 // ================= Phase 6: reasons to replay =================
 // (src/replay.js: report card, unlocks, Mr. Hale's notes, the daily class; src/morepranks.js; src/psst.js; src/secrets.js)
 
+// ---------------- the new jump scares (src/scares.js). Each one plays on every player's own screen.
+// pool: what the scare director (game.js) may pick. min = first hour (0-3) in Free Class, w = weight,
+// cool = seconds before the same one again, once = one per class, strong = one of his big scares,
+// solo = not online (it needs Sam and Nora), free = only in Free Class (in the story it is a set piece).
+export const SCARES = {
+  pool: {
+    pencil: { min: 0, w: 2, once: true },
+    window: { min: 0, w: 2, cool: 150 },
+    flash: { min: 1, w: 1.5, cool: 70, fx: true },
+    wrongseat: { min: 1, w: 2, cool: 200, strong: true, solo: true },
+    sprint: { min: 2, w: 2.5, cool: 160, strong: true },
+    hanging: { min: 2, w: 2.5, cool: 160, strong: true },
+    fakebell: { min: 3, w: 2, once: true, strong: true, free: true },
+  },
+  wait: { pencil: 25, wrongseat: 14, sprint: 10, window: 12 }, // seconds it waits for you to look before it comes anyway
+  len: { pencil: 12, wrongseat: 12, sprint: 10, window: 10, hanging: 9, fakebell: 8, flash: 1 }, // (the host waits this long when it can't watch)
+  dim: 0.7,            // the lights after he vanishes from the front
+  runSpeed: 7.5,       // metres per second (he walks at about 1)
+  lunge: [1.0, 0.42, 0.16], // his face in yours: from, to (metres from your eyes), seconds
+  flashDur: 0.09,      // the face flash, seconds on screen
+  hint: 'Your pencil fell on the floor. <b>Look down</b> to find it.',
+  hintTouch: 'Your pencil fell on the floor. <b>Drag down</b> to look at the floor.',
+  fake: {              // the fake bell: a fake "you made it" screen, then he tears through it
+    story: [['PERIOD 1 COMPLETE', 'The bell rang. Nobody moved.<br><i>Kevin\'s desk is still empty.</i>'],
+      ['PERIOD 2 COMPLETE', 'Mr. Hale has been missing since Friday.<br><i>The substitute is wearing his glasses.</i>'],
+      ['PERIOD 3 COMPLETE', 'Kevin was back for a moment.<br><i>His eyes were black.</i>'],
+      ['CLASS DISMISSED', 'You survived Madi\'s class.<br>See you tomorrow.']],
+    free: ['CLASS DISMISSED', 'You survived Madi\'s class.<br>See you tomorrow.'],
+    next: ['NEXT PERIOD', 'MAIN MENU'],
+    tear: 'CLASS IS NOT OVER',
+  },
+};
+
 // ---------------- the report card
 // One row per thing he grades: [subject, stat key, points for each one, the most it can give (or take), his comment].
 // "{n}" in a comment is the number. The stat keys are the counters of src/stats.js (the player's own, then the whole

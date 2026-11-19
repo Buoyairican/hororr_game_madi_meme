@@ -15,12 +15,14 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 
 | Time | Period | What happens |
 |---|---|---|
-| 8:30 AM | Roll Call | Footsteps in the hallway, a face in the door window. He walks in, writes his name and claps the chalk off his hands. Roll call: Kevin is absent. Nora passes you a note. Kevin's empty chair slides back by itself. Sam sends you a meme video: watch all of it without him seeing. Sam dares you to repeat what he says. The storm gets worse. |
-| 9:30 AM | The Lesson | "Open your books." Nobody has books. Ask him dumb questions: he walks to his laptop to look them up, and the projector shows the whole class what he searches for. He wipes Mr. Hale's glasses. Sam dares you to hit his back with a paper ball. The school speaker calls for Mr. Hale, and he tears it off the wall. The lights go out, and when they come back he is folded over your desk: "Any... questions?" Sam's note has to reach Nora without him seeing it (if he catches you, he reads it out loud). Nora holds her phone out: "Psst! You have to see this!" Then the projector shows his search history. |
-| 10:30 AM | Pop Quiz | He quizzes you to your face, asks how many students are in the class, and Kevin is back for a moment. Sam slips you a laser pointer and a KICK ME note. Then he walks between the desks (past your desk: stick it on) and stops right behind your chair. Sam needs to show you a video right now. The power goes out: every flash of lightning shows him a little closer. Don't make a sound. |
-| 11:30 AM | Detention | Nora has a plan. The clock runs backwards. Mr. Hale texts you, and Nora wants to know what is on his laptop: slip off your chair and sneak to his desk. He puts Mr. Hale's glasses down on it. "There is no lunch." The speaker he tore out comes back on: *the school is closed today, there is nobody in the building.* Somebody sends you a video of this classroom, filmed from the back... At the last bell, ask him something he can't look up. Three different endings. |
+| 8:30 AM | Roll Call | Footsteps in the hallway, a face in the door window. He walks in, writes his name and claps the chalk off his hands. Roll call: Kevin is absent. Nora passes you a note. Kevin's empty chair slides back by itself. Your pencil rolls off your desk... look down to find it. Sam sends you a meme video: watch all of it without him seeing. Sam dares you to repeat what he says. The storm gets worse. |
+| 9:30 AM | The Lesson | "Open your books." Nobody has books. Ask him dumb questions: he walks to his laptop to look them up, and the projector shows the whole class what he searches for. He wipes Mr. Hale's glasses. Sam dares you to hit his back with a paper ball. The school speaker calls for Mr. Hale, and he tears it off the wall. The lights go out, and when they come back he is folded over your desk: "Any... questions?" He vanishes; Nora whispers "Psst! Over here!"... it isn't Nora in her seat. The bell rings early and PERIOD 2 COMPLETE comes up... Sam's note has to reach Nora without him seeing it (if he catches you, he reads it out loud). Nora holds her phone out: "Psst! You have to see this!" Then the projector shows his search history. |
+| 10:30 AM | Pop Quiz | He quizzes you to your face, asks how many students are in the class, and Kevin is back for a moment. The door creaks open on the black corridor, and he runs at you. Sam slips you a laser pointer and a KICK ME note. Then he walks between the desks (past your desk: stick it on) and stops right behind your chair. Sam needs to show you a video right now. The power goes out: every flash of lightning shows him a little closer. Don't make a sound. |
+| 11:30 AM | Detention | Nora has a plan. The clock runs backwards. Something drips on your desk. Mr. Hale texts you, and Nora wants to know what is on his laptop: slip off your chair and sneak to his desk. He puts Mr. Hale's glasses down on it. "There is no lunch." The speaker he tore out comes back on: *the school is closed today, there is nobody in the building.* Somebody sends you a video of this classroom, filmed from the back... At the last bell, ask him something he can't look up. Three different endings. |
 
 **Free Class**: the whole morning in one go (about 5 minutes), getting darker and stranger every hour. His big scares (behind you, the neck, the lights) start from the halfway point, and at least one always comes before the bell.
+
+**Jump scares** (`src/scares.js`): your **pencil** rolls off your desk and his face comes up out of the floor next to it; your friend whispers "Psst! Over here!" and it is **him in their seat**; the door creaks open and he **sprints** at you out of the black corridor; he **hangs upside down** from the ceiling in front of you; three knocks and "Let... me... in." and he slams into the **window**; the **bell** rings, "PERIOD COMPLETE" comes up... and tears; his **face flashes** on the screen for a blink. Each one waits until you look (or comes anyway), and none of them is ever a strike. Online, every player gets it on their own screen at the same moment.
 
 **Scares**: the room acts up in every period (the storm, the lights, a face at the door, a book falling), gently at first. While a scare is on, the task list fades out of its way and the class stops giggling.
 
@@ -97,6 +99,8 @@ How it works: the host's browser runs the game and streams it to the friends ove
 On a local server or GitHub Pages there is no `api/turn`, so there is no relay. Players on the same Wi-Fi can still play together.
 
 ## How to play
+
+**HOW TO PLAY** in the menu (and the pause menu) explains it in a few short picture pages, with the keys on a computer and the touch buttons on a phone; "MORE TRICKS" on the last page has every rule below. The very first class you start shows the short version first (SKIP to jump in).
 
 | | Desktop | Phone / tablet |
 |---|---|---|
@@ -221,6 +225,8 @@ src/ghost.js               online: the ghost kid (caught, you haunt the class fr
 src/team.js                online: the decoy (a question keeps him busy while a friend is at his desk), blaming a friend
 src/mic.js                 the optional microphone: only how loud you are, never recorded or sent
 src/scoreboard.js          online: WHO CAUSED THE MOST CHAOS on the end screen (points and titles)
+src/scares.js              the jump scares: the pencil, the wrong seat, the sprint, the hanging, the window, the fake bell, the face flash
+src/howto.js               HOW TO PLAY: the picture pages (and the short version before your very first class)
 src/profile.js             what your browser keeps between classes (unlocks, notes, best scores), with a fallback when storage is blocked
 src/notebook.js            the notebook screen (notes, unlocks, records) and the DAILY CLASS / NOTEBOOK menu entries
 src/memes.js, src/clips.js the meme clips (original cartoons drawn live) and the clip player
@@ -268,7 +274,8 @@ pip install numpy pillow pyfqmr
 python3 tools/make_face_texture.py   # face texture + eye glow
 python3 tools/build_characters.py    # all characters (downloads the CC0 MakeHuman base mesh once)
 python3 tools/gen_voices.py          # voice lines that are missing (--all rebuilds every line)
-python3 tools/gen_sfx.py             # all sound effects (add 'memes', 'v4', 'v5', 'v6', 'v7', 'p3', 'p4', 'p6' or 'dread' to build only one group)
+python3 tools/gen_sfx.py             # all sound effects (add 'memes', 'v4', 'v5', 'v6', 'v7', 'p3', 'p4', 'p6', 'p7', 'p8' or 'dread' to build only one group)
+node tools/howto_shots.js            # the HOW TO PLAY pictures, from the game (needs Playwright and python3 tests/serve.py 8765)
 python3 tools/pack_audio.py OUT      # every sound in one file (OUT.mp3 + OUT.json), for hosts that limit the number of
                                      # files (the claude.ai preview); the page then sets window.AUDIO_PACK = 'OUT'
 ```

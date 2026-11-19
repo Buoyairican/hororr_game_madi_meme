@@ -333,3 +333,21 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   other phases set `game.extrasAuto = false` (no note going round by itself, no ghost after a strike, no decoy
   hints), like `dreadAuto`; `mp`, `mp_chaos` and the network tests keep them on. In a page that allows no
   microphone (an embed or a preview: the permissions policy says no) the setting says so and stays off.
+
+### [x] After Phase 7: More jump scares, a clear How to Play
+- A playtest counted 2, 1, 2 and 8 loud jump scares in periods 1–4 and 1–2 in a Free Class: the first half was
+  not scary. New scares (`src/scares.js`, numbers and texts in `SCARES`, `src/data.js`), each a "local" scene
+  that waits until you look (or comes anyway) and is never a strike (`scareBusy`: he sees and hears nothing):
+  **the pencil** (P1; it rolls off your desk, his face comes up out of the floor next to it), **the wrong seat**
+  (P2; "Psst! Over here!": it is him in your friend's chair; not online), **the fake bell** (P2; "PERIOD 2
+  COMPLETE" tears; in Free Class once, in the last hour), **the sprint** (P3; the door creaks open, two eyes, he
+  runs at you), **the hanging** (P4; drips, the lights die, he hangs upside down in front of you), **the window**
+  (three knocks, "Let... me... in.", he slams into the glass) and **the face flash** (his face for a blink).
+  The director (`scareList`) picks them too; the wrong seat, the sprint, the hanging and the fake bell count as
+  his strong scares (one is owed before the bell in Free Class). Online the host tells every friend to run the
+  same scene on their own screen (`gscare`; the friend's teacher, lights and blackout are local meanwhile).
+  11 sounds (`gen_sfx.py p8`), 14 voice lines. Tests: `tests/scares.js`, `tests/mp_scares.js`.
+- **How to Play** (`src/howto.js`): 7 short pages with a real game picture each (`tools/howto_shots.js`,
+  `assets/ui/howto/`), keys on a computer and touch buttons on a phone; page 7 "MORE TRICKS" keeps every rule
+  as tiles that open. The very first class shows pages 1–6 first (SKIP; `madiclass.howto` in the browser;
+  debug URLs skip it unless `?howto=first`). Also in the pause menu. Tests: `tests/ui.js`.

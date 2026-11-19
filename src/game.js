@@ -21,6 +21,7 @@ import { GhostMixin } from './ghost.js';
 import { TeamMixin } from './team.js';
 import { MicMixin } from './mic.js';
 import { ScoreboardMixin } from './scoreboard.js';
+import { ScaresMixin } from './scares.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
@@ -115,6 +116,7 @@ export class Game {
     this.setupDread();
     this.setupMorePranks(); this.setupSecrets(); this.setupReplay(); // Phase 6: unlocked pranks, the closet, report cards / notes / the daily class
     this.setupGhost(); this.setupMic(); // Phase 7: the ghost kid's corner (the spare chair), the microphone
+    this.setupScares(); // the new jump scares (src/scares.js)
     this.extrasAuto = true; // Phase 7 online: the note going round by itself, a ghost after a strike, the decoy hints (tests of other things turn them off)
     this.reset('free', 0);
   }
@@ -258,6 +260,7 @@ export class Game {
     this.resetDread();
     this.resetMorePranks(); this.resetSecrets(); this.resetReplay();
     this.resetChain(); this.resetGhost(); this.resetTeam(); this.ui.chaos(null); // Phase 7: the note chain, ghosts, teamwork, the scoreboard
+    this.resetScares();
     this.searching = false;
     this.ui.clearTransient();
     this.ui.setObjectives([]);
@@ -458,7 +461,7 @@ export class Game {
     const head = T.headWorld(v2);
     const fwd = T.forward(v3);
     const present = this.present && T.root.visible;
-    const canSee = present && W.master > 0.3 && this.blackout < 0.5 && !this.blind && !this.typing && !this.dozing && !this.dancing;
+    const canSee = present && W.master > 0.3 && this.blackout < 0.5 && !this.blind && !this.typing && !this.dozing && !this.dancing && !this.scareBusy;
     const blur = this.halfBlind ? SNEAK.glasses.halfSee : 99; // (without his glasses he only sees what is close)
     for (const p of this.players) {
       if (!p.local) {
@@ -538,7 +541,7 @@ export class Game {
       if (ph.mode === 'memes' && aim && !aim.kind) pr = this.input.touch ? `tap SHOW · show ${aim.name} this video` : `[R] · show ${aim.name} this video`;
     } else if (aim && !me.talk) pr = this.chainPrompt(aim) || (this.input.touch ? `hold TALK · whisper to ${aim.name}` : `hold [E] · whisper to ${aim.name}`);
     this.chainVisuals(!!me.talk); // (passing the note: its meter)
-    ui.prompt(this.vidZoom ? '' : pr); // watching a phone held out to you: nothing in the way
+    ui.prompt(this.vidZoom || this.scLocalOn ? '' : pr); // watching a phone held out to you, a scare: nothing in the way
     ui.phoneControls(aiming ? 'aim:' + me.aim.kind : inp.phone && !blocked ? this.phone.mode : null, this.input.touch);
   }
 
@@ -1172,6 +1175,7 @@ export class Game {
 
   // ------------------------------------------------------------- anger (gentle: scary fun, not hardcore)
   updateAnger(dt) {
+    if (this.scareBusy) return; // (a scare is never a strike: he hears nothing meanwhile)
     let add = 0;
     for (const p of this.players) {
       p.heat *= Math.exp(-dt / 8);
@@ -2003,6 +2007,7 @@ export class Game {
       { id: 'behind', min: 2, w: 3, cool: 100, strong: true, brain: () => this.scareBehind() },
       { id: 'neck', min: 2, w: 1.5, cool: 70, strong: true, brain: () => this.scareNeck() },
       { id: 'flickapproach', min: 2, w: 1.5, cool: 70, strong: true, brain: () => this.scareFlickerApproach() },
+      ...this.newScares(), // the pencil, the window, the face flash, the wrong seat, the sprint, the hanging, the fake bell (src/scares.js)
     ];
     return all.filter((s) => s.w > 0 && (this.scarePool ? this.scarePool.includes(s.id) : p >= s.min) && !(s.once && this.scareDone[s.id]) && !(s.cool && this.t - (this.lastScare[s.id] ?? -1e9) < s.cool));
   }
@@ -2266,6 +2271,12 @@ export class Game {
       ph.home(); W.setMaster(1); this.blackoutTarget = 0;
       T.leanTarget = 0; T.eyeGlow = 0.12; T.faceGlow = 0.08; this.eventLock = false;
     }
+  }
+
+  /** a story set piece from src/scares.js (you in your chair, him free) */
+  *scareBeat(id) {
+    yield* this.until(() => this.ready() && this.canScareMe(), 30);
+    yield* this.beat(() => this.scareScene(id));
   }
 
   /** blackout, and when the lights come back he is somewhere else */
@@ -2615,6 +2626,8 @@ export class Game {
     yield* this.eventSlot(0, 14); // (quiet windows: if today's setup put an event here, it happens now)
     yield* this.storyNote(0);
     yield* this.lesson(12);
+    yield* this.scareBeat('pencil'); // your pencil falls... look down (src/scares.js)
+    yield* this.lesson(6);
     yield* this.kevinChair();
     yield* this.eventSlot(1, 12);
     // Sam sends you a video
@@ -2628,7 +2641,7 @@ export class Game {
     yield* this.until(() => this.objDone('echo'), 60);
     if (this.objDone('echo')) { yield* this.until(() => this.ready(), 20); yield* this.whisper(sam, 's_didit'); }
     this.callsOn = true; this.nextCall = 25;
-    this.scaresOn = true; this.nextScare = 30; this.scarePool = ['lightning', 'flicker', 'door', 'book'];
+    this.scaresOn = true; this.nextScare = 30; this.scarePool = ['lightning', 'flicker', 'door', 'book', 'window'];
     yield* this.eventSlot(2, 25);
     // the storm
     yield* this.beat(() => this.windowBeat());
@@ -2793,7 +2806,7 @@ export class Game {
     if (!this.objDone('laptop')) yield* this.beat(() => this.laptopLookup('how to teach lesson 7', 'Step 1: Know lesson 7.'), 2);
     yield* this.until(() => this.objDone('laptop'), 25);
     this.callsOn = true; this.nextCall = 20; this.buzzOn = true; this.nextBuzz = 30;
-    this.scaresOn = true; this.nextScare = 35; this.scarePool = ['lightning', 'flicker', 'door', 'book', 'headturn', 'whisper'];
+    this.scaresOn = true; this.nextScare = 35; this.scarePool = ['lightning', 'flicker', 'door', 'book', 'headturn', 'whisper', 'window', 'flash'];
     yield* this.eventSlot(1, 25);
     // his glasses
     yield* this.until(() => this.ready(), 30);
@@ -2806,6 +2819,8 @@ export class Game {
     // Sam's dare: a paper ball at his back
     yield* this.prankDare(sam);
     yield* this.lesson(12);
+    yield* this.scareBeat('wrongseat'); // "psst! over here!"... it isn't your friend
+    yield* this.lesson(8);
     yield* this.storyNote(1);
     yield* this.eventSlot(2, 14);
     // the office calls for Mr. Hale
@@ -2831,7 +2846,9 @@ export class Game {
     yield* this.whisper(nora, 'n_room13');
     yield* this.beat(() => this.actWrite('EYES ON THE BOARD'));
     this.memesOn = true;
-    yield* this.lesson(22);
+    yield* this.lesson(10);
+    yield* this.scareBeat('fakebell'); // the bell rings early... "PERIOD 2 COMPLETE"... it tears
+    yield* this.lesson(16);
     this.memesOn = false; this.callsOn = false; this.buzzOn = false;
     if (this.buzz) this.resolveBuzz();
     yield* this.until(() => !this.cutscene && !this.memeBusy, 40);
@@ -2918,7 +2935,7 @@ export class Game {
     this.ui.card(CHAPTERS[2]);
     this.idleKind = 'none';
     this.allowEcho = true; this.allowAsk = true; this.allowPrank = true; this.projAuto = true;
-    this.scaresOn = true; this.nextScare = 70; this.scarePool = ['lightning', 'flicker', 'door', 'whisper', 'book'];
+    this.scaresOn = true; this.nextScare = 70; this.scarePool = ['lightning', 'flicker', 'door', 'whisper', 'book', 'window', 'flash', 'pencil'];
     this.hintControls();
     this.setObjectives([{ id: 'bell', text: 'Survive until 11:30' }]);
     // he is already facing you. He has been for a while.
@@ -2940,6 +2957,7 @@ export class Game {
     yield* this.eventSlot(0, 22);
     yield* this.storyNote(2);
     yield* this.lesson(12);
+    yield* this.scareBeat('sprint'); // the door creaks open on the black corridor... he RUNS at you
     // Sam slips you a laser pointer and a KICK ME note (src/blame.js)
     yield* this.whisper(sam, 's_bl_give');
     this.giveTools();
@@ -3132,12 +3150,13 @@ export class Game {
     yield* this.wait(1.2);
     yield* this.whisper(sam, 's_plan', 1);
     this.addObjective({ id: 'final', text: 'At the bell, ask him something he can\'t look up' });
-    this.scaresOn = true; this.nextScare = 30; this.scarePool = ['lightning', 'flicker', 'students', 'boardmsg', 'whisper', 'neck', 'headturn', 'door'];
+    this.scaresOn = true; this.nextScare = 30; this.scarePool = ['lightning', 'flicker', 'students', 'boardmsg', 'whisper', 'neck', 'headturn', 'door', 'flash', 'window', 'hanging', 'sprint', 'wrongseat'];
     yield* this.eventSlot(0, 25);
     yield* this.whisper(sam, 's_hungry');
     yield* this.lesson(10);
     yield* this.beat(() => this.saySomething('t_nolunch'));
     yield* this.lesson(12);
+    yield* this.scareBeat('hanging'); // drip... drip... the lights die... he hangs from the ceiling in front of you
     this.fx.push(this.clockBackwards());
     yield* this.lesson(16);
     // a message from Mr. Hale
@@ -3548,7 +3567,7 @@ export class Game {
     // a scare owns the screen and the room: the task list fades, the class stops giggling
     const scared = playing && (this.scareFear > 0.4 || (this.dreadFear || 0) > 0.6 || this.redFlash > 0.05 || this.blackout > 0.5);
     if (scared !== this.hudScared) { this.hudScared = scared; document.body.classList.toggle('scared', scared); }
-    this.audio.hush = playing && (scared || this.scareFear > 0.2 || this.blackout > 0.3);
+    this.audio.hush = playing && (scared || this.scareFear > 0.2 || this.blackout > 0.3 || !!this.scLocalOn);
     this.blackout = damp(this.blackout, this.blackoutTarget, 25, dt);
     this.glitch = Math.max(0, this.glitch - dt * 0.8);
     this.redFlash = Math.max(0, this.redFlash - dt * 0.6);
@@ -3603,3 +3622,4 @@ function clipLoud(sh) {
 
 Object.assign(Game.prototype, DreadMixin); // real dread (src/dread.js)
 Object.assign(Game.prototype, ChainMixin, GhostMixin, TeamMixin, MicMixin, ScoreboardMixin); // Phase 7: online extras
+Object.assign(Game.prototype, ScaresMixin); // the new jump scares (src/scares.js)
