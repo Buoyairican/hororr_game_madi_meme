@@ -94,6 +94,7 @@ export const SecretMixin = {
   // ---------------------------------------------------------------- CLASS CANCELLED: his glasses break
   /** paper hit his head (host / solo). True: that was the last time, the ending takes over. */
   glassesHit(p) {
+    if (this.glassesAt !== 'face') return false;
     this.note(p, 'glassesOff');
     this.glassHits = (this.glassHits || 0) + 1;
     if (this.mode !== 'free') return false; // in the story they are Mr. Hale's glasses: they hold

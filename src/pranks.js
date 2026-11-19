@@ -743,11 +743,11 @@ export const PrankMixin = {
   *reactPrank(p, part, origin, n) {
     const T = this.teacher;
     const home = new THREE.Vector3(T.pos.x, 0, T.pos.z), homeFace = T.facing;
-    let moved = false;
+    let moved = false, flew = false;
     this.prankBusy = true;
     try {
       T.clap = null; T.setPose('rest');
-      if (part === 'head') yield* this.glassesFlyOff();
+      if (part === 'head' && this.glassesAt === 'face') { flew = true; yield* this.glassesFlyOff(); }
       else yield* this.wait(part === 'board' ? 0.35 : 0.45);
       T.lookAt(origin, 9);
       T.facePoint(origin, 7);
@@ -765,7 +765,7 @@ export const PrankMixin = {
     } finally {
       this.prankBusy = false; this.searching = false;
       T.leanTarget = 0; T.crouchTarget = 0;
-      if (T.glasses.parent !== T.head && !T.glassesHeld) { T.wearGlasses(); this.blind = false; } // (even when the class just ended)
+      if (flew && T.glasses.parent !== T.head && !T.glassesHeld) { T.wearGlasses(); this.blind = false; } // (even when the class just ended)
     }
   },
 
