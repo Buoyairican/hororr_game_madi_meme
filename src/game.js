@@ -882,7 +882,7 @@ export class Game {
   }
 
   // ------------------------------------------------------------- bully: dumb questions
-  canAsk(p = this.me) { return this.allowAsk && !this.cutscene && !this.lockBully && !this.eventLock && !this.classEvent && !p.qBusy && this.present && !(p.local ? this.choice : p.choice); }
+  canAsk(p = this.me) { return this.allowAsk && !this.cutscene && !this.lockBully && !this.eventLock && !this.classEvent && !this.blameBusy && !p.qBusy && this.present && !(p.local ? this.choice : p.choice); }
 
   openAsk(p = this.me) {
     const qs = [];
@@ -903,10 +903,12 @@ export class Game {
     this.idleT = 0;
     p.qBusy = true;
     this.mischief += 10;
-    this.timers.after(h ? h.duration + 0.2 : 1.5, () => {
+    const fire = () => {
+      if (this.eventLock || this.scareBusy || this.blameBusy) { this.timers.after(0.5, fire); return; }
       if (this.state !== 'playing' || this.cutscene) { p.qBusy = false; return; }
       this.interrupt(this.reactQuestion(q, p.qCount, p));
-    });
+    };
+    this.timers.after(h ? h.duration + 0.2 : 1.5, fire);
   }
 
   *reactQuestion(q, n, p = this.me) {
