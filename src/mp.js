@@ -397,6 +397,12 @@ export class MP {
     (ui.toast.local || ui.toast).call(ui, `${p.local ? 'YOU GOT' : p.name.toUpperCase() + ' GOT'} CAUGHT<br>STRIKE ${n} / ${max}`, 2.8);
     for (const q of this.g.players) if (!q.local) this.net.send(q.id, { t: 'ui', f: 'toast', a: [`${q === p ? 'YOU GOT' : p.name.toUpperCase() + ' GOT'} CAUGHT<br>STRIKE ${n} / ${max}`, 2.8] });
   }
+  /** the moment he catches somebody: everybody sees who (the strike comes later) */
+  caughtToast(p) {
+    const ui = this.g.ui;
+    (ui.toast.local || ui.toast).call(ui, `HE CAUGHT ${p.local ? 'YOU' : p.name.toUpperCase()}`, 2.5);
+    for (const q of this.g.players) if (!q.local) this.net.send(q.id, { t: 'ui', f: 'toast', a: [`HE CAUGHT ${q === p ? 'YOU' : p.name.toUpperCase()}`, 2.5] });
+  }
   openChoice(p, title, labels, timeout) { this.net.send(p.id, { t: 'choice', title, labels, timeout }); }
   closeChoice(p) { this.net.send(p.id, { t: 'choiceClose' }); }
   jumpscare(kind) { this.broadcastNow({ t: 'jump', kind }); }

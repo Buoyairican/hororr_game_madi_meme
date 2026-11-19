@@ -1914,6 +1914,7 @@ export class Game {
     this.focus = p;
     this.closeArm = null;
     this.cutscene = true;
+    if (this.mp) this.mp.caughtToast(p);
     this.interrupt(this.bustedSeq(reason, p));
   }
 
