@@ -372,13 +372,19 @@ export const ScaresMixin = {
     T.eyeGlow = 2.6; T.faceGlow = 0.04;
     W.setMaster(0.32);
     yield* this.wait(looked ? 0.6 : 0.1);
-    // he runs straight at you
+    // he runs at you: across the front of the room, then down the aisle next to your desk (never through the desks)
     this.scPlay('run_steps', { vol: 1.3 });
-    const to = _c.set(dx - this.camPos.x, 0, dz - this.camPos.z).normalize();
-    T.moveTo(this.camPos.x + to.x * 1.0, this.camPos.z + to.z * 1.0, SCARES.runSpeed);
+    const eye = this.me.eye;
+    const aisle = eye.x + (eye.x < 2.9 ? 0.75 : -0.75);
+    const legs = eye.z < -1 ? [[eye.x, eye.z - 1.4]] : [[aisle, -2.95], [aisle, eye.z - 0.3]];
     T.leanTarget = 0.25;
     let t = 0;
-    while (t < 2.4 && Math.hypot(T.pos.x - this.camPos.x, T.pos.z - this.camPos.z) > 1.35) { t += this.dt; yield; }
+    for (const [x, z] of legs) {
+      T.moveTo(x, z, SCARES.runSpeed);
+      while (t < 3 && T.moving && Math.hypot(T.pos.x - this.camPos.x, T.pos.z - this.camPos.z) > 1.35) {
+        t += this.dt; T.lookAt(this.camPos, 30); yield;
+      }
+    }
     T.moveTarget = null;
     // in your face, wherever you look
     const dir = this.scFaceFront(SCARES.lunge[0]);
