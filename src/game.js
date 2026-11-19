@@ -3468,6 +3468,7 @@ export class Game {
   }
 
   *freeEnding() {
+    if (this.choice) this.pickChoice(-1);
     const T = this.teacher, W = this.world, A = this.audio;
     this.cutscene = true;
     this.ui.clearTransient();
