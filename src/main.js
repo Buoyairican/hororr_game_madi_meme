@@ -163,6 +163,9 @@ async function boot() {
     if (mode === 'daily') game.startDaily(); // the daily class: the day decides Easy or Hard (src/replay.js)
     else game.start(mode, ch);
   };
+  const unrotate = () => { if (input.touch && innerHeight <= innerWidth && !$('rotate').classList.contains('hidden')) { ui.show('rotate', false); if (pending) { const p = pending; pending = null; launch(...p); } } };
+  addEventListener('resize', unrotate);
+  addEventListener('orientationchange', () => setTimeout(unrotate, 250));
   const buildChapters = () => {
     const p = progress();
     const list = $('chapter-list');
