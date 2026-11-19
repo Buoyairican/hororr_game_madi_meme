@@ -822,7 +822,7 @@ export class Game {
       // he does not know who said it, so he goes and looks for them
       this.searching = true;
       const asked = yield* this.searchRows(n, p, 'echo');
-      if (!asked) this.anger = Math.min(85, this.anger + (n === 1 ? 6 : 14)); // (if he asked you, your answer decided that)
+      if (!asked) this.angerUp(n === 1 ? 6 : 14, 85); // (if he asked you, your answer decided that)
       T.lookAt(null, 3);
       T.leanTarget = 0; T.crouchTarget = 0;
       yield* this.walk(home.x, home.z);
@@ -921,7 +921,7 @@ export class Game {
       if (n === 3) {
         yield* this.say('t_noquestions', 0.3);
         yield* this.actStare(2);
-        this.anger = Math.min(85, this.anger + 12);
+        this.angerUp(12, 85);
         return;
       }
       // the dead stare: he does not know
@@ -930,7 +930,7 @@ export class Game {
       T.rollTarget = 0;
       if (q.type === 'instant') {
         yield* this.say(q.answer, 0.4);
-        if (q.anger) this.anger = Math.min(85, this.anger + q.anger);
+        if (q.anger) this.angerUp(q.anger, 85);
         this.giggle();
         this.completeObjective('ask');
         return;
@@ -1119,7 +1119,7 @@ export class Game {
         } else {
           this.friendSay(f, f.kind === 'sam' ? 's_hey' : 'n_hey', 1);
           f.call = null;
-          this.anger = Math.min(70, this.anger + 22);
+          this.angerUp(22, 70);
           if (this.brainIdle) this.interrupt(this.reactWarn(true));
           const ff = f;
           this.timers.after(3.2, () => {
@@ -1163,7 +1163,7 @@ export class Game {
       if (b.timer <= 0) {
         this.audio.play('ringtone', { vol: 1.15, pos: this.camPos.clone().add(v2.set(0, -0.4, 0)), ref: 1.5, reverb: 0.3 });
         this.ui.subtitle('', '♪ your phone is RINGING ♪', 'shout', 2.5);
-        this.anger = Math.min(75, this.anger + 25);
+        this.angerUp(25, 75);
         this.buzz = null;
         this.ui.phoneAlert(false);
         const g = BUZZ_GAP[this.phase];
@@ -2803,7 +2803,7 @@ export class Game {
         answered = true;
       } else {
         yield* this.say('t_answerme', 0.3);
-        this.anger = Math.min(60, this.anger + 15);
+        this.angerUp(15, 60);
         yield* this.walk(clamp(T.pos.x * 0.5, -1, 1), Math.min(-3.8, T.pos.z + 0.6), 0.6);
         T.facePoint(this.camPos, 3); T.lookAt(this.camPos, 3);
       }
@@ -2817,7 +2817,7 @@ export class Game {
       yield* this.say('t_andyou', 0.2);
       const i = yield* this.choose('Roll call', ['Say “Here.”', 'Stay silent'], 8, p);
       if (i === 0) { p.handT = 1.6; yield* this.waitVoice(this.playerSay('p_here', p), 0.4); yield* this.say('t_good1', 0.4); }
-      else { yield* this.say('t_answerme', 0.3); this.anger = Math.min(60, this.anger + 10); yield* this.actStare(1.5); }
+      else { yield* this.say('t_answerme', 0.3); this.angerUp(10, 60); yield* this.actStare(1.5); }
     }
     T.lookAt(this.camPos, 3);
     this.completeObjective('roll');
@@ -3102,17 +3102,17 @@ export class Game {
         yield* this.say('q_hale', 0.3);
         for (const b of this.world.lights.banks) b.flicker = 1.2;
         A.play('sub_hit', { vol: 0.9 }); this.scareFear = 1;
-        this.anger = Math.min(90, this.anger + 25);
+        this.angerUp(25, 90);
         yield* this.wait(1);
-      } else { yield* this.say(i < 0 ? 't_answerme' : 'q_wrong', 0.4); this.anger = Math.min(90, this.anger + 12); }
+      } else { yield* this.say(i < 0 ? 't_answerme' : 'q_wrong', 0.4); this.angerUp(12, 90); }
       yield* this.waitVoice(this.friendSay(sam, 's_five', 0), 0.5);
       yield* this.say('q_two', 0.2);
       i = yield* this.choose('What is two plus two?', ['Four.', 'Five.', 'Fish.'], 10);
       if (i >= 0) yield* this.waitVoice(this.playerSay(['p_a_four', 'p_a_five', 'p_a_fish'][i]), 0.4);
-      if (i === 0) { yield* this.say('q_wrong', 0.4); this.anger = Math.min(90, this.anger + 15); }
+      if (i === 0) { yield* this.say('q_wrong', 0.4); this.angerUp(15, 90); }
       else if (i === 1) { yield* this.say('q_correct', 0.4); this.quizScore++; this.mischief += 20; }
       else if (i === 2) { yield* this.wait(1.8); yield* this.say('q_correct', 0.4); this.quizScore++; this.mischief += 40; this.giggle(); }
-      else { yield* this.say('t_answerme', 0.4); this.anger = Math.min(90, this.anger + 12); }
+      else { yield* this.say('t_answerme', 0.4); this.angerUp(12, 90); }
     }
     if (this.quizScore >= 1) this.completeObjective('quiz');
     else this.ui.hint('You failed his quiz. He will remember that.', 4);
