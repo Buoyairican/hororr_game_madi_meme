@@ -672,7 +672,7 @@ export class Game {
       if (tk.peer) this.uiTo(tk.peer, 'subtitle', p.name, line, 'you', 2.6); // only the friend you whisper to hears it
       tk.stage = f ? 'wait' : 'peer'; tk.timer = 0;
     } else if (tk.stage === 'wait' && tk.timer > 1.3) {
-      this.friendSay(f, (this.present ? f.bag : f.earlyBag).next(), 0.35); // before he walks in, they talk about other things
+      this.friendSay(f, (this.present ? f.bag : f.earlyBag).next(), 0.35, p); // before he walks in, they talk about other things
       tk.stage = 'friend'; tk.timer = 0; tk.line = f.speaking;
     } else if (tk.stage === 'friend' && tk.timer > (tk.line ? tk.line.duration : 2) + 0.2) {
       this.mischief += 25;
@@ -713,17 +713,18 @@ export class Game {
     else this.ui.subtitle('you', text, cls, dur);
   }
 
-  sayAt(c, id, noise = 0, vol = 1.15) {
+  sayAt(c, id, noise = 0, vol = 1.15, to = null) {
     if (c.speaking && this.t < (c.speakUntil || 0)) c.speaking.stop(0.1);
     const meta = this.audio.voices[id] || { text: '' };
     const h = this.audio.say(id, { pos: c.headWorld(new THREE.Vector3()), ref: 1.0, reverb: 0.08, vol: meta.shout ? 1.3 : vol });
     if (h) h.until = this.t + h.duration;
     c.speaking = h; c.speakNoise = noise; c.speakUntil = this.t + (h ? h.duration : 1.5);
     c.talking = h ? h.duration : 1.5;
-    this.ui.subtitle(c.name, meta.text, meta.shout ? 'shout' : '', (h ? h.duration : 2) + 0.6);
+    if (to) this.uiTo(to, 'subtitle', c.name, meta.text, meta.shout ? 'shout' : '', (h ? h.duration : 2) + 0.6);
+    else this.ui.subtitle(c.name, meta.text, meta.shout ? 'shout' : '', (h ? h.duration : 2) + 0.6);
     return h;
   }
-  friendSay(f, id, noise) { if (!f || f.gone) return null; return this.sayAt(f, id, noise); }
+  friendSay(f, id, noise, to = null) { if (!f || f.gone) return null; return this.sayAt(f, id, noise, undefined, to); }
   friend(kind) { return this.friends.find((f) => f.kind === kind); }
 
   playerSay(id, p = this.me) {
