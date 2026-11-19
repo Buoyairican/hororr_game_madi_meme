@@ -120,7 +120,8 @@ export const ScaresMixin = {
     for (const f of this.friends) if (f.scHidden) { f.root.visible = true; f.scHidden = false; }
     if (this.scDoor) { W.door.openTarget = 0; this.scDoor = false; }
     this.scShowFake(null);
-    W.setMaster(1); this.blackoutTarget = 0; this.underLight = 0;
+    // (the blackout itself is reset too, not only its target: the target is only followed while frames are drawn)
+    W.setMaster(1); this.blackoutTarget = 0; this.blackout = 0; this.underLight = 0;
     this.audio.fadeBus('amb', 1, 1.5);
   },
 
@@ -168,7 +169,7 @@ export const ScaresMixin = {
     T.setPose('rest'); T.place(0.2, -5.4, 0); T.root.visible = true; T.lookAt(this.camPos, 3);
     this.underLight = 0;
     yield* this.wait(dark * 0.5);
-    W.setMaster(1); this.blackoutTarget = 0;
+    W.setMaster(1); this.blackoutTarget = 0; this.blackout = 0;
   },
 
   /** he stands right in front of whatever you are looking at, his face at the height of yours */
