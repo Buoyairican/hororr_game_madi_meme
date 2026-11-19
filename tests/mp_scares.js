@@ -97,7 +97,9 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
       if (await H.evaluate(() => !game.scareBusy && game.brainIdle)) break;
     }
     // (the host was stepped faster than real time: the friend's own scene runs at its own pace)
-    await waitFor(G, () => game.mp && !game.mp.gscare && !game.localScare, 40000);
+    // (on a busy machine the friend's page runs few frames a second, and the game's clock with it: wait for it)
+    const done = await waitFor(G, () => game.mp && !game.mp.gscare && !game.localScare, 150000);
+    if (!done) console.log('  (the friend\'s scene was still running after 150 s)');
     await H.waitForTimeout(800);
   };
 
