@@ -25,7 +25,7 @@ import { ScaresMixin } from './scares.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
-  FREE_LENGTH, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
+  FREE_LENGTH, SCARES, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
   QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, PRANK, QUIRKS, EVENTS, SLANG, NOTE, SNEAK, mock, clockLabel,
 } from './data.js';
 
@@ -195,7 +195,7 @@ export class Game {
     this.qBag = new Bag(QUESTIONS);
     this.msgIndex = [0, 0, 0, 0];
     this.nextCall = 18; this.nextBuzz = 30; this.nextScare = 36; this.nextWipe = 50;
-    this.scareDone = {}; this.lastScare = {}; this.strongDone = false; this.lastEar = '';
+    this.scareDone = {}; this.lastScare = {}; this.strongN = 0; this.strongT = -1e9; this.firstScare = false; this.lastEar = '';
     this.notesGiven = 0;
     this.stats = { caught: 0, talk: 0, phone: 0, echoes: 0, questions: 0, memes: 0, videos: 0, fails: 0, throws: 0, hits: 0, hitHim: 0, kickme: 0, paws: 0, blamed: 0,
       sneaks: 0, glasses: 0, secrets: 0, cushions: 0, clocks: 0 };
@@ -2014,21 +2014,22 @@ export class Game {
 
   updateDirector(dt) {
     this.nextScare -= dt;
-    if (this.mode === 'free' && !this.strongDone && this.t > FREE_LENGTH - SCARE_OWED) this.nextScare = Math.min(this.nextScare, 0.5);
+    const owe = this.scareOwed();
+    if (owe) this.nextScare = Math.min(this.nextScare, 0.5);
     if (this.nextScare > 0 || this.eventLock || this.choice || !this.present) return;
     const busy = this.anger >= 30 || this.memeBusy; // he is busy with somebody: the room can still act up (the storm, the lights, the door), he can't
     if (this.me.slipK > 0 || this.sneakBusy) { this.nextScare = 3; return; } // (his scares are for you in your chair)
     let list = this.scareList().filter((s) => s.fx || (this.brainIdle && !busy));
     // Free Class: at least one of his big scares before the bell (it waits for a moment he is free)
-    const owed = this.mode === 'free' && !this.strongDone && this.t > FREE_LENGTH - SCARE_OWED && this.t < FREE_LENGTH - 14;
-    if (owed) { list = list.filter((s) => s.strong); if (!list.length) { this.nextScare = 0.5; return; } }
+    if (owe) { const want = owe === 'first' ? SCARES.free.first : null; list = list.filter((s) => (want ? want.includes(s.id) : s.strong)); if (!list.length) { this.nextScare = 0.5; return; } }
     if (!list.length) { this.nextScare = 4; return; }
     const g = SCARE_GAP[this.phase];
     this.nextScare = rand(g[0], g[1]) * (this.mode === 'free' ? 0.7 : 1); // (a Free Class is short: less waiting between scares)
     const s = wpick(list.map((x) => [x.w, x]));
     this.scareDone[s.id] = true;
     this.lastScare[s.id] = this.t;
-    if (s.strong) this.strongDone = true;
+    if (s.strong) { this.strongN++; this.strongT = this.t; }
+    if (s.strong || SCARES.free.first.includes(s.id)) this.firstScare = true;
     if (s.fx) this.fx.push(s.fx());
     else this.interrupt(s.brain());
   }
@@ -2271,6 +2272,17 @@ export class Game {
       ph.home(); W.setMaster(1); this.blackoutTarget = 0;
       T.leanTarget = 0; T.eyeGlow = 0.12; T.faceGlow = 0.08; this.eventLock = false;
     }
+  }
+
+  /** Free Class: what the director owes you. 'first': an early one (the pencil or the window); 'strong': one of his
+   *  big scares from the halfway point, and a second one before the bell (SCARES.free in src/data.js) */
+  scareOwed() {
+    if (this.mode !== 'free' || this.t > FREE_LENGTH - 14) return null;
+    const F = SCARES.free;
+    if (!this.firstScare && this.t > F.firstAt) return 'first';
+    if (this.t > FREE_LENGTH * F.halfway && this.strongN < 1) return 'strong';
+    if (this.t > FREE_LENGTH - SCARE_OWED && this.strongN < F.strong && this.t - this.strongT > F.strongGap) return 'strong';
+    return null;
   }
 
   /** a story set piece from src/scares.js (you in your chair, him free) */
@@ -2819,8 +2831,7 @@ export class Game {
     // Sam's dare: a paper ball at his back
     yield* this.prankDare(sam);
     yield* this.lesson(12);
-    yield* this.scareBeat('wrongseat'); // "psst! over here!"... it isn't your friend
-    yield* this.lesson(8);
+    yield* this.scareBeat('wrongseat'); // "psst! over here!"... it isn't your friend (the scare is this stretch's quiet: no extra lesson)
     yield* this.storyNote(1);
     yield* this.eventSlot(2, 14);
     // the office calls for Mr. Hale
@@ -2846,9 +2857,9 @@ export class Game {
     yield* this.whisper(nora, 'n_room13');
     yield* this.beat(() => this.actWrite('EYES ON THE BOARD'));
     this.memesOn = true;
-    yield* this.lesson(10);
+    yield* this.lesson(8);
     yield* this.scareBeat('fakebell'); // the bell rings early... "PERIOD 2 COMPLETE"... it tears
-    yield* this.lesson(16);
+    yield* this.lesson(8);
     this.memesOn = false; this.callsOn = false; this.buzzOn = false;
     if (this.buzz) this.resolveBuzz();
     yield* this.until(() => !this.cutscene && !this.memeBusy, 40);

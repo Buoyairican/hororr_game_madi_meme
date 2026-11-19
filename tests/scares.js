@@ -41,15 +41,21 @@ const { chromium, ROOT, GL, shot } = require('./lib');
     g.phase = 0; const free0 = ids();
     g.mode = 'story'; g.phase = 3; const story = ids();
     g.mp = { scareAll() {} }; g.mode = 'free'; const online = ids(); g.mp = null;
+    // what a Free Class owes you: an early scare, a big one from halfway, a second big one before the bell
+    const t0 = g.t, sn = [g.strongN, g.strongT, g.firstScare];
+    const owe = (t, n, last, first) => { g.t = t; g.strongN = n; g.strongT = last; g.firstScare = first; return g.scareOwed(); };
+    const owed = [owe(20, 0, -1e9, false), owe(45, 0, -1e9, false), owe(100, 0, -1e9, true), owe(160, 0, -1e9, true), owe(200, 1, 160, true), owe(240, 1, 160, true), owe(240, 1, 220, true), owe(250, 2, 230, true), owe(295, 0, -1e9, true)];
+    g.t = t0; [g.strongN, g.strongT, g.firstScare] = sn;
     g.mode = mode; g.scarePool = pool; g.phase = phase;
     const src = ['chapter1', 'chapter2', 'chapter3', 'chapter4'].map((c) => String(g[c]));
-    return { free3, free0, strong, story, online, beats: [/scareBeat\('pencil'\)/.test(src[0]), /scareBeat\('wrongseat'\)/.test(src[1]) && /scareBeat\('fakebell'\)/.test(src[1]), /scareBeat\('sprint'\)/.test(src[2]), /scareBeat\('hanging'\)/.test(src[3])] };
+    return { owed, free3, free0, strong, story, online, beats: [/scareBeat\('pencil'\)/.test(src[0]), /scareBeat\('wrongseat'\)/.test(src[1]) && /scareBeat\('fakebell'\)/.test(src[1]), /scareBeat\('sprint'\)/.test(src[2]), /scareBeat\('hanging'\)/.test(src[3])] };
   });
   pass(['pencil', 'window', 'flash', 'wrongseat', 'sprint', 'hanging', 'fakebell'].every((id) => r.free3.includes(id)), 'Free Class, last hour: the director can pick every new scare ' + r.free3.join());
   pass(r.free0.includes('pencil') && r.free0.includes('window') && !r.free0.includes('sprint') && !r.free0.includes('hanging'), 'Free Class, first hour: the pencil and the window, not his big ones yet');
   pass(['wrongseat', 'sprint', 'hanging', 'fakebell'].every((id) => r.strong.includes(id)), 'the wrong seat, the sprint, the hanging and the fake bell count as his big scares (one is owed before the bell)');
   pass(!r.story.includes('fakebell'), 'in the story the fake bell is a set piece, never random');
   pass(!r.online.includes('wrongseat') && r.online.includes('hanging'), 'online: no wrong seat (Sam and Nora are your friends there); the others stay');
+  pass(JSON.stringify(r.owed) === JSON.stringify([null, 'first', null, 'strong', null, 'strong', null, null, null]), 'Free Class owes you: an early scare after 40 s, one of his big ones from halfway, a second big one in the last 80 s (not right after the first), nothing in the last seconds ' + JSON.stringify(r.owed));
   pass(r.beats.every(Boolean), 'the story: the pencil in period 1, the wrong seat and the fake bell in period 2, the sprint in period 3, the hanging in period 4 ' + JSON.stringify(r.beats));
 
   // ---------------------------------------------------------------- every scene, played by a curious player
