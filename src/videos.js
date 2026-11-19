@@ -47,7 +47,8 @@ export const VideoMixin = {
     ph.onPoint = () => { this.mischief += 4; A.play('phone_point', { vol: 0.3, local: true, reverb: 0 }); };
     ph.onFlap = () => A.play('phone_flap', { vol: 0.22, local: true, reverb: 0 });
     ph.onFeedDone = () => {
-      if (this.role === 'guest' || this.state !== 'playing') return;
+      if (this.role === 'guest') { if (this.mp) this.mp.send({ t: 'p6', k: 'video' }); return; }
+      if (this.state !== 'playing') return;
       this.note(this.me, 'videos'); this.track.event(this.t, this.me, 'video', { how: 'feed' });
       this.completeObjective('video');
     };

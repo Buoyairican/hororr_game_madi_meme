@@ -359,6 +359,8 @@ export const ReplayMixin = {
     if (m.k === 'note') { const N = HALE_NOTES.find((x) => x.n === Number(m.n)); if (N && N.find.local) this.giveHaleNote(p, N.n); }
     // a note delivered in PSST! on their phone (it takes three passes: not more often than that)
     else if (m.k === 'psst' && p.phoneUp && this.t - (p.psstAt || -9) > 0.9) { p.psstAt = this.t; this.note(p, 'psst'); }
+    // a whole meme video watched on their own phone
+    else if (m.k === 'video' && p.phoneUp && this.t - (p.vidAt ?? -9) > 3) { p.vidAt = this.t; this.note(p, 'videos'); this.track.event(this.t, p, 'video', { how: 'feed' }); this.completeObjective('video'); }
   },
 
   /** what the title menu shows: today's daily class and your best, the notebook's numbers */
