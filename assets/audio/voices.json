@@ -1099,6 +1099,26 @@
   "text": "Your... friend. Interesting.",
   "dur": 4.441
  },
+ "t_wrongseat": {
+  "who": "teacher",
+  "text": "Wrong... seat.",
+  "dur": 2.194
+ },
+ "t_norunning": {
+  "who": "teacher",
+  "text": "No... running... in... class.",
+  "dur": 4.963
+ },
+ "t_lookingfor": {
+  "who": "teacher",
+  "text": "Looking... for... this?",
+  "dur": 3.683
+ },
+ "t_notover2": {
+  "who": "teacher",
+  "text": "The bell... is... not... for... you.",
+  "dur": 6.06
+ },
  "tw_turn": {
   "who": "teacher",
   "text": "Turn... around.",
@@ -1134,6 +1154,24 @@
   "text": "Shhhhhh...",
   "whisper": true,
   "dur": 4.075
+ },
+ "tw_found": {
+  "who": "teacher",
+  "text": "Found... you.",
+  "whisper": true,
+  "dur": 2.247
+ },
+ "tw_uphere": {
+  "who": "teacher",
+  "text": "Up... here.",
+  "whisper": true,
+  "dur": 2.064
+ },
+ "tw_letmein": {
+  "who": "teacher",
+  "text": "Let... me... in.",
+  "whisper": true,
+  "dur": 3.265
  },
  "s_late": {
   "who": "sam",
@@ -1579,6 +1617,24 @@
   "whisper": true,
   "dur": 1.776
  },
+ "s_pencil": {
+  "who": "sam",
+  "text": "Dude. You dropped your pencil.",
+  "whisper": true,
+  "dur": 1.933
+ },
+ "s_where": {
+  "who": "sam",
+  "text": "Wait. Where did he go?",
+  "whisper": true,
+  "dur": 1.541
+ },
+ "s_stare": {
+  "who": "sam",
+  "text": "Bro. Why are you staring at me?",
+  "whisper": true,
+  "dur": 1.907
+ },
  "n_free": {
   "who": "nora",
   "text": "Maybe we get a free period.",
@@ -1647,7 +1703,7 @@
  },
  "n_psst": {
   "who": "nora",
-  "text": "Psst. Over here.",
+  "text": "Psst! Hey! Over here!",
   "whisper": true,
   "dur": 1.306
  },
@@ -1725,7 +1781,7 @@
  },
  "n_door": {
   "who": "nora",
-  "text": "There's someone at the door.",
+  "text": "Who opened the door?",
   "whisper": true,
   "dur": 1.254
  },
@@ -1992,6 +2048,18 @@
   "text": "That's Mister Hale. That's his voice!",
   "whisper": true,
   "dur": 2.299
+ },
+ "n_knock": {
+  "who": "nora",
+  "text": "Did you hear that? The window.",
+  "whisper": true,
+  "dur": 1.698
+ },
+ "n_stare": {
+  "who": "nora",
+  "text": "What? Why are you staring at me like that?",
+  "whisper": true,
+  "dur": 2.22
  },
  "s_hey": {
   "who": "sam",

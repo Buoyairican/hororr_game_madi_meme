@@ -178,7 +178,7 @@ export class MP {
     this.snap = null;            // guest: latest snapshot
     this.choice = null;          // guest: open question picker
     this.ec = -1;                // guest: seconds left to repeat his last line (-1 = can't)
-    this.jump = null; this.localTeacher = false; this.pendingEnd = null;
+    this.jump = null; this.localTeacher = false; this.pendingEnd = null; this.gscare = null;
     this.projOn = false; this.projLast = null;
   }
 
@@ -355,7 +355,7 @@ export class MP {
     const gp = gl.parent === T.head ? 'h' : gl.parent === T.bones.handR ? 'r' : 's';
     const tt = [r3(T.pos.x), r3(T.root.position.y), r3(T.pos.z), r4(T.root.rotation.y), T.root.visible ? 1 : 0, r3(T.bones.root.position.y),
       r4(hp.rotation.x), r4(hp.rotation.y), r4(hp.rotation.z), r3(hp.position.y), r3(T.jaw), r2(T.eyeGlow), r2(T.faceGlow), r2(T.lensGlow),
-      gp, ...va(gl.position), r4(gl.quaternion.x), r4(gl.quaternion.y), r4(gl.quaternion.z), r4(gl.quaternion.w)];
+      gp, ...va(gl.position), r4(gl.quaternion.x), r4(gl.quaternion.y), r4(gl.quaternion.z), r4(gl.quaternion.w), r4(T.root.rotation.z)];
     const K = g.allKids().map((c) => [c.lookTarget ? va(c.lookTarget) : 0, c.forcePitch == null ? null : r2(c.forcePitch), r2(c.tremble), r2(Math.max(0, c.talking)),
       c.hollow ? 1 : 0, c.gone ? 1 : 0, r2(c.leanRollTarget), r2(c.speed)]);
     const bk = W.fallingBook;
@@ -400,6 +400,14 @@ export class MP {
   openChoice(p, title, labels, timeout) { this.net.send(p.id, { t: 'choice', title, labels, timeout }); }
   closeChoice(p) { this.net.send(p.id, { t: 'choiceClose' }); }
   jumpscare(kind) { this.broadcastNow({ t: 'jump', kind }); }
+  /** one of the new jump scares (src/scares.js): every friend runs it on their own screen */
+  scareAll(id) { this.broadcastNow({ t: 'gscare', k: id }); }
+  /** a friend's own scare stops (a real jumpscare, the class is over, leaving) */
+  stopScare() {
+    if (this.gscare) { try { this.gscare.return(); } catch (e) { console.warn(e); } }
+    this.gscare = null;
+    if (this.g) this.g.localScare = false;
+  }
   onEnd(title, text, stats) {
     if (this.role !== 'host') return;
     this.broadcastNow({ t: 'end', title, text, stats, prog: this.g.mode === 'story' ? this.g.lastSaved || 0 : 0 });
@@ -504,6 +512,7 @@ export class MP {
     A.stopAll(); A.stopAmbience();
     A.startAmbience(new THREE.Vector3(0, 3, -2), new THREE.Vector3(-5.5, 1.8, -1));
     A.fadeBus('amb', 1, 0.5); A.fadeBus('music', 1, 0.1);
+    this.stopScare();
     this.snap = null; this.choice = null; this.jump = null; this.localTeacher = false; this.pendingEnd = null; this.ec = -1;
     if (m.board) {
       const img = new Image();
@@ -550,7 +559,8 @@ export class MP {
         g.ui.openChoices(e.title, e.labels, g.input.touch, (i) => this.pick(i));
         break;
       case 'choiceClose': if (this.choice) { this.choice = null; g.ui.closeChoices(); } break;
-      case 'jump': this.jump = this.guestJump(); break;
+      case 'jump': this.stopScare(); this.jump = this.guestJump(); break;
+      case 'gscare': if (!this.jump && !this.gscare) this.gscare = g.scareGuest(String(e.k)); break;
       case 'bonk': g.localBonk(typeof e.from === 'string' ? e.from.replace(/[<>&"]/g, '').slice(0, 12) : 'Someone'); break;
       case 'slap': g.localSlap(); break;
       case 'vscare': g.localVideoScare(); if (this.helds) for (const h of this.helds.values()) h.face = g.portraitTex && g.portraitTex.image; break;
@@ -620,7 +630,8 @@ export class MP {
     });
     // room
     const w = s.w;
-    W.master = w[0]; W.gloomTarget = w[1];
+    if (!g.localScare) W.master = w[0];
+    W.gloomTarget = w[1];
     if (Math.abs(W.gloom - w[2]) > 0.15) W.gloom = w[2];
     W.showSilhouette = !!w[3];
     W.laptop.openTarget = w[4]; W.laptop.glowTarget = w[5]; W.door.openTarget = w[6];
@@ -630,8 +641,10 @@ export class MP {
     bk.position.set(bb[0], bb[1], bb[2]); bk.rotation.set(bb[3], bb[4], bb[5]);
     // screen
     const fx = s.fx;
-    g.blackoutTarget = fx[0];
-    if (Math.abs(fx[1] - g.blackout) > 0.35) g.blackout = fx[1];
+    if (!g.localScare) {
+      g.blackoutTarget = fx[0];
+      if (Math.abs(fx[1] - g.blackout) > 0.35) g.blackout = fx[1];
+    }
     g.shake = Math.max(g.shake, fx[2]); g.glitch = Math.max(g.glitch, fx[3]); g.scareFear = Math.max(g.scareFear, fx[4]); g.redFlash = Math.max(g.redFlash, fx[5]);
     g.applyDreadSnap(s.dr);
     // the other players
@@ -695,6 +708,7 @@ export class MP {
           mc: g.mic.on ? r2(g.mic.level) : 0 }); // (your microphone: only how loud, nothing else)
       }
     }
+    if (this.gscare && this.gscare.next().done) this.gscare = null;
     if (this.jump && this.jump.next().done) {
       this.jump = null;
       if (this.pendingEnd) { this.showEnd(this.pendingEnd); this.pendingEnd = null; }
@@ -746,6 +760,7 @@ export class MP {
     T.root.position.y += (t[1] - T.root.position.y) * k;
     T.root.rotation.y = T.facing = dampAngle(T.root.rotation.y, t[3], 16, dt);
     T.root.visible = !!t[4];
+    T.root.rotation.z = Number(t[22]) || 0; // (upside down: the hanging, src/scares.js)
     for (let i = 0; i < BONES.length; i++) {
       _q.set(s.b[i * 4], s.b[i * 4 + 1], s.b[i * 4 + 2], s.b[i * 4 + 3]);
       T.bones[BONES[i]].quaternion.slerp(_q, k);
@@ -820,7 +835,7 @@ export class MP {
     else if (held) { if (g.phone.mode === 'memes' && aim && !aim.kind) pr = inp.touch ? `tap SHOW · show ${aim.name} this video` : `[R] · show ${aim.name} this video`; }
     else if (aim && !this.talk) pr = g.chainPrompt(aim) || (inp.touch ? `hold TALK · whisper to ${aim.name}` : `hold [E] · whisper to ${aim.name}`);
     g.chainVisuals(this.talk); // (passing the note that goes round: its meter)
-    ui.prompt(g.vidZoom ? '' : pr);
+    ui.prompt(g.vidZoom || g.scLocalOn ? '' : pr);
     ui.phoneControls(aiming ? 'aim:' + me.aim.kind : held ? g.phone.mode : null, inp.touch);
     if (this.choice) {
       const k = inp.takeChoice();

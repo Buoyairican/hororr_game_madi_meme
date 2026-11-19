@@ -33,9 +33,24 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
   for (const id of ['set-retro', 'set-meter', 'set-subs']) await page.click('#' + id);
   await page.click('#settings .back'); await page.waitForTimeout(200);
   await check('back to title', `${vis('title')}`);
+  // HOW TO PLAY: short picture pages (src/howto.js)
+  await page.click('#btn-how'); await page.waitForTimeout(300);
+  await check('how to play opens on page 1 of 7, a picture and few words', `${vis('how')} && document.getElementById('how-count').textContent === '1 / 7' && document.querySelector('.how-card.on img').complete && document.querySelector('.how-card.on img').naturalWidth > 0 && document.querySelector('.how-card.on').innerText.length < 260`);
+  await check('every page has a picture that loads (except "more tricks")', `[...document.querySelectorAll('.how-card img')].length === 6`);
+  await check('computers see keys, not touch buttons', `getComputedStyle(document.querySelector('.how-card[data-page=talk] .key')).display !== 'none' && getComputedStyle(document.querySelector('.how-card[data-page=talk] .tb')).display === 'none'`);
+  await page.click('#how-next'); await page.waitForTimeout(150);
+  await page.keyboard.press('ArrowRight'); await page.waitForTimeout(150);
+  await check('NEXT and the right arrow turn the pages', `document.getElementById('how-count').textContent === '3 / 7' && document.querySelector('.how-card.on').dataset.page === 'strikes'`);
+  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(150);
+  await page.click('#how-dots button:nth-child(7)'); await page.waitForTimeout(200);
+  await check('the dots jump to "more tricks": every old rule is still there (tiles that open)', `document.querySelector('.how-card.on').dataset.page === 'more' && document.querySelectorAll('.tricks details').length >= 15 && /whoopee cushion/.test(document.querySelector('.tricks').textContent) && /SHARE CODE/.test(document.querySelector('.tricks').textContent) && document.getElementById('how-next').textContent === 'GOT IT'`);
+  await page.click('.tricks details:nth-child(6) summary'); await page.waitForTimeout(200);
+  await check('a trick opens to its full text', `document.querySelector('.tricks details:nth-child(6)').open && document.querySelector('.tricks details:nth-child(6) p').offsetHeight > 20`);
+  await page.click('#how-next'); await page.waitForTimeout(200);
+  await check('GOT IT goes back to the title', `${vis('title')} && !${vis('how')}`);
   await page.click('#btn-how'); await page.waitForTimeout(200);
-  await check('how to play opens', `${vis('how')}`);
-  await page.click('#how .back');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  await check('Esc closes it too (back on page 1 next time)', `${vis('title')} && !${vis('how')}`);
   await page.evaluate(() => localStorage.setItem('madiclass.progress', '2'));
   await page.click('#btn-story'); await page.waitForTimeout(300);
   await check('chapter select shows 3 unlocked + 1 locked', `(() => { const b = [...document.querySelectorAll('#chapter-list button')]; return b.length === 4 && b.filter(x => !x.disabled).length === 3 && b[3].disabled && b[3].innerText.includes('???'); })()`);
@@ -49,6 +64,26 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
   await check('failing offers RETRY PERIOD', `document.getElementById('btn-again').innerText === 'RETRY PERIOD'`);
   await page.click('#btn-menu'); await page.waitForTimeout(600);
   await check('MAIN MENU from end screen', `game.state === 'title'`);
+  // the very first class (?howto=first: tests skip it otherwise): How to Play first, then the class
+  await page.goto(ROOT + '/index.html?debug=1&howto=first');
+  await page.waitForFunction(() => window.game && !document.getElementById('menu').classList.contains('hidden'), null, { timeout: 120000 });
+  await page.evaluate(() => localStorage.removeItem('madiclass.howto'));
+  await page.click('#btn-free'); await page.waitForTimeout(400);
+  await check('first class ever: How to Play comes first (6 pages, SKIP), the class waits', `${vis('how')} && document.getElementById('how').classList.contains('first') && document.getElementById('how-count').textContent === '1 / 6' && getComputedStyle(document.getElementById('how-skip')).display !== 'none' && game.state === 'title'`);
+  for (let i = 0; i < 5; i++) { await page.click('#how-next'); await page.waitForTimeout(120); }
+  await check('the last page starts the class', `document.getElementById('how-next').textContent.startsWith('START CLASS')`);
+  await page.click('#how-next'); await page.waitForTimeout(1500);
+  await check('START CLASS: Free Class starts, and How to Play never comes up by itself again', `game.state === 'playing' && game.mode === 'free' && !${vis('how')} && localStorage.getItem('madiclass.howto') === '1'`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  await page.click('#btn-pause-how'); await page.waitForTimeout(300);
+  await check('HOW TO PLAY from the pause menu, and back to it', `${vis('how')} && !document.getElementById('how').classList.contains('first')`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  await check('back in the pause menu', `${vis('pause')} && game.state === 'paused'`);
+  await page.click('#btn-quit'); await page.waitForTimeout(600);
+  await page.click('#btn-free'); await page.waitForTimeout(1500);
+  await check('second class: straight in', `game.state === 'playing' && !${vis('how')}`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  await page.click('#btn-quit'); await page.waitForTimeout(600);
   await page.click('#btn-free'); await page.waitForTimeout(1500);
   await check('free class starts', `game.state === 'playing' && game.mode === 'free'`);
   await page.evaluate(() => { const g = game; g.cutscene = false; g.lockBully = false; g.quirks = new Set(); g.alarmOn = false; g.dancing = false; g.echoable = { id: 't_quiet', text: 'Quiet.', until: g.t + 5 }; }); // (no quirks: from his deaf side an echo would not count)
@@ -71,6 +106,28 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
   await page.keyboard.down('q'); await page.waitForTimeout(800);
   await check('holding Q raises the phone', `game.phone.up === true`);
   await page.keyboard.up('q');
+  // HOW TO PLAY on a phone (landscape): touch buttons instead of keys, every page fits without scrolling
+  {
+    const ctx = await browser.newContext({ ...devices['iPhone 13 landscape'] });
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => logs.push('phone PAGEERROR: ' + e.message));
+    await p.goto(ROOT + '/index.html?debug=1');
+    await p.waitForFunction(() => window.game && !document.getElementById('menu').classList.contains('hidden'), null, { timeout: 120000 });
+    await p.tap('#btn-how'); await p.waitForTimeout(400);
+    const fits = [];
+    for (let i = 0; i < 7; i++) {
+      fits.push(await p.evaluate(() => { const pn = document.querySelector('#how .panel'), r = pn.getBoundingClientRect(), nx = document.getElementById('how-next').getBoundingClientRect();
+        return pn.scrollHeight <= pn.clientHeight + 2 && r.bottom <= innerHeight + 1 && nx.bottom <= innerHeight && nx.top >= 0; }));
+      if (i === 3) {
+        const r = await p.evaluate(() => ({ tb: getComputedStyle(document.querySelector('.how-card.on .tb')).display, key: getComputedStyle(document.querySelector('.how-card.on .key')).display, txt: document.querySelector('.how-card.on').innerText }));
+        (r.tb !== 'none' && r.key === 'none' && /TALK/.test(r.txt) ? ok : bad).push('phone: How to Play shows the touch buttons (TALK, PHONE), not keys ' + JSON.stringify([r.tb, r.key]));
+        await p.screenshot({ path: shot('ui_howto_phone.png') });
+      }
+      await p.tap('#how-next'); await p.waitForTimeout(250);
+    }
+    (fits.every(Boolean) ? ok : bad).push('phone: every How to Play page fits the screen, NEXT always reachable ' + JSON.stringify(fits));
+    await ctx.close();
+  }
   console.log('PASS (' + ok.length + '):\n  ' + ok.join('\n  '));
   console.log('FAIL (' + bad.length + '):\n  ' + bad.join('\n  '));
   console.log(logs.slice(0, 10).join('\n') || 'no console errors');
