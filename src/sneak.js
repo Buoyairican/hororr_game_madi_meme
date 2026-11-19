@@ -217,7 +217,7 @@ export const SneakMixin = {
       } else if (me.out && !me.carried) this.uiTo(me, 'status', touch ? 'Crawl back to your desk first, then tap <b>SIT</b>.' : 'Crawl back to your desk first, then press <b>C</b>.', 2.5);
       else if (!me.out && this.allowSneak && me.slipK <= 0) this.uiTo(me, 'status', '<b>Not now.</b>', 1.4);
     }
-    if (!me.out && me.slipK <= 0) { if (me.deskJob || this.sneakAimOn) this.sneakUi(null); me.deskJob = null; return false; }
+    if (!me.out && me.slipK <= 0) { if (me.deskJob || this.sneakAimOn) { this.sneakAimOn = false; ui.aim(null); } me.deskJob = null; return false; }
     // crawling (not while you read, choose, or hold E at his desk)
     const mv = inp.move || { x: 0, y: 0 };
     me.moving = !blocked && !me.deskJob && me.out && this.crawl(me, mv.x, mv.y, this.yaw, dt);
