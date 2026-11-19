@@ -344,7 +344,8 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   runs at you), **the hanging** (P4; drips, the lights die, he hangs upside down in front of you), **the window**
   (three knocks, "Let... me... in.", he slams into the glass) and **the face flash** (his face for a blink).
   The director (`scareList`) picks them too; the wrong seat, the sprint, the hanging and the fake bell count as
-  his strong scares (one is owed before the bell in Free Class). Online the host tells every friend to run the
+  his strong scares. A Free Class owes you an early scare (the pencil or the window after 40 s) and two strong ones
+  (one from the halfway point, one in the last 80 s): `SCARES.free`, `scareOwed()`. Online the host tells every friend to run the
   same scene on their own screen (`gscare`; the friend's teacher, lights and blackout are local meanwhile).
   11 sounds (`gen_sfx.py p8`), 14 voice lines. Tests: `tests/scares.js`, `tests/mp_scares.js`.
 - **How to Play** (`src/howto.js`): 7 short pages with a real game picture each (`tools/howto_shots.js`,
