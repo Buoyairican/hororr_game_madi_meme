@@ -374,7 +374,8 @@ export const ScaresMixin = {
     const head = T.headWorld(new V());
     const psst = f.kind === 'nora' ? 'n_psst' : 's_psst';
     this.scFriendSay(f, psst);
-    const looked = yield* this.scWaitLook(head, 0.9, SCARES.wait.wrongseat, [6, () => this.scFriendSay(f, psst, 0.8)]);
+    let again = 0; // ("Psst!" once more at most: not the same line over and over, src/pacing.js)
+    const looked = yield* this.scWaitLook(head, 0.9, SCARES.wait.wrongseat, [7, () => { if (again++ < 1) this.scFriendSay(f, psst, 0.8); }]);
     if (looked) {
       this.scSting();
       T.jawTarget = 0.25;

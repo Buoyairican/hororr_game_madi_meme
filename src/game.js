@@ -1565,7 +1565,7 @@ export class Game {
     B.toWorld(rand(150, 700), B.rows[row] - 20, W.boardAnchor, v1);
     T.lookAt(v1.clone(), 2.5);
     T.rollTarget = pick([-1, 1]) * rand(0.2, 0.45);
-    if (chance(0.5)) { yield* this.wait(1); this.teacherSay('t_hmm', 1.1); }
+    if (chance(0.5) && this.freshLine(['t_hmm'])) { yield* this.wait(1); this.teacherSay('t_hmm', 1.1); } // (not again within a while: src/pacing.js)
     yield* this.bellyPat(rand(3.5, 6)); // (the pat of a man who is thinking; standing about, his light tap: src/teacher.js)
     T.rollTarget = 0;
   }
