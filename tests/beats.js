@@ -103,7 +103,8 @@ const { chromium, devices, ROOT, PEER, GL, MP_ARGS, shot } = require('./lib');
     step(20);
     g.yaw = 1.52; g.input.keys.talk = true;
     const t0 = g.t;
-    until(() => g.flags.r40 || g.cutscene, 60);
+    // (Sam's note after a few whispers is folded away: the whispering goes on. An open note holds friends' calls: src/pacing.js)
+    until(() => g.flags.r40 || g.cutscene, 60, () => { if (g.ui.noteOpen) g.ui.closeNote(); });
     const res = { warned: g.flags.r40, strikesAtWarning: g.strikes, after: +(g.t - t0).toFixed(1), watchingMe: g.me.watching };
     g.input.keys.talk = false;
     return res;`));
