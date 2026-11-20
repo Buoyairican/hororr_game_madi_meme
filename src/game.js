@@ -2067,9 +2067,9 @@ export class Game {
       { id: 'students', min: 2, w: 2, cool: 60, fx: () => this.fxStudentsStare() },
       { id: 'boardmsg', min: 2, w: 2, cool: 50, fx: () => this.fxBoardMessage() },
       { id: 'whisper', min: 2, w: 1.5, cool: 75, fx: () => this.fxWhisperEar() },
-      { id: 'behind', min: 2, w: 3, cool: 100, strong: true, brain: () => this.scareBehind() },
-      { id: 'neck', min: 2, w: 1.5, cool: 70, strong: true, brain: () => this.scareNeck() },
-      { id: 'flickapproach', min: 2, w: 1.5, cool: 70, strong: true, brain: () => this.scareFlickerApproach() },
+      { id: 'behind', min: 2, w: this.mp ? 0 : 3, cool: 100, strong: true, brain: () => this.scareBehind() },
+      { id: 'neck', min: 2, w: this.mp ? 0 : 1.5, cool: 70, strong: true, brain: () => this.scareNeck() },
+      { id: 'flickapproach', min: 2, w: this.mp ? 0 : 1.5, cool: 70, strong: true, brain: () => this.scareFlickerApproach() },
       ...this.newScares(), // the pencil, the window, the face flash, the wrong seat, the sprint, the hanging, the fake bell (src/scares.js)
     ];
     return all.filter((s) => s.w > 0 && (this.scarePool ? this.scarePool.includes(s.id) : p >= s.min) && !(s.once && this.scareDone[s.id]) && !(s.cool && this.t - (this.lastScare[s.id] ?? -1e9) < s.cool));

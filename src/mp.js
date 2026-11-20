@@ -260,6 +260,7 @@ export class MP {
       else if (m.k === 'note') g.stickNote(p);
       else if (m.k === 'use') g.deskAct(p, String(m.w)); // his glasses, his laptop, the clock, his chair
       else if (m.k === 'haunt') g.haunt(p, Number(m.h) | 0); // a ghost in the corner (src/ghost.js)
+      else if (m.k === 'scareDone') p.scareDone = this.g.t; // their scare is over (src/scares.js scWatch)
     }
     else if (m.t === 'pick') g.pickChoice(Number(m.i), p);
     else if (m.t === 'p6') g.replayFromGuest(p, m); // Phase 6 (src/replay.js)

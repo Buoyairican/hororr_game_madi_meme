@@ -1,7 +1,9 @@
-// The new jump scares online (host + friend over a local PeerServer): the host's scare plays on the
-// friend's own screen too (his own teacher for the moment: hanging upside down in front of HIS face, the
-// fake "CLASS DISMISSED" that tears, his own pencil under his own desk), the host's lights don't overwrite
-// it, nobody gets a strike meanwhile, and the friend's teacher goes back to the host's afterwards.
+// The new jump scares online (host + friend over a local PeerServer). One victim (IDEAS.md F3, forced here
+// with game.scareVictim): the friend's own screen gets it (his own teacher for the moment: hanging upside
+// down in front of HIS face, his own pencil under his own desk) while the host watches him bent over the
+// friend's chair ("HE WENT FOR BO"); or the host gets it and the friend only gets the toast. The fake bell
+// (SCARES.everyone) still hits every screen. The host's lights don't overwrite the friend's scene, nobody
+// gets a strike meanwhile, and the friend's teacher goes back to the host's afterwards.
 const { chromium, ROOT, PEER, MP_ARGS, shot } = require('./lib');
 const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
 (async () => {
@@ -51,6 +53,11 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await H.click('#btn-mp-go');
   await waitFor(G, () => game.state === 'playing' && game.mp.snap, 30000);
   await G.evaluate(() => { window.hints = []; const h0 = game.ui.hint.bind(game.ui); game.ui.hint = (t, d) => { hints.push(t); return h0(t, d); }; });
+  // the toasts on both screens ("HE WENT FOR ...")
+  // (on the host, uiTo calls toast.local for his own screen only: keep it)
+  for (const P of [H, G]) await P.evaluate(() => { window.toasts = []; const u = game.ui, t0 = u.toast, l0 = t0.local;
+    u.toast = (t, d) => { toasts.push(String(t)); return t0.call(u, t, d); };
+    if (l0) u.toast.local = (t, d) => { toasts.push(String(t)); return l0(t, d); }; });
   // nothing random on the host; he stands at the board and sees nobody (unless a test says who: seeOnly)
   await H.evaluate(() => {
     const g = game, T = g.teacher;
@@ -86,13 +93,16 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
       if (g.scLocalOn && T.root.visible && T.headWorld(new V()).y < 0.7) gw.under = true;
     }, 16);
   });
-  const runScare = async (id, secs) => {
-    await H.evaluate((id) => { const g = game; window.hs = []; const T = g.teacher; window.hrz = 0;
+  const runScare = async (id, secs, victim = null) => {
+    await H.evaluate(([id, victim]) => { const g = game; window.hs = []; const T = g.teacher; window.hrz = 0; window.hnear = 9; window.toasts = [];
       if (!window.__hp) { window.__hp = true; const op = g.audio.play.bind(g.audio); g.audio.play = (n, o = {}) => { (window.hs || []).push(n); return op(n, o); }; }
-      g.interrupt(g.scareScene(id)); }, id);
+      g.scareVictim = victim ? g.players.find((p) => p.name === victim) : null;
+      g.interrupt(g.scareScene(id)); }, [id, victim]);
     for (let t = 0; t < secs; t += 2) {
       await hostSteps(40);
-      await H.evaluate(() => { if (Math.abs(game.teacher.root.rotation.z) > 2.5) window.hrz = game.teacher.root.rotation.z; });
+      await H.evaluate(() => { const g = game, T = g.teacher, v = g.scareVictim; if (Math.abs(T.root.rotation.z) > 2.5) window.hrz = T.root.rotation.z;
+        // (how near he came to the friend's chair, on the host's screen)
+        if (v && !v.local && T.root.visible) { const s = g.deskSpot(v); window.hnear = Math.min(window.hnear, Math.hypot(T.pos.x - s.stand.x, T.pos.z - s.stand.z)); } });
       await H.waitForTimeout(250);
       if (await H.evaluate(() => !game.scareBusy && game.brainIdle)) break;
     }
@@ -103,30 +113,43 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
     await H.waitForTimeout(800);
   };
 
-  // ---- the hanging
-  await G.evaluate(() => { gs.length = 0; gw.rz = 0; gw.head = 9; gw.local = false; });
-  await runScare('hanging', 20);
+  // ---- the hanging, the friend is the victim: the host watches
+  await G.evaluate(() => { gs.length = 0; gw.rz = 0; gw.head = 9; gw.local = false; toasts.length = 0; });
+  await runScare('hanging', 20, 'Bo');
   await G.waitForTimeout(1200);
   const hostT = await H.evaluate(() => [game.teacher.pos.x, game.teacher.pos.z]);
-  let r = await G.evaluate(() => ({ ...gw, snds: gs.join(), localNow: game.localScare, lt: game.mp.localTeacher, rzNow: game.teacher.root.rotation.z, x: game.teacher.pos.x, z: game.teacher.pos.z }));
+  let r = await G.evaluate(() => ({ ...gw, snds: gs.join(), localNow: game.localScare, lt: game.mp.localTeacher, rzNow: game.teacher.root.rotation.z, x: game.teacher.pos.x, z: game.teacher.pos.z, toasts: toasts.join('|') }));
   r.off = Math.hypot(r.x - hostT[0], r.z - hostT[1]);
-  let h = await H.evaluate(() => ({ hrz: window.hrz, snds: hs.join(), strikes: game.strikes, busy: game.scareBusy }));
-  pass(Math.abs(h.hrz) > 2.5 && /rope_creak/.test(h.snds) && /scream/.test(h.snds), 'the host gets the hanging on his own screen');
+  let h = await H.evaluate(() => ({ hrz: window.hrz, near: window.hnear, snds: hs.join(), strikes: game.strikes, busy: game.scareBusy, toasts: toasts.join('|'), done: game.players.find((p) => p.name === 'Bo').scareDone > 0 }));
+  pass(Math.abs(h.hrz) < 0.01 && !/rope_creak/.test(h.snds) && !/scream/.test(h.snds), 'the host does NOT get the hanging on his own screen');
+  pass(/HE WENT FOR BO/.test(h.toasts) && !/HE WENT FOR/.test(r.toasts), `the host gets the toast "HE WENT FOR BO", the friend doesn't (${h.toasts} / ${r.toasts})`);
+  pass(h.near < 0.3, `on the host's screen he stands bent over the friend's chair (${h.near.toFixed(2)} m from the spot)`);
   pass(r.local && Math.abs(r.rz) > 2.5 && r.head < 1.3, `the friend gets it on HIS screen: upside down in front of his own face (${r.head.toFixed(2)} m)`);
   pass(/rope_creak/.test(r.snds) && /scream/.test(r.snds), 'the friend hears it on his own screen (the creak, the scream)');
+  pass(h.done, 'the friend told the host when his scene was over (scareDone)');
   pass(!r.localNow && !r.lt && Math.abs(r.rzNow) < 0.01 && r.off < 0.8, 'afterwards the friend\'s teacher is the host\'s again (right way up, where the host has him) ' + JSON.stringify([r.localNow, r.lt, r.rzNow, +r.off.toFixed(2)]));
+  pass(h.strikes === 0 && h.busy === null, 'nobody got a strike');
+
+  // ---- the hanging, the host is the victim: the friend only gets the toast
+  await G.evaluate(() => { gs.length = 0; gw.rz = 0; gw.head = 9; gw.local = false; toasts.length = 0; });
+  await runScare('hanging', 20, 'Alex');
+  await G.waitForTimeout(1200);
+  r = await G.evaluate(() => ({ ...gw, snds: gs.join(), toasts: toasts.join('|') }));
+  h = await H.evaluate(() => ({ hrz: window.hrz, snds: hs.join(), strikes: game.strikes, busy: game.scareBusy, toasts: toasts.join('|') }));
+  pass(Math.abs(h.hrz) > 2.5 && /rope_creak/.test(h.snds) && /scream/.test(h.snds), 'the host is the victim: he gets the hanging on his own screen');
+  pass(!r.local && !/rope_creak/.test(r.snds) && /HE WENT FOR ALEX/.test(r.toasts) && !/HE WENT FOR/.test(h.toasts), `the friend does not get it, only the toast "HE WENT FOR ALEX" (${r.toasts})`);
   pass(h.strikes === 0 && h.busy === null, 'nobody got a strike');
 
   // ---- the fake bell (Free Class: "CLASS DISMISSED")
   await G.evaluate(() => { gs.length = 0; gw.fake = ''; });
-  await runScare('fakebell', 16);
+  await runScare('fakebell', 16); // (SCARES.everyone: every screen)
   r = await G.evaluate(() => ({ fake: gw.fake, snds: gs.join(), hidden: document.getElementById('fake-end').classList.contains('hidden'), state: game.state }));
   pass(/CLASS DISMISSED/.test(r.fake) && /CLASS IS NOT OVER/.test(r.fake) && /bell_bend/.test(r.snds) && /scream/.test(r.snds), 'the friend sees the fake "CLASS DISMISSED" tear, and hears the bell and the scream');
   pass(r.hidden && r.state === 'playing', 'the fake screen goes away; the class goes on for the friend');
 
   // ---- the pencil: under the friend's own desk
   await G.evaluate(() => { gs.length = 0; gw.pencil = null; gw.under = false; window.hints = []; });
-  await runScare('pencil', 24);
+  await runScare('pencil', 24, 'Bo');
   r = await G.evaluate(() => ({ p: gw.pencil, under: gw.under, snds: gs.join(), hints: hints.join('|') }));
   pass(r.p && Math.hypot(r.p[0] - r.p[2], r.p[1] - r.p[3]) < 0.8, 'the friend\'s pencil falls by HIS own desk ' + JSON.stringify(r.p));
   pass(r.under && /stab/.test(r.snds), 'he looks down: the face comes up out of the floor next to it, on his screen');

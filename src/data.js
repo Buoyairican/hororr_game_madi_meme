@@ -650,6 +650,7 @@ export const SCARES = {
   // Free Class: an early scare (one of `first`, after `firstAt` seconds), one of his big ones from the halfway point,
   // and `strong` big ones in all (the last before the bell, at least `strongGap` seconds after the one before)
   free: { firstAt: 40, first: ['pencil', 'window'], halfway: 0.5, strong: 2, strongGap: 35 },
+  everyone: ['flash', 'fakebell'], watchToast: 'HE WENT FOR {name}', // online: these hit every screen; the others go to one victim while the rest watch (F3)
   len: { pencil: 12, wrongseat: 12, sprint: 10, window: 10, hanging: 9, fakebell: 8, flash: 1 }, // (the host waits this long when it can't watch)
   dim: 0.7,            // the lights after he vanishes from the front
   runSpeed: 7.5,       // metres per second (he walks at about 1)

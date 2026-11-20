@@ -2,8 +2,9 @@
 // the window, the fake bell, the face flash.
 //
 // Each scare is a "local" scene: it plays on the screen of the player who watches it. Solo that is you.
-// Online the host runs it for itself and tells every friend to run the same scene on their own screen
-// (mp.js: 'gscare'), so everybody gets him in their own face at the same moment. Everything a scene
+// Online the host picks one victim: the host runs it for itself, or tells that friend to run it on their
+// own screen (mp.js: 'gscare') while the others watch him bent over the friend's chair (scWatch). Only
+// SCARES.everyone (the flash, the fake bell) still plays on every screen at the same moment. Everything a scene
 // does is local to the screen it runs on (sounds with `local`, subtitles and hints with `.local`).
 //
 // He never catches anybody during a scare (scareBusy): a scare is never a strike.
@@ -11,7 +12,7 @@
 import * as THREE from 'three';
 import { SCARES } from './data.js';
 import { ROOM } from './world.js';
-import { lerp } from './util.js';
+import { lerp, pick } from './util.js';
 
 const V = THREE.Vector3;
 const _a = new V(), _b = new V(), _c = new V();
@@ -55,15 +56,27 @@ export const ScaresMixin = {
   canScareMe() { return !this.me.out && !(this.me.slipK > 0) && !(this.me.ghostK > 0); },
 
   // ------------------------------------------------------------- running a scare
-  /** as his brain (the story and the director): nobody gets caught meanwhile; online, every friend gets it too */
+  /** as his brain (the story and the director): nobody gets caught meanwhile; online, one victim gets it
+   *  and the others watch him bent over the victim's chair (SCARES.everyone: every screen gets it) */
   *scareScene(id) {
     const T = this.teacher;
+    let v = null;
+    if (this.mp && !SCARES.everyone.includes(id)) {
+      v = this.scareVictim || pick(this.players.filter((p) => !p.out && !(p.slipK > 0) && !p.ghost)); // (scareVictim: tests)
+      if (!v) return;
+      for (const q of this.players) if (q !== v) this.uiTo(q, 'toast', SCARES.watchToast.replace('{name}', v.name.toUpperCase()), 3);
+    }
     this.scareBusy = id;
     this.eventLock = true;
     try {
-      if (this.mp) this.mp.scareAll(id);
-      if (this.canScareMe()) yield* this.scLocal(id);
-      else yield* this.wait(SCARES.len[id] || 8);
+      if (v && !v.local) {
+        this.mp.toPlayer(v, { t: 'gscare', k: id });
+        yield* this.scWatch(v, (SCARES.len[id] || 8) + 1);
+      } else {
+        if (this.mp && !v) this.mp.scareAll(id);
+        if (this.canScareMe()) yield* this.scLocal(id);
+        else yield* this.wait(SCARES.len[id] || 8);
+      }
     } finally {
       this.scEnd();
       T.place(0.2, -5.4, 0);
@@ -73,6 +86,17 @@ export const ScaresMixin = {
     if (id === 'sprint') yield* this.say('t_norunning', 0.5);
     else if (id === 'fakebell') yield* this.say('t_notover2', 0.5);
     yield* this.actStare(1.2);
+  },
+
+  /** online, a friend is the victim: what the others see (he leaves the front and stands bent over the friend's chair) */
+  *scWatch(v, seconds) {
+    const T = this.teacher, t0 = this.t;
+    yield* this.scVanish(0.4);
+    const s = this.deskSpot(v);
+    T.place(s.stand.x, s.stand.z, s.face); T.root.visible = true; T.setPose('desk', s.corners); T.leanTarget = 0.9; T.crouchTarget = 0.3; T.lookAt(v.camPos, 8);
+    let t = 0;
+    while (t < seconds && !(v.scareDone > t0) && this.players.includes(v)) { t += this.dt; yield; } // (until the friend says the scene is over)
+    yield* this.scBlackoutBack(0.5);
   },
 
   /** a quick one that needs nothing from him (the face flash) */
@@ -90,6 +114,7 @@ export const ScaresMixin = {
     try { yield* this.scLocal(id); } finally {
       if (mp) mp.localTeacher = false;
       this.localScare = false;
+      if (mp) mp.send({ t: 'press', k: 'scareDone' }); // (the host stops standing over your chair)
     }
   },
 
