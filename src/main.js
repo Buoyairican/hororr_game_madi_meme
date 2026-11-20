@@ -18,12 +18,21 @@ import { initNotebook, renderNotebook } from './notebook.js';
 import { setupHowTo, howSeen } from './howto.js';
 
 const ui = new UI();
+// Errors go to the browser console. The red box at the bottom only shows in debug mode (?debug): for players it covered
+// the game for things that are not the game's own: "Script error." from the page that hosts it or a browser extension,
+// a refused pointer lock or audio play(). (A game that can't start at all still says why: see boot() below.)
+const debugErrors = new URLSearchParams(location.search).has('debug');
 window.addEventListener('error', (e) => {
   // a hiccup inside the network library (a bad packet from someone) must not stop the game
   if (/peerjs/.test(e.filename || '')) { console.warn('network:', e.message); e.preventDefault(); return; }
-  ui.error('Something broke: ' + e.message);
+  console.warn('error:', e.message, e.filename || '', e.lineno || '');
+  if (debugErrors && e.message !== 'Script error.') ui.error('Something broke: ' + e.message);
 });
-window.addEventListener('unhandledrejection', (e) => ui.error('Something broke: ' + ((e.reason && e.reason.message) || e.reason)));
+window.addEventListener('unhandledrejection', (e) => {
+  const why = (e.reason && e.reason.message) || e.reason;
+  console.warn('unhandled:', why);
+  if (debugErrors) ui.error('Something broke: ' + why);
+});
 
 const query = new URLSearchParams(location.search);
 const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
