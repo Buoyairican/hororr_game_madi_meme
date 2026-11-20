@@ -13,7 +13,7 @@
 // The host (or solo game) runs them for everybody; friends see the props through the snapshots.
 import * as THREE from 'three';
 import { clamp, damp, rand, pick, chance, seededRng, hashStr, Bag } from './util.js';
-import { CLASS_SETUP, EVENTS, QUIRKS, SLANG_USE, FREE_LENGTH, MEMES } from './data.js';
+import { CLASS_SETUP, EVENTS, QUIRKS, SLANG_USE, FREE_LENGTH, MEMES, MONITOR } from './data.js';
 
 const V = THREE.Vector3;
 const _a = new V(), _b = new V(), _c = new V();
@@ -902,6 +902,7 @@ export const EventMixin = {
   },
   /** a friend who joins in the middle of something: what it means for them (the hint everybody got) */
   lateHint() {
+    if (this.monitor) return MONITOR.others.replace('{name}', this.monitor.p.name); // (a class monitor is in charge: src/monitor.js)
     if (this.classEvent) return this.classEvent.id === 'fly' && this.prankOpen() ? EVENTS.fly.hintPrank : EVENTS[this.classEvent.id].hint;
     if (this.dozing) return QUIRKS.doze.hint;
     if (this.dancing) return SLANG_USE.danceHint;

@@ -95,7 +95,7 @@ export const SneakMixin = {
     if (!p.view) p.view = new V();
     if (!p.seatBox) p.seatBox = new THREE.Box3();
     Object.assign(p, { out: false, carried: false, slipK: 0, spotT: 0, noticed: false, sneakSeen: 0, emptyT: 0, emptyCool: 0, hasGlasses: false,
-      cushions: SNEAK.cushion.perClass, deskJob: null, outSince: -99, satAt: -99, slipNoiseT: 0, crawlT: 0, standK: 0, standY: 0, moving: false, monitor: false });
+      cushions: SNEAK.cushion.perClass, deskJob: null, outSince: -99, satAt: -99, slipNoiseT: 0, crawlT: 0, standK: 0, standY: 0, moving: false, monitor: false, monitorUntil: 0 });
     p.pos.set(p.eye.x, 0, p.eye.z);
     p.view.copy(p.eye);
   },
@@ -144,6 +144,7 @@ export const SneakMixin = {
   /** right back in your chair (caught, the bell, the last strike) */
   seatNow(p) {
     p.out = false; p.carried = false; p.slipK = 0; p.deskJob = null; p.standK = 0; p.spotT = 0; p.noticed = false; p.emptyT = 0; p.moving = false;
+    p.monitor = false; // (a class monitor he caught: on their feet until now, src/monitor.js)
     p.pos.set(p.eye.x, 0, p.eye.z);
     if (p.local) this.sneakUi(null);
   },
@@ -232,12 +233,12 @@ export const SneakMixin = {
       if (me.deskJob.t >= HOLD[kind]) { me.deskJob = null; me.talkLatch = true; this.noteHold = true; this.sneakUse(me, kind); }
     } else if (me.deskJob || this.sneakAimOn) { me.deskJob = null; this.sneakAimOn = false; ui.aim(null); }
     // the class monitor (src/monitor.js): look at a friend, press E / USE: their name on the board
-    const aim = me.monitor && !kind && !blocked ? this.aimFriend(me) : null;
+    const aim = me.monitor && this.away && !kind && !blocked ? this.aimFriend(me) : null; // (only while he is out of the room)
     const mark = aim && this.players.includes(aim) && !aim.ghost ? aim : null;
     if (mark && pressed.tap) { if (host) this.monitorWrite(me, mark); else this.mp.send({ t: 'press', k: 'mark', id: mark.id }); }
     // (holding E there you come up off the floor to reach it: easier to see)
     me.standK = me.deskJob ? Math.min(1, me.standK + dt / 0.45) : Math.max(0, me.standK - dt / 0.4);
-    const sit = me.out && !me.carried && this.nearSeat(me);
+    const sit = me.out && !me.carried && !me.monitor && this.nearSeat(me);
     ui.prompt(me.carried || !me.out ? '' : kind ? (touch ? `hold USE · ${PROMPT[kind]}` : `hold [E] · ${PROMPT[kind]}`)
       : mark ? (touch ? 'tap USE · ' : '[E] · ') + MONITOR.prompt.replace('{name}', mark.name)
       : sit ? (touch ? 'tap SIT · sit down' : '[C] · sit down') : '');
@@ -479,7 +480,7 @@ export const SneakMixin = {
     T.setPose('grab');
     yield* this.wait(0.45);
     this.audio.play('sn_grab', { pos: p.view.clone(), vol: 0.9, ref: 1.2 });
-    p.carried = true; p.deskJob = null; p.standK = 0;
+    p.carried = true; p.monitor = false; p.deskJob = null; p.standK = 0; // (a class monitor: by the collar now, src/monitor.js)
     if (p.local) { // (you look up at him)
       const h = T.headWorld(_c), d = h.sub(p.view);
       this.yaw = Math.atan2(-d.x, -d.z); this.pitch = clamp(Math.atan2(d.y, Math.hypot(d.x, d.z)), -1, 1);
@@ -511,7 +512,7 @@ export const SneakMixin = {
     const consider = (kind, at, reach) => { const d = flat(at, x, z); if (d < reach && d < bd) { bd = d; best = kind; } };
     if (this.glassesAt === 'desk') consider('glasses', GLASSES_SPOT, r + 0.1);
     if (!this.typing) consider('laptop', LAPTOP_READ, r);
-    if (!this.cushion && !this.sitting && p.cushions > 0) consider('cushion', CHAIR, r + 0.1);
+    if (this.allowSneak && !this.cushion && !this.sitting && p.cushions > 0) consider('cushion', CHAIR, r + 0.1); // (he only sits down when sneaking is on: sneakHabit)
     if (this.mode === 'free' && this.clockAhead < SNEAK.clock.max) consider('clock', CLOCK_SPOT, r);
     return best; // (the nearest one)
   },

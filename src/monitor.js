@@ -26,6 +26,7 @@ export const MonitorMixin = {
     this.monitor = { p: m, names: [], stunUntil: 0 }; m.monitor = true;
     this.startOut(m); this.onOut(m);
     m.pos.set(MONITOR.start.x, 0, MONITOR.start.z); m.slipK = 1;
+    if (this.boardRow > 3) this.world.board.erase(1.5); // (his last line is on the names' row: a clean board for the names)
     for (const p of this.players) {
       this.uiTo(p, 'toast', MONITOR.inCharge.replace('{name}', m.name.toUpperCase()), 3);
       if (p === m) this.uiTo(p, 'hint', MONITOR.you, 8);
@@ -36,14 +37,16 @@ export const MonitorMixin = {
   /** (the host) the monitor writes a friend's name on the board (a friend's press: { t: 'press', k: 'mark', id }) */
   monitorWrite(m, q) {
     const M = this.monitor;
-    if (!M || M.p !== m || !q || q === m || !this.players.includes(q) || q.ghost) return;
+    if (!M || !this.away || M.p !== m || !q || q === m || !this.players.includes(q) || q.ghost) return; // (only while he is out of the room)
     if (this.t <= M.stunUntil) { this.uiTo(m, 'status', MONITOR.dropped, 1.5); return; }
     if (M.names.filter((x) => x === q).length >= MONITOR.perFriend) { this.uiTo(m, 'status', MONITOR.wrote.replace('{name}', q.name), 2); return; }
     if (M.names.length >= MONITOR.marks) { this.uiTo(m, 'status', MONITOR.full, 2); return; }
-    const B = this.world.board;
+    const B = this.world.board, text = q.name.toUpperCase(), indent = 40 + M.names.length * MONITOR.slot;
     if (B.busy) return; // (the last name is still being written: a new one would cut it off)
+    const L = B.layout(text, MONITOR.row, { indent, size: MONITOR.size }).chars, w = L.length ? L[L.length - 1].x + L[L.length - 1].w - indent : 0;
+    const size = w > MONITOR.slot - 20 ? Math.floor(MONITOR.size * (MONITOR.slot - 20) / w) : MONITOR.size; // (a long name is written smaller: it stays in its slot)
     M.names.push(q);
-    B.write(q.name.toUpperCase(), MONITOR.row, { indent: 40 + (M.names.length - 1) * MONITOR.slot, size: MONITOR.size });
+    B.write(text, MONITOR.row, { indent, size });
     this.note(m, 'marks');
     this.uiTo(m, 'status', MONITOR.wrote.replace('{name}', q.name), 2);
     this.uiTo(q, 'hint', `<b>${m.name.toUpperCase()}</b> wrote your name on the board!`, 4);
@@ -65,7 +68,7 @@ export const MonitorMixin = {
         this.world.board.erase(1.5); // (the names go while he speaks)
         yield* this.say('t_sn_where');
         if (!this.players.includes(m)) return;
-        m.trust = 0; m.monitor = false; // (still off their chair: he takes them back to it himself)
+        m.trust = 0; this.monitor.caught = true; // (still off their chair and on their feet: he takes them back to it himself; seatNow ends `monitor`, src/sneak.js)
         this.bust('seat', m);
       }
     } finally {
@@ -76,8 +79,8 @@ export const MonitorMixin = {
   /** the monitor's turn is over (also: ev_leave's finally, reset, the monitor left the game) */
   monitorEnd() {
     if (!this.monitor) return;
-    const m = this.monitor.p;
-    if (m.monitor && m.out) { this.seatNow(m); m.monitorUntil = this.t + 1.5; }
-    m.monitor = false; this.monitor = null; this.boardRow = 4;
+    const { p: m, caught } = this.monitor;
+    if (!caught) { if (m.monitor && m.out) { this.seatNow(m); m.monitorUntil = this.t + 1.5; } m.monitor = false; }
+    this.monitor = null; this.boardRow = 4;
   },
 };

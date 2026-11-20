@@ -508,7 +508,7 @@ export class Game {
     for (const q of this.players) if (q !== p) consider(q, this.headOf(q, v2));
     // holding the note that goes round (src/chain.js): the one to pass it to comes first, even with Sam in the way
     const c = this.chainNextFor(p);
-    if (c && best !== c.next && p.camFwd.dot(v1.subVectors(this.headOf(c.next, v2), p.camPos).normalize()) > 0.94) return c.next;
+    if (c && best !== c.next && p.camFwd.dot(v1.subVectors(this.headOf(c.next, v2), from).normalize()) > 0.94) return c.next;
     return best;
   }
   /** where a player's head is (their avatar if they have one here, else their camera) */
