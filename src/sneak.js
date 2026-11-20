@@ -347,7 +347,7 @@ export const SneakMixin = {
       // the noise you make: the chair, your knees on the floor
       if (p.slipNoiseT > 0) { p.slipNoiseT -= dt; p.noise = Math.max(p.noise, SNEAK.slipNoise); }
       if (p.moving) p.noise = Math.max(p.noise, SNEAK.crawlNoise);
-      if (p.out) this.note(p, 'sneakTime', dt);
+      if (p.out && !p.monitor) this.note(p, 'sneakTime', dt); // (the class monitor is not sneaking: src/monitor.js)
       if (p.carried) {
         // he has you by the collar
         T.local(0.05, 0, 0.55, _c);

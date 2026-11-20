@@ -638,6 +638,9 @@ body:not(.touch) .k-touch { display: none !important; }
 /* a toast or a choice menu: the task list fades out of its way for that moment */
 #hud-left { transition: opacity .25s; }
 body.toasting #objectives, body.toasting #quirks, body.choosing #hud-left, body.choosing #toast.show { opacity: .1; }
+/* the status line too (narrow screens: a long task list reaches the middle); on a short screen a toast's second line is where the status is */
+body.statusing #objectives, body.statusing #quirks { opacity: .1; }
+@media (max-height: 500px) { body.statusing #toast.show { opacity: .1; } }
 /* touch screens: captions stay between the two groups of buttons */
 @media (max-height: 500px) { body.touch #subtitle { width: max(180px, calc(100vw - 380px)); } }
 @media (orientation: portrait) { body.touch #subtitle { bottom: calc(max(22px, env(safe-area-inset-bottom)) + 200px); } }

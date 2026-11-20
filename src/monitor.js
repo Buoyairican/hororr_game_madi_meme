@@ -24,8 +24,10 @@ export const MonitorMixin = {
 
   monitorStart(m) {
     this.monitor = { p: m, names: [], stunUntil: 0 }; m.monitor = true;
-    this.startOut(m); this.onOut(m);
-    m.pos.set(MONITOR.start.x, 0, MONITOR.start.z); m.slipK = 1;
+    this.startOut(m); // (on their feet, but not counted as sneaking off: no onOut, src/sneak.js)
+    this.audio.play('sn_slip', { pos: m.eye.clone().setY(0.5), vol: 0.6, ref: 1.2, reverb: 0.1 }); // (the chair creaks)
+    const T = this.teacher, x = Math.hypot(T.pos.x - MONITOR.start.x, T.pos.z - MONITOR.start.z) < 0.8 ? (T.pos.x > 0 ? -1.5 : 1.5) : MONITOR.start.x; // (not inside him: he often stands right there)
+    m.pos.set(x, 0, MONITOR.start.z); m.slipK = 1;
     if (this.boardRow > 3) this.world.board.erase(1.5); // (his last line is on the names' row: a clean board for the names)
     for (const p of this.players) {
       this.uiTo(p, 'toast', MONITOR.inCharge.replace('{name}', m.name.toUpperCase()), 3);

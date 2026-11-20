@@ -72,7 +72,7 @@ export const TrustMixin = {
         q.scareDone = -1; // (an older report must not end this one)
         const t0 = this.t;
         this.mp.toPlayer(q, { t: 'gscare', k: 'lunge' });
-        yield* this.until(() => q.scareDone > t0 || !this.players.includes(q), 2.5);
+        yield* this.until(() => q.scareDone >= t0 || !this.players.includes(q), 2.5);
         yield* this.scBlackoutBack(0.4); // (back to the front in the dark, as scStare: their screen already put him there)
       }
       q.watchedT = TRUST.watch; q.heat += 15;

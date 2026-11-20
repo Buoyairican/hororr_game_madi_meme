@@ -238,6 +238,7 @@ export class UI {
   status(text, dur = 1.6) {
     this.el.status.innerHTML = text;
     this.el.status.classList.add('show');
+    document.body.classList.add('statusing'); // (the task list, and on a short screen a toast, fade out of its way)
     this.statusTimer = dur;
   }
 
@@ -264,6 +265,11 @@ export class UI {
     this.el.subtitle.innerHTML = L.map((c) => `<div class="cap">${c.html}</div>`).join('');
     this.el.subtitle.style.opacity = L.length ? 1 : 0;
     this.subTimer = L.reduce((m, c) => Math.max(m, c.left), 0);
+    // the "repeat him" cue goes up above the lines when they reach into it
+    const cue = this.el['echo-cue'];
+    cue.style.marginBottom = '';
+    const a = cue.getBoundingClientRect(), b = this.el.subtitle.getBoundingClientRect();
+    if (L.length && a.top < b.bottom && a.bottom > b.top) cue.style.marginBottom = Math.ceil(a.bottom - b.top + 6) + 'px';
   }
 
   call(side, on) { this.set('call' + side, on, () => this.el[side === 'left' ? 'call-left' : 'call-right'].classList.toggle('show', on)); }
@@ -358,7 +364,7 @@ export class UI {
       const [text, dur, waited] = this.hintQ.shift();
       if (waited < 25) this.putHint(text, dur, true); // (a tip that waited too long is stale)
     } else for (const h of this.hintQ) h[2] += dt;
-    if (this.statusTimer > 0) { this.statusTimer -= dt; if (this.statusTimer <= 0) this.el.status.classList.remove('show'); }
+    if (this.statusTimer > 0) { this.statusTimer -= dt; if (this.statusTimer <= 0) { this.el.status.classList.remove('show'); document.body.classList.remove('statusing'); } }
     if (this.toastTimer > 0) { this.toastTimer -= dt; if (this.toastTimer <= 0) { this.el.toast.classList.remove('show'); document.body.classList.remove('toasting'); } }
     if (this.cardTimer > 0) { this.cardTimer -= dt; if (this.cardTimer <= 0) this.show('card', false); }
   }
@@ -368,7 +374,7 @@ export class UI {
     this.caps = []; this.hintQ = []; this.hintText = '';
     this.el.subtitle.innerHTML = ''; this.el.subtitle.style.opacity = 0;
     this.el.hint.classList.remove('show');
-    this.el.status.classList.remove('show');
+    this.el.status.classList.remove('show'); document.body.classList.remove('statusing');
     this.el.toast.classList.remove('show'); document.body.classList.remove('toasting');
     this.show('card', false);
     this.call('left', false); this.call('right', false);

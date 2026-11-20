@@ -101,7 +101,7 @@ export const ScaresMixin = {
     const s = this.deskSpot(v);
     T.place(s.stand.x, s.stand.z, s.face); T.root.visible = true; T.setPose('desk', s.corners); T.leanTarget = 0.9; T.crouchTarget = 0.3; T.lookAt(v.camPos, 8);
     let t = 0;
-    while (t < seconds && !(v.scareDone > t0) && this.players.includes(v)) { t += this.dt; yield; } // (until the friend says the scene is over)
+    while (t < seconds && !(v.scareDone >= t0) && this.players.includes(v)) { t += this.dt; yield; } // (until the friend says the scene is over)
     yield* this.scBlackoutBack(0.5);
   },
 
@@ -668,7 +668,7 @@ export const ScaresMixin = {
         v.scareDone = -1;
         const t0 = this.t;
         this.mp.toPlayer(v, { t: 'gscare', k: 'lunge' });
-        yield* this.until(() => v.scareDone > t0 || !here(), 2.5);
+        yield* this.until(() => v.scareDone >= t0 || !here(), 2.5);
       }
       yield* this.scBlackoutBack(0.4);
     } finally {

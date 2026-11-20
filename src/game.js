@@ -919,7 +919,7 @@ export class Game {
     this.mischief += 10;
     const fire = () => {
       if (!this.players.includes(p)) return;
-      if (this.eventLock || this.scareBusy || this.blameBusy || this.tellBusy) { this.timers.after(0.5, fire); return; }
+      if (this.eventLock || this.scareBusy || this.blameBusy || this.tellBusy || this.classEvent) { this.timers.after(0.5, fire); return; } // (a class event that started meanwhile is not cut: it would be lost)
       if (this.state !== 'playing' || this.cutscene) { p.qBusy = false; return; }
       this.interrupt(this.reactQuestion(q, p.qCount, p));
     };
@@ -1048,7 +1048,8 @@ export class Game {
   *choose(title, labels, timeout, p = this.me) {
     let res = null;
     this.openChoice(title, labels, timeout, (i) => { res = i; }, p);
-    while (res === null) yield;
+    const c = p.local ? this.choice : p.choice;
+    try { while (res === null) yield; } finally { if (res === null && (p.local ? this.choice : p.choice) === c) this.pickChoice(-1, p); } // (his scene was cut short: its menu closes)
     return res;
   }
   /** everyone gets the same question at once; the first answer counts. Returns [index, player]. */
@@ -1135,7 +1136,8 @@ export class Game {
           this.friendSay(f, f.kind === 'sam' ? 's_hey' : 'n_hey', 1);
           f.call = null;
           this.angerUp(22, 70);
-          if (this.brainIdle) this.interrupt(this.reactWarn(true));
+          if (this.brainIdle && this.stuck) this.fx.push(this.glareWarn(this.cp)); // (stuck on his question: a look, and he goes on, src/stuck.js)
+          else if (this.brainIdle) this.interrupt(this.reactWarn(true));
           const ff = f;
           this.timers.after(3.2, () => {
             if (ff.gone || this.cutscene) return;
@@ -1183,7 +1185,8 @@ export class Game {
         this.ui.phoneAlert(false);
         const g = BUZZ_GAP[this.phase];
         this.nextBuzz = rand(g[0], g[1]);
-        if (this.brainIdle) this.interrupt(this.reactPhone());
+        if (this.brainIdle && this.stuck) this.fx.push(this.glareWarn(this.camPos, 't_phone')); // (stuck on his question: a look, and he goes on, src/stuck.js)
+        else if (this.brainIdle) this.interrupt(this.reactPhone());
       }
     }
   }
@@ -1395,7 +1398,8 @@ export class Game {
       if (this.idleKind !== kind) return;
       if (kind === 'patrol') { yield* this.actPatrol(); continue; }
       // his quirks and his new words (src/quirks.js, src/slang.js), when one is due
-      const habit = this.quirkAct() || this.slangAct() || this.sneakHabit() || this.stuckAct(); // (his glasses on the desk, his chair: src/sneak.js)
+      const habit = this.scaresOn && this.scareOwed() && this.nextScare <= 0.5 ? null // (a scare he owes the class goes first: updateDirector gets his free moment)
+        : this.quirkAct() || this.slangAct() || this.sneakHabit() || this.stuckAct(); // (his glasses on the desk, his chair: src/sneak.js)
       if (habit) { yield* habit; continue; }
       const p = this.phase;
       const canWipe = this.mode === 'free' || this.chapter >= 2;

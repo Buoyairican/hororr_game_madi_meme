@@ -20,8 +20,9 @@ export const StuckMixin = {
   /** the idle lesson asks: time to find out about a wrong answer, or to get stuck? (a generator to run, or null) */
   stuckAct() {
     if (this.stuckFind && this.t >= this.stuckFind.at) return this.stuckFoundOut();
+    const ev = this.eventsOn && this.setup && this.setup.plan && this.setup.plan[this.eventIdx]; // (a class event due soon would cut his question short: src/events.js)
     if (this.mode === 'free' && this.t >= this.stuckNext && this.stuckN < STUCK.max && this.anger < 40 && this.t < FREE_LENGTH - 60
-      && this.clockMin < 240 * (1 - 60 / FREE_LENGTH)) return this.actStuck(); // (the clock may have been moved forward: src/chain.js)
+      && this.clockMin < 240 * (1 - 60 / FREE_LENGTH) && !(ev && ev.at < this.t + STUCK.wait + 10)) return this.actStuck(); // (the clock may have been moved forward: src/chain.js)
     return null;
   },
 
@@ -41,7 +42,7 @@ export const StuckMixin = {
         try {
           while (!this.stuck.kind && !pat.next().done) {
             t += this.dt;
-            if (!said && t > 3) { said = true; this.teacherSay('t_answer'); } // "The answer is... is... is..."
+            if (!said && t > 3) { said = true; this.teacherSay('t_answer'); this.echoable = null; } // "The answer is... is... is..." (nobody repeats it: an echo would cut his question short)
             yield;
           }
         } finally { pat.return(); }
