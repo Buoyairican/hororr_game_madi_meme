@@ -580,7 +580,7 @@ export class Game {
     if (wantPhone) this.phoneButtons(p, a); // with the phone up: tap, switch app, show a friend
     else {
       if (a.echo && this.canEcho(p)) this.doEcho(p);
-      if (a.ask && this.stuck && !this.stuck.by && !p.out && !p.ghost) { this.openStuck(p); } // he is stuck on a question (src/stuck.js)
+      if (a.ask && this.stuck) { if (!this.stuck.by && !p.out && !p.ghost) this.openStuck(p); else this.uiTo(p, 'status', 'He is busy right now. <b>Ask him later.</b>', 2.2); } // he is stuck on a question (src/stuck.js): T only raises your hand for it
       else if (a.ask && this.canAsk(p)) this.openAsk(p);
       else if (a.ask && this.classEvent && this.allowAsk && this.present) this.uiTo(p, 'status', 'He is busy right now. <b>Ask him later.</b>', 2.2);
     }

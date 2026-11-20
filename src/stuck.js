@@ -20,17 +20,20 @@ export const StuckMixin = {
   /** the idle lesson asks: time to find out about a wrong answer, or to get stuck? (a generator to run, or null) */
   stuckAct() {
     if (this.stuckFind && this.t >= this.stuckFind.at) return this.stuckFoundOut();
-    if (this.mode === 'free' && this.t >= this.stuckNext && this.stuckN < STUCK.max && this.anger < 40 && this.t < FREE_LENGTH - 60) return this.actStuck();
+    if (this.mode === 'free' && this.t >= this.stuckNext && this.stuckN < STUCK.max && this.anger < 40 && this.t < FREE_LENGTH - 60
+      && this.clockMin < 240 * (1 - 60 / FREE_LENGTH)) return this.actStuck(); // (the clock may have been moved forward: src/chain.js)
     return null;
   },
 
   *actStuck(item = this.stuckBag.next()) {
     const T = this.teacher;
-    this.quirkBusy = true; this.stuckN++; this.stuckNext = this.t + rand(...STUCK.every);
+    this.quirkBusy = true; this.stuckNext = this.t + rand(...STUCK.every);
     try {
+      if (this.boardRow > 2) yield* this.actErase(); // (room for the question and its answer under it)
       yield* this.actWrite(item.q);
-      this.stuck = { item, by: null, kind: null, c: null };
-      this.showHint(STUCK.hint, 6);
+      yield* this.walk(Math.min(T.pos.x + 1, 2.4), -6.38); T.faceTo(Math.PI, 4); // (a step aside, so the class can read it)
+      this.stuck = { item, by: null, kind: null, c: null }; this.stuckN++; // (it counts once the question is up)
+      for (const q of this.players) this.uiTo(q, 'hint', STUCK.hint, 6); // (now: not queued behind other tips)
       // he stares at it and pats his stomach (somebody who is still picking an answer gets the time to pick it)
       let t = 0, said = false;
       while (!this.stuck.kind && (t < STUCK.wait || this.stuck.by)) {
@@ -45,23 +48,24 @@ export const StuckMixin = {
       }
       const { kind, by: p } = this.stuck;
       if (kind === 'right') {
-        yield* this.say('q_correct');
-        yield* this.actWrite(item.right);
-        this.anger = Math.max(0, this.anger - STUCK.calm);
+        this.anger = Math.max(0, this.anger - STUCK.calm); // (it counts even if something cuts in)
         p.trust = Math.min(STUCK.maxTrust, (p.trust || 0) + 1);
         this.note(p, 'helped');
+        yield* this.say('q_correct');
+        yield* this.actWrite(item.right);
         yield* this.say('t_good'); // "Such a... good... student."
         p.watchedT = STUCK.petWatch;
         this.timers.after(rand(3, 5), () => { const k = pick(this.students.filter((s) => !s.gone && !s.hollow)); if (k && this.players.includes(p)) this.npcThrow(k, p); });
       } else if (kind === 'wrong') {
+        this.mischief += STUCK.mischief; // (it counts even if something cuts in)
+        this.note(p, 'trolled');
+        this.stuckFind = { p, item, at: this.t + rand(...STUCK.findOut) };
         yield* this.say('t_thanks');
         yield* this.say('t_writedown');
         yield* this.actWrite(item.wrong);
         this.addLaugh(STUCK.laugh, this.boardCenter.clone(), p);
-        this.mischief += STUCK.mischief;
-        this.note(p, 'trolled');
-        this.stuckFind = { p, item, at: this.t + rand(...STUCK.findOut) };
       } else {
+        this.stuck = null; // (too late to help: a hand raised now is an ordinary question)
         yield* this.say('t_moment');
         yield* this.laptopLookup(item.typed, item.right);
         yield* this.actWrite(item.right);
@@ -92,12 +96,18 @@ export const StuckMixin = {
 
   /** a wrong answer, later: he looks it up, and he wants to know who it was */
   *stuckFoundOut() {
-    const { p, item } = this.stuckFind;
-    this.stuckFind = null;
-    yield* this.laptopLookup(item.typed, item.right);
-    yield* this.say('t_wrong'); // "No. No. That is wrong."
-    if (!this.players.includes(p)) return;
-    if (this.allowBlame) yield* this.askWhoDidIt(p, 'prank');
-    else { this.focus = p; this.angerUp(25, 85); yield* this.say('t_itwasyou'); }
+    const f = this.stuckFind, { p, item } = f;
+    this.stuckFind = null; this.quirkBusy = true;
+    let found = false;
+    try {
+      yield* this.laptopLookup(item.typed, item.right);
+      yield* this.say('t_wrong'); found = true; // "No. No. That is wrong."
+      if (!this.players.includes(p) || p.ghost || p.out || p.slipK > 0) return; // (not a ghost, not somebody off their chair)
+      if (this.allowBlame) yield* this.askWhoDidIt(p, 'prank');
+      else { this.focus = p; this.angerUp(25, 85); yield* this.say('t_itwasyou'); }
+    } finally {
+      this.quirkBusy = false;
+      if (!found && !this.stuckFind) this.stuckFind = { ...f, at: this.t + 5 }; // (cut short before he found out: he tries again soon)
+    }
   },
 };

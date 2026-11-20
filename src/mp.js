@@ -15,7 +15,7 @@ import { HeldPhone } from './memes.js';
 import { showPose, avatarShoulders, lookDot } from './videos.js';
 import { makePaperMesh, PAPER_KINDS } from './pranks.js';
 import { makeNoteMesh, toolCode, toolName } from './blame.js';
-import { PRANK, ONLINE } from './data.js';
+import { PRANK, ONLINE, STUCK } from './data.js';
 
 const AVATAR_MODELS = ['kid_a', 'kid_c', 'kid_f', 'kid_a'];
 const SNAP_DT = 1 / 15;      // snapshots per second
@@ -562,6 +562,7 @@ export class MP {
       case 'chalk': W.chalkBurst(V(e.p), e.n, e.sp); break;
       case 'choice':
         this.choice = { n: e.labels.length, until: g.t + e.timeout, timeout: e.timeout, ask: e.title.startsWith('Raise') };
+        if (e.title.startsWith(STUCK.title)) g.handT = 2.8; // (your hand goes up to help him, as on the host: src/stuck.js)
         g.input.takeChoice();
         g.ui.openChoices(e.title, e.labels, g.input.touch, (i) => this.pick(i));
         break;
