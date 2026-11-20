@@ -114,7 +114,7 @@ export const QuirkMixin = {
   quirkAct() {
     if (!this.present || this.anger >= 40 || this.blackout > 0.3 || this.mode === 'free' && this.t > 286) return null;
     const due = (id) => this.quirkOn(id) && this.t >= (this.quirkNext[id] ?? 1e9);
-    const next = (id) => { const q = QUIRKS[id]; this.quirkNext[id] = this.t + rand(q.every[0], q.every[1]); };
+    const next = (id) => this.habitNext(id, QUIRKS[id].every); // (later every time, and only a few per class: src/pacing.js)
     if (due('doze')) { next('doze'); return this.actDoze(); }
     if (due('count')) { next('count'); return this.actCount(); }
     if (due('clock')) { next('clock'); return this.actClock(); }
@@ -184,7 +184,7 @@ export const QuirkMixin = {
     while (quiet < 0.5 && t < 5) { t += this.dt; quiet = this.t >= (this.voiceUntil || 0) ? quiet + this.dt : 0; yield; }
     if (quiet < 0.5 || !this.present || this.cutscene || this.eventLock || this.dozing || this.away) return;
     this.noticeQuirk('laugh');
-    yield* this.glareWarn(at || new V(0, 1.2, 0.8), 't_ql_no');
+    yield* this.glareWarn(at || new V(0, 1.2, 0.8), this.freshLine(['t_ql_no']) || ''); // (lately said: just the look)
   },
   *reactLaugh(at) {
     const T = this.teacher;
@@ -195,7 +195,7 @@ export const QuirkMixin = {
       T.lookAt(look, 8); T.facePoint(look, 4);
       yield* this.wait(0.5);
       this.noticeQuirk('laugh');
-      yield* this.say(chance(0.55) ? 't_ql_who' : 't_ql_no', 0.4);
+      const line = this.freshLine(['t_ql_who', 't_ql_no']); if (line) yield* this.say(line, 0.4);
       yield* this.actStare(1.6);
     } finally { this.quirkBusy = false; }
   },
@@ -288,7 +288,7 @@ export const QuirkMixin = {
       yield* this.wait(rand(Q.look[0], Q.look[1]) * (late ? 1.5 : 1));
       T.setPose('rest');
       if (this.clockMinutes && this.clockMinutes() > 0) yield* this.clockNoticed(); // somebody moved it forward (src/sneak.js)
-      else yield* this.say(chance(0.5) ? 't_qc_tick' : 't_qc_notyet', 0.4);
+      else { const line = this.freshLine(['t_qc_tick', 't_qc_notyet']); if (line) yield* this.say(line, 0.4); } // (not the same line again and again)
       if (!this.clockQuipped) { this.clockQuipped = true; this.friendQuip('sam', 's_clock', 0.3); }
       T.lookAt(null, 3);
     } finally { this.quirkBusy = false; T.setPose('rest'); }

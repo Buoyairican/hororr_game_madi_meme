@@ -315,7 +315,7 @@ export class MP {
         msg.board = cv.toDataURL('image/jpeg', 0.7);
       } catch (e) { /* no picture then */ }
       msg.projOn = this.projOn; msg.proj = this.projLast;
-      msg.objs = g.objectives.map((o) => ({ text: o.text, done: o.done }));
+      msg.objs = g.taskView(g.objectives).map((o) => ({ text: o.text, done: o.done })); // (the same few tasks as on the host: src/pacing.js)
       msg.evHint = g.lateHint(); // (in the middle of one of today's events: what it means)
     }
     this.flush();

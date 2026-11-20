@@ -287,7 +287,7 @@ export const VideoMixin = {
   *videoSent(f, key, from) {
     const touch = this.input.touch;
     if (f && f.gone) return;
-    yield* this.until(() => this.ready() && !this.ui.noteOpen && !this.talk, 25);
+    yield* this.until(() => this.ready() && !this.ui.noteOpen && !this.talk && !this.askBusy(), 25); // (src/pacing.js)
     if (f) yield* this.whisper(f, 's_sent', 0.2);
     const name = from || (f ? f.name : 'Unknown');
     const k = key ?? this.pickClip();
@@ -356,7 +356,7 @@ export const VideoMixin = {
     for (const f of this.friends) {
       if (f.gone || f.call || f.showing || this.anyTalkWith(f)) continue;
       for (const p of this.players) {
-        if (p.talk || p.choice || p.phoneUp) continue;
+        if (p.talk || p.choice || p.phoneUp || this.askBusy(p)) continue; // (one thing asks you at a time: src/pacing.js)
         const d = f.headWorld(_a).distanceTo(p.camPos);
         if (d < 2.7) opts.push([f, p]);
       }

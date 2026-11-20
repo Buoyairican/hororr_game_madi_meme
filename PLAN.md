@@ -373,3 +373,21 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
 - Merged with his habit and his new name: his pat while he thinks at the board is F1's (`bellyPat`, pose `'belly'`,
   `BELLY`); the light tap above is what he does when he just stands still (and in the long stare at the board).
   They never overlap (the tap needs pose `'rest'`), and the tap never starts in a scare (`T.tapBlock`).
+
+### [x] Room to breathe (a gameplay playtest, then the fixes)
+- The playtest (17 whole classes played by bots, every tip, caption, sound and scene recorded) found: his lean over your desk
+  collided with a friend's call, the phone and the "repeat him" cue (and Nora's "HEY!" punished a player who held still);
+  Free Class never breathed (he was in a scene 79-97 % of the time); 6-10 tips in the first minute and an 8-line task list;
+  control tips in the middle of a scare; habits repeated far too often in the long story periods (13 counts in period 2);
+  the phone buzzed while he stared at you; several asks at once; the toast across the middle of a phone screen.
+- `src/pacing.js` (numbers in `PACE`, `src/data.js`): `askHold(p)` (his lean from the moment he walks over, a scare,
+  "Who did it?", his stuck question, a choice, a story moment): calls and the buzz neither start nor run out; `askBusy(p)`:
+  one ask at a time (calls, buzz, a classmate's video, a sent video, a note); `calmOk()`: 12-18 s of plain lesson after any
+  scene before his own next one (habits, events, scares, desk visits, class clowns; a scare the class is owed may cut it short,
+  and events let it go first); tips wait while a scare or a lean is on and come 9 s apart, and a control tip is skipped when
+  you found the control yourself (solo); habits come 30 % later each time and at most 3 naps / 3 counts / 5 clock checks a
+  class; his habit lines are not repeated within 50 s; the buzz only starts while he is not looking and only counts down then;
+  Sam and Nora never call over his lines; no echo cue and no question while he listens at your desk; the task list shows 3 open
+  tasks (always the newest) and the bell, a finished one for 4 s; on a short screen the toast sits top left.
+  Tests: `tests/pacing.js`.
+

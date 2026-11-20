@@ -644,3 +644,9 @@ body.statusing #objectives, body.statusing #quirks { opacity: .1; }
 /* touch screens: captions stay between the two groups of buttons */
 @media (max-height: 500px) { body.touch #subtitle { width: max(180px, calc(100vw - 380px)); } }
 @media (orientation: portrait) { body.touch #subtitle { bottom: calc(max(22px, env(safe-area-inset-bottom)) + 200px); } }
+
+/* pacing (src/pacing.js): on a short screen (a phone sideways) a toast ("He learned a word", "HE WENT FOR BO") goes small
+   to the top left, over the task list (which fades out while a toast is up), not across the middle of the room over him */
+@media (max-height: 500px) {
+  #toast { left: max(16px, env(safe-area-inset-left)); transform: none; top: 22%; max-width: 38vw; font-size: 14px; letter-spacing: 2px; line-height: 1.35; text-align: left; }
+}

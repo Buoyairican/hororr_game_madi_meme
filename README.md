@@ -145,6 +145,7 @@ On a local server or GitHub Pages there is no `api/turn`, so there is no relay. 
 * **When he leans over your desk, he is listening.** Hold **B** (phone: **BREATH**) to hold your breath and keep the mouse still (phone: don't drag the view) until he straightens up. The **BREATH** meter shows the air you have left (10 seconds on Easy, 8.5 on Hard): run out and you gasp, loud. If he hears you (you breathe, you move, you make a sound, you gasp), on Easy he gets a lot angrier (if he was angry already, that is a strike); on Hard he is looking right at you: caught. If he hears nothing, he calms down and you get mischief for it.
 * **Things change when nobody is looking**: a line on the board, a poster, a seat (a kid is gone and back later, two kids changed places, Kevin is in his seat for a while). Never while anybody looks at it. A very quiet sound gives it away. Look at it again and you noticed (a little mischief).
 * **When the chalk stops, stop talking.** He turns around without warning.
+* **One thing at a time.** While he leans over your desk, while a scare or "Who did it?" is on, nothing else asks you: your friends' calls and your phone wait (they never get you in trouble then), and tips wait for a quiet moment. Your phone only buzzes while he is not looking at you. After each of his scenes there is a calm stretch of plain lesson: your time to try things.
 * If he catches you, he comes to your desk. **Three strikes** and the period is over.
 * **The class clowns**: if you do nothing for a while (a random 30 seconds to over a minute each time; no whispering, phone, repeating or questions; just looking around doesn't count), somebody in the back does a meme noise: snoring, "bruh", an airhorn, a sad trombone, "six seven!", a goat, a whoopee cushion, crickets, a metal pipe… He stops, turns around and goes to find out who did it. He looks slang up on his laptop ("what does bruh mean"), wakes up the snorer by slapping their desk, and once the laptop even tells him who farted. In detention, the ones he catches don't look the same afterwards.
 * **A different teacher every class.** Every class draws 3 or 4 **events** and 2 **quirks** from one seed (the same seed always gives the same class; `?seed=123` picks one).
@@ -237,6 +238,7 @@ src/stuck.js               he gets stuck on a question he wrote himself (help hi
 src/trust.js               online: trust, telling on a friend, trouble
 src/monitor.js             online: the class monitor while he is out of the room
 src/howto.js               HOW TO PLAY: the picture pages (and the short version before your very first class)
+src/pacing.js              room to breathe: one thing asks you at a time, calm between his scenes, tips at a quiet moment
 src/profile.js             what your browser keeps between classes (unlocks, notes, best scores), with a fallback when storage is blocked
 src/notebook.js            the notebook screen (notes, unlocks, records) and the DAILY CLASS / NOTEBOOK menu entries
 src/memes.js, src/clips.js the meme clips (original cartoons drawn live) and the clip player

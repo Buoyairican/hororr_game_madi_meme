@@ -644,6 +644,19 @@ export const TAP = {
   vol: 0.16,            // the soft pat of each tap (heard only up close)
 };
 
+// ---------------- pacing (src/pacing.js): room to breathe, one thing at a time, tips at a quiet moment
+export const PACE = {
+  calm: [12, 18],       // seconds of plain teaching after any scene of his before he starts one of his own (an event, a scare,
+                        //   a habit, a visit to a desk). What you cause (an echo, a question, a prank) he still answers at once.
+  habits: { max: { doze: 3, count: 3, clock: 5 }, grow: 1.3 }, // his habits per class, and each time the next one waits 30 % longer
+  lineGap: 50,          // seconds before one of his habit lines ("Tick... tock.", "No... laughing.") may come again
+  callGap: 1.5,         // Sam and Nora call you this much less often than before (CALL_GAP in src/game.js)
+  buzzGap: 1.25,        // your phone buzzes this much less often (BUZZ_GAP)
+  tipGap: 9,            // seconds between two tips (a tip about right now still shows at once)
+  tasks: 3,             // open tasks on the list at a time (plus "Survive until ..."); the newest one always shows
+  doneShow: 4,          // seconds a finished task stays on the list (struck through)
+};
+
 // ---------------- the new jump scares (src/scares.js). Each one plays on every player's own screen.
 // pool: what the scare director (game.js) may pick. min = first hour (0-3) in Free Class, w = weight,
 // cool = seconds before the same one again, once = one per class, strong = one of his big scares,

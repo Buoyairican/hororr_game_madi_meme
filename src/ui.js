@@ -1,5 +1,5 @@
 // DOM overlay: HUD, subtitles, hints, objectives, choices, menus.
-import { STUCK } from './data.js';
+import { STUCK, PACE } from './data.js';
 const $ = (id) => document.getElementById(id);
 const HINT_READ = 3.2;  // seconds a tip stays up before the next one may take its place
 const CAP_MIN = 1.2;    // seconds a caption stays up at least
@@ -14,6 +14,7 @@ export class UI {
       'laugh', 'laugh-fill', 'laugh-mult', 'trust', 'trust-val', 'aim-hud', 'aim-kind', 'aim-pow-fill', 'quirks', 'ev-now', 'sneak-hud', 'sneak-label', 'sneak-fill', 'notebook', 'ghost-hud', 'ghost-veil', 'ghost-left', 'ghost-haunts']) this.el[id] = $(id);
     this.subTimer = 0; this.caps = [];
     this.hintTimer = 0; this.hintAge = 99; this.hintQ = []; this.statusTimer = 0;
+    this.holdTip = () => false; this.uiT = 0; this.lastTipAt = -99; // (tips wait for a quiet moment, one at a time: the game sets holdTip, src/pacing.js)
     this.toastTimer = 0;
     this.cardTimer = 0;
     this.subsOn = true;
@@ -217,7 +218,7 @@ export class UI {
   hint(text, dur = 5, tip = false) {
     if (text === this.hintText && this.hintTimer > 0) { this.hintTimer = Math.max(this.hintTimer, dur); return; }
     const unread = this.hintTimer > 0.2 && this.hintAge < HINT_READ;
-    if (tip && (unread || this.hintQ.length || this.choosing())) {
+    if (tip && (unread || this.hintQ.length || this.choosing() || this.holdTip() || this.uiT - this.lastTipAt < PACE.tipGap)) {
       if (!this.hintQ.some((h) => h[0] === text)) this.hintQ.push([text, dur, 0]);
       if (this.hintQ.length > 4) this.hintQ.shift();
       return;
@@ -229,6 +230,7 @@ export class UI {
     this.el.hint.innerHTML = text;
     this.el.hint.classList.add('show');
     this.hintTimer = dur; this.hintAge = 0; this.hintText = text; this.hintIsTip = !!tip;
+    if (tip) this.lastTipAt = this.uiT;
     this.hintSeq = (this.hintSeq || 0) + 1;
   }
   /** take this hint down now if it is the one still up (the next update hides it) */
@@ -357,13 +359,14 @@ export class UI {
       if (this.caps.some((c) => c.left <= 0)) { this.caps = this.caps.filter((c) => c.left > 0); this.drawCaps(); }
       else this.subTimer = this.caps.reduce((m, c) => Math.max(m, c.left), 0);
     }
-    this.hintAge += dt;
+    this.hintAge += dt; this.uiT += dt;
     if (this.hintTimer > 0) { this.hintTimer -= dt; if (this.hintTimer <= 0) this.el.hint.classList.remove('show'); }
-    if (this.hintQ.length && !this.choosing() && (this.hintTimer <= 0.2 || this.hintAge >= HINT_READ)) {
+    const held = this.hintQ.length && this.holdTip(); // (a scare, his lean over your desk: tips wait, and the waiting does not make them stale)
+    if (this.hintQ.length && !held && !this.choosing() && this.uiT - this.lastTipAt >= PACE.tipGap && (this.hintTimer <= 0.2 || this.hintAge >= HINT_READ)) {
       for (const h of this.hintQ) h[2] += dt;
       const [text, dur, waited] = this.hintQ.shift();
       if (waited < 25) this.putHint(text, dur, true); // (a tip that waited too long is stale)
-    } else for (const h of this.hintQ) h[2] += dt;
+    } else if (!held) for (const h of this.hintQ) h[2] += dt;
     if (this.statusTimer > 0) { this.statusTimer -= dt; if (this.statusTimer <= 0) { this.el.status.classList.remove('show'); document.body.classList.remove('statusing'); } }
     if (this.toastTimer > 0) { this.toastTimer -= dt; if (this.toastTimer <= 0) { this.el.toast.classList.remove('show'); document.body.classList.remove('toasting'); } }
     if (this.cardTimer > 0) { this.cardTimer -= dt; if (this.cardTimer <= 0) this.show('card', false); }

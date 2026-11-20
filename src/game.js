@@ -25,10 +25,11 @@ import { ScaresMixin } from './scares.js';
 import { StuckMixin } from './stuck.js';
 import { TrustMixin } from './trust.js';
 import { MonitorMixin } from './monitor.js';
+import { PacingMixin } from './pacing.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
-  BELLY, FREE_LENGTH, SCARES, TAP, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
+  BELLY, FREE_LENGTH, SCARES, TAP, PACE, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
   QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, PRANK, QUIRKS, EVENTS, SLANG, NOTE, SNEAK, mock, clockLabel, TRUST,
 } from './data.js';
 
@@ -125,6 +126,7 @@ export class Game {
     this.setupMorePranks(); this.setupSecrets(); this.setupReplay(); // Phase 6: unlocked pranks, the closet, report cards / notes / the daily class
     this.setupGhost(); this.setupMic(); // Phase 7: the ghost kid's corner (the spare chair), the microphone
     this.setupScares(); // the new jump scares (src/scares.js)
+    this.setupPacing(); // (src/pacing.js)
     this.extrasAuto = true; // Phase 7 online: the note going round by itself, a ghost after a strike, the decoy hints (tests of other things turn them off)
     this.reset('free', 0);
   }
@@ -273,6 +275,7 @@ export class Game {
     this.resetMorePranks(); this.resetSecrets(); this.resetReplay();
     this.resetChain(); this.resetGhost(); this.resetTeam(); this.ui.chaos(null); // Phase 7: the note chain, ghosts, teamwork, the scoreboard
     this.resetScares();
+    this.resetPacing();
     this.searching = false;
     this.ui.clearTransient();
     this.ui.setObjectives([]);
@@ -375,6 +378,7 @@ export class Game {
     this.sneakVisuals(dt);
     this.updateGhosts(dt); // Phase 7: ghosts in the corner (src/ghost.js), the note going round (src/chain.js)
     this.updateChain(dt);
+    this.updatePacing(dt); // (src/pacing.js: a scene of his just ended -> a calm stretch)
     this.updateEvents(dt);
     this.updateQuirks(dt);
     this.updateSlang(dt);
@@ -769,7 +773,8 @@ export class Game {
 
   // ------------------------------------------------------------- bully: repeat him
   canEcho(p = this.me) { // anyone can repeat his last line, once
-    return this.allowEcho && !this.cutscene && !this.lockBully && !this.eventLock && !!this.echoable && this.t < this.echoable.until && !this.echoBusy && this.present;
+    return this.allowEcho && !this.cutscene && !this.lockBully && !this.eventLock && !!this.echoable && this.t < this.echoable.until && !this.echoBusy && this.present
+      && !this.leanFor(p); // (he is coming to listen at your desk: no invitation to make noise, src/pacing.js)
   }
 
   doEcho(p = this.me) {
@@ -898,7 +903,7 @@ export class Game {
   }
 
   // ------------------------------------------------------------- bully: dumb questions
-  canAsk(p = this.me) { return this.allowAsk && !this.cutscene && !this.lockBully && !this.eventLock && !this.classEvent && !this.blameBusy && !p.qBusy && this.present && !(p.local ? this.choice : p.choice); }
+  canAsk(p = this.me) { return this.allowAsk && !this.cutscene && !this.lockBully && !this.eventLock && !this.classEvent && !this.blameBusy && !p.qBusy && this.present && !(p.local ? this.choice : p.choice) && !this.leanFor(p); }
 
   openAsk(p = this.me) {
     const qs = [];
@@ -1086,8 +1091,8 @@ export class Game {
 
   // ------------------------------------------------------------- objectives
   setObjectives(list) {
-    this.objectives = list.map((o) => ({ ...o, done: false }));
-    this.ui.setObjectives(this.objectives);
+    this.objectives = list.map((o) => ({ ...o, done: false, seq: ++this.taskSeq }));
+    this.showTasks(); // (a few at a time: src/pacing.js)
   }
   /** count something a player did (the old totals and the per-player tracker) */
   note(p, key, n = 1) {
@@ -1097,7 +1102,7 @@ export class Game {
   dropObjective(id) {
     if (!this.objectives.some((x) => x.id === id)) return;
     this.objectives = this.objectives.filter((x) => x.id !== id);
-    this.ui.setObjectives(this.objectives);
+    this.showTasks();
   }
   objDone(id) { const o = this.objectives.find((x) => x.id === id); return !!(o && o.done); }
   completeObjective(id) {
@@ -1108,13 +1113,19 @@ export class Game {
     this.track.event(this.t, null, 'objective', { id });
     this.mischief += 20;
     this.audio.play('ding', { vol: 0.5, reverb: 0.1, bus: 'music' });
-    this.ui.setObjectives(this.objectives);
+    o.doneAt = this.t;
+    this.showTasks();
+    this.timers.after(PACE.doneShow + 0.1, () => { if (this.state === 'playing') this.showTasks(); }); // (then it makes room for the next one)
   }
 
   // ------------------------------------------------------------- friends calling you
   updateCalls(dt) {
-    this.nextCall -= dt;
-    if (this.nextCall <= 0 && !this.talk && !this.eventLock && !this.choice) {
+    // (src/pacing.js) while he listens at your desk, in a scare, "Who did it?", his stuck question or a story moment,
+    // a call neither starts nor runs out; one thing asks you at a time; and Sam and Nora never talk over him
+    const hold = this.askHold(this.me);
+    if (!hold) this.nextCall -= dt;
+    if (this.nextCall <= 0 && (this.talk || this.eventLock || this.choice || this.askBusy(this.me) || this.t < (this.voiceUntil || 0))) this.nextCall = rand(3, 6);
+    else if (this.nextCall <= 0) {
       const c = this.friends.filter((f) => !f.gone && !f.call);
       if (c.length) {
         const f = pick(c);
@@ -1123,7 +1134,7 @@ export class Game {
         this.friendSay(f, f.kind === 'sam' ? 's_psst' : 'n_psst', 0.25);
       }
       const g = CALL_GAP[this.phase];
-      this.nextCall = rand(g[0], g[1]);
+      this.nextCall = rand(g[0], g[1]) * PACE.callGap;
     }
     let left = false, right = false;
     for (const f of this.friends) {
@@ -1132,8 +1143,8 @@ export class Game {
       const behind = v1.z > 1;
       const sx = behind ? -v1.x : v1.x;
       if (Math.abs(sx) > 0.55 || behind) { if (sx < 0) left = true; else right = true; }
-      f.call.timer -= dt;
-      if (f.call.timer <= 0) {
+      if (!hold) f.call.timer -= dt;
+      if (f.call.timer <= 0 && !hold && this.t >= (this.voiceUntil || 0)) { // (a call never runs out while it must wait, nor cuts into his line)
         f.call.stage++;
         if (f.call.stage === 2) {
           this.friendSay(f, f.kind === 'sam' ? 's_psst2' : 'n_psst2', 0.5);
@@ -1169,10 +1180,16 @@ export class Game {
   }
 
   updateBuzz(dt) {
-    this.nextBuzz -= dt;
-    if (this.nextBuzz <= 0 && !this.buzz && !this.eventLock && !this.choice) {
-      this.buzz = { timer: 9, read: 0, tick: 0, msg: this.nextMessage() };
-      this.ui.phoneAlert(true);
+    // (src/pacing.js) your phone only starts buzzing while he is not looking at you and nothing else asks you, and the
+    // 9 seconds before it rings only count while he is not looking and nothing holds you (he listens at your desk, a scare...)
+    const hold = this.askHold(this.me);
+    if (!this.buzz && !hold) this.nextBuzz -= dt;
+    if (this.nextBuzz <= 0 && !this.buzz) {
+      if (this.eventLock || this.choice || this.askBusy(this.me) || this.watching || this.near) this.nextBuzz = rand(3, 6);
+      else {
+        this.buzz = { timer: 9, read: 0, tick: 0, msg: this.nextMessage() };
+        this.ui.phoneAlert(true);
+      }
     }
     const b = this.buzz;
     if (!b) return;
@@ -1182,7 +1199,7 @@ export class Game {
       b.tick = 1.15;
     }
     if (!this.phone.up) {
-      b.timer -= dt;
+      if (!hold && !this.watching) b.timer -= dt;
       if (b.timer <= 0) {
         this.audio.play('ringtone', { vol: 1.15, pos: this.camPos.clone().add(v2.set(0, -0.4, 0)), ref: 1.5, reverb: 0.3 });
         this.ui.subtitle('', '♪ your phone is RINGING ♪', 'shout', 2.5);
@@ -1190,7 +1207,7 @@ export class Game {
         this.buzz = null;
         this.ui.phoneAlert(false);
         const g = BUZZ_GAP[this.phase];
-        this.nextBuzz = rand(g[0], g[1]);
+        this.nextBuzz = rand(g[0], g[1]) * PACE.buzzGap;
         if (this.brainIdle && this.stuck) this.fx.push(this.glareWarn(this.camPos, 't_phone')); // (stuck on his question: a look, and he goes on, src/stuck.js)
         else if (this.brainIdle) this.interrupt(this.reactPhone());
       }
@@ -1205,7 +1222,7 @@ export class Game {
     this.mischief += 10;
     this.ui.phoneAlert(false);
     const g = BUZZ_GAP[this.phase];
-    this.nextBuzz = rand(g[0], g[1]);
+    this.nextBuzz = rand(g[0], g[1]) * PACE.buzzGap;
   }
 
   // ------------------------------------------------------------- anger (gentle: scary fun, not hardcore)
@@ -1406,6 +1423,7 @@ export class Game {
       if (kind === 'patrol') { yield* this.actPatrol(); continue; }
       // his quirks and his new words (src/quirks.js, src/slang.js), when one is due
       const habit = this.scaresOn && this.scareOwed() && this.nextScare <= 0.5 ? null // (a scare he owes the class goes first: updateDirector gets his free moment)
+        : !this.calmOk() ? null // (a calm stretch of plain lesson after each scene of his: src/pacing.js)
         : this.quirkAct() || this.slangAct() || this.sneakHabit() || this.stuckAct(); // (his glasses on the desk, his chair: src/sneak.js)
       if (habit) { yield* habit; continue; }
       const p = this.phase;
@@ -1634,6 +1652,7 @@ export class Game {
     if (!this.memesOn || this.idleT < this.memeAt) return;
     if (!this.brainIdle || this.lockBully || this.memeBusy || !this.present || !this.teacher.root.visible || this.anger >= 40 || this.blackout > 0.3) return;
     if (this.quirkBusy && !this.dozing) return; // (a class clown can wake him up, but not cut his dance short)
+    if (!this.calmOk() && !this.dozing) return; // (not right after another scene of his: src/pacing.js)
     if (this.startMeme()) { this.idleT = 0; this.memeAt = rand(MEME_IDLE[0], MEME_IDLE[1]); }
   }
 
@@ -1876,7 +1895,7 @@ export class Game {
       if (quiet < 0.25 || !this.present || this.dozing || this.cutscene) return;
       const before = T.lookTarget, look = at || this.focus.camPos;
       T.lookAt(look, 7);
-      this.teacherSay(line || pick(WARN));
+      if (line !== '') this.teacherSay(line || pick(WARN)); // ('' : only the look)
       yield* this.wait(1.9);
       if (T.lookTarget === look) T.lookAt(before, 4);
     } finally { this.glaring = false; }
@@ -2103,7 +2122,8 @@ export class Game {
     if (this.nextScare > 0 || this.eventLock || this.choice || !this.present) return;
     const busy = this.anger >= 30 || this.memeBusy || this.quirkBusy || this.sitting || this.blind || this.typing; // he is busy with somebody: the room can still act up (the storm, the lights, the door), he can't
     if (this.me.slipK > 0 || this.sneakBusy) { this.nextScare = 3; return; } // (his scares are for you in your chair)
-    let list = this.scareList().filter((s) => s.fx || (this.brainIdle && !busy));
+    if (this.dread && this.dread.lean) { this.nextScare = Math.max(this.nextScare, 2); return; } // (he is listening at a desk: src/pacing.js)
+    let list = this.scareList().filter((s) => s.fx || (this.brainIdle && !busy && (this.calmOk() || owe))); // (calm first, but a scare he owes may cut it short: src/pacing.js)
     // Free Class: at least one of his big scares before the bell (it waits for a moment he is free)
     if (owe) { const want = owe === 'first' ? SCARES.free.first : null; list = list.filter((s) => (want ? want.includes(s.id) : s.strong)); if (!list.length) { this.nextScare = 0.5; return; } }
     if (!list.length) { this.nextScare = 4; return; }
@@ -2403,7 +2423,8 @@ export class Game {
   }
 
   hintControls() {
-    const h = (t, s, d = 6) => this.timers.after(t, () => this.state === 'playing' && !this.cutscene && this.showHint(s, d));
+    // (skip: you already found that control by yourself, solo: no need to be told, src/pacing.js)
+    const h = (t, s, d = 6, skip = null) => this.timers.after(t, () => this.state === 'playing' && !this.cutscene && !(skip && !this.mp && skip()) && this.showHint(s, d));
     h(1.0, `<span class="touch-only">Drag anywhere to look around.</span><span class="desk-only">Move the mouse to look around. <kbd>Esc</kbd> pauses.</span>`);
     return h;
   }
@@ -2436,11 +2457,11 @@ export class Game {
     const done = this.objectives.filter((x) => x.done && x.id !== 'bell');
     const keep = done.slice(-1);
     const list = this.objectives.filter((x) => !x.done || keep.includes(x) || x.id === 'bell');
-    const item = { ...o, done: false };
+    const item = { ...o, done: false, seq: ++this.taskSeq };
     const bi = list.findIndex((x) => x.id === 'bell');
     if (bi >= 0) list.splice(bi, 0, item); else list.push(item);
     this.objectives = list;
-    this.ui.setObjectives(list);
+    this.showTasks();
   }
   *storyNote(i) {
     yield* this.until(() => this.ready() && !this.ui.noteOpen && !this.talk, 25);
@@ -3448,20 +3469,22 @@ export class Game {
     this.giveTools(); // the laser pointer, KICK ME notes, and "Who did it?" (src/blame.js)
     this.giveSneak(100); // leave your seat (src/sneak.js); his new habits after the hint at 100 s
     const h = this.hintControls();
-    h(8, `<span class="touch-only">Look at Sam (left) or Nora (right) and hold <b>TALK</b> to whisper. Hold <b>PHONE</b> to play.</span><span class="desk-only">Look at Sam or Nora and hold <b>E</b> to whisper. Hold <b>Q</b> to play on your phone.</span>`, 7);
-    h(18, `<span class="touch-only">Tap <b>ECHO</b> right after he speaks to repeat him. Tap <b>ASK</b> to ask a dumb question.</span><span class="desk-only">Press <b>R</b> right after he speaks to repeat him. Press <b>T</b> to ask a dumb question.</span>`, 7);
+    h(8, `<span class="touch-only">Look at Sam (left) or Nora (right) and hold <b>TALK</b> to whisper. Hold <b>PHONE</b> to play.</span><span class="desk-only">Look at Sam or Nora and hold <b>E</b> to whisper. Hold <b>Q</b> to play on your phone.</span>`, 7, () => this.didAll('whispers', 'phone'));
+    h(18, `<span class="touch-only">Tap <b>ECHO</b> right after he speaks to repeat him. Tap <b>ASK</b> to ask a dumb question.</span><span class="desk-only">Press <b>R</b> right after he speaks to repeat him. Press <b>T</b> to ask a dumb question.</span>`, 7, () => this.didAll('echoes', 'questions'));
     h(30, this.hard ? 'One strike and you are done.' : this.mp ? `${this.maxStrikes} strikes for the whole class.` : 'Three strikes and you are done.', 5);
-    h(44, `<span class="touch-only">Your phone has a game and memes: hold <b>PHONE</b>, tap <b>APP</b> to switch.</span><span class="desk-only">Your phone has a game and memes: hold <b>Q</b>, press <b>T</b> to switch apps.</span> Crash in the game and it gets <b>LOUD</b>.`, 8);
-    h(58, `<span class="touch-only">Hold <b>PRANK</b> to aim a paper ball, let go to throw.</span><span class="desk-only">Hold <b>G</b> to aim a paper ball (<b>X</b>: a paper plane), let go to throw.</span> Hit his back while he isn't looking!`, 8);
+    h(44, `<span class="touch-only">Your phone has a game and memes: hold <b>PHONE</b>, tap <b>APP</b> to switch.</span><span class="desk-only">Your phone has a game and memes: hold <b>Q</b>, press <b>T</b> to switch apps.</span> Crash in the game and it gets <b>LOUD</b>.`, 8, () => (this.track.of(this.me).phone || 0) > 4);
+    h(58, `<span class="touch-only">Hold <b>PRANK</b> to aim a paper ball, let go to throw.</span><span class="desk-only">Hold <b>G</b> to aim a paper ball (<b>X</b>: a paper plane), let go to throw.</span> Hit his back while he isn't looking!`, 8, () => this.didAll('throws'));
     this.timers.after(76, () => {
       if (this.state !== 'playing' || this.ending) return;
       this.addObjective({ id: 'kickme', text: 'Stick KICK ME on his back' });
+      if (!this.mp && this.didAll('kickme')) return; // (you found it already)
       this.showHint(`<span class="touch-only">Hold <b>PRANK</b>, tap <b>SWAP</b>: a <b>laser pointer</b> (he chases the dot) and <b>KICK ME</b> notes (when he walks past your desk).</span>`
         + `<span class="desk-only"><b>X</b> also picks a <b>laser pointer</b> (he chases the dot) and <b>KICK ME</b> notes (stick one on when he walks past your desk).</span>`, 8);
     });
     this.timers.after(100, () => {
       if (this.state !== 'playing' || this.ending) return;
       this.addObjective({ id: 'secret', text: 'Sneak to his desk and read his laptop' });
+      if (!this.mp && this.didAll('sneaks')) return; // (you found it already)
       this.showHint(`<span class="touch-only">Tap <b>SEAT</b> to slip off your chair and crawl to <b>his desk</b>: his laptop, his chair, the clock. Desks hide you.</span>`
         + `<span class="desk-only">Press <b>C</b> to slip off your chair and crawl (<b>WASD</b>) to <b>his desk</b>: his laptop, his chair, the clock. Desks hide you.</span>`, 9);
     });
@@ -3723,3 +3746,4 @@ Object.assign(Game.prototype, ScaresMixin); // the new jump scares (src/scares.j
 Object.assign(Game.prototype, StuckMixin); // he gets stuck on a question (src/stuck.js)
 Object.assign(Game.prototype, TrustMixin); // online: telling on a friend (src/trust.js)
 Object.assign(Game.prototype, MonitorMixin); // online: the class monitor (src/monitor.js)
+Object.assign(Game.prototype, PacingMixin); // room to breathe: one thing at a time, calm between his scenes, tips at a quiet moment (src/pacing.js)

@@ -435,6 +435,7 @@ export const DreadMixin = {
   dreadVisits() {
     const D = this.dread;
     if (!this.dreadAuto || D.creep || D.lean || this.t < D.nextLean || !this.dreadOpen('lean') || !this.dreadIdle() || this.anger >= DREAD.creep.calm) return;
+    if (!this.calmOk()) return; // (a calm stretch after his last scene: src/pacing.js)
     // (only somebody in their chair: he does not come to listen at an empty one, src/sneak.js)
     const seated = this.players.filter((q) => !q.out && !(q.slipK > 0) && !q.ghost); // (nor at a ghost's, src/ghost.js)
     if (!seated.length) return;
