@@ -249,7 +249,7 @@ export const VideoMixin = {
       } else if (!(p.watching && this.present)) { sh.missT += dt; sh.waitT += dt; } // while he watches you, they wait
       // "No, LOOK!"
       // (src/pacing.js: a longer wait each time, only a few times out loud, and never while something holds you)
-      if (sh.npc && !look && !this.cutscene && !this.askHold(p) && sh.missT > (sh.state === 'call' ? 7 : 5) * (1 + sh.nag * 0.5) && this.t >= (sh.npc.speakUntil || 0)) {
+      if (sh.npc && !look && !this.cutscene && !this.askHold(p) && sh.missT > (sh.state === 'call' ? 7 : 5) * (1 + sh.nag * 0.25) && this.t >= (sh.npc.speakUntil || 0)) {
         sh.nag++; sh.missT = 0;
         if (sh.nag <= PACE.nags) this.friendSay(sh.npc, sh.npc.kind === 'sam' ? 's_lookagain' : 'n_lookagain', 0.3);
       }
