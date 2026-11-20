@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { BOARD_Z, ROWS, COLS, ROOM } from './world.js';
 import { clamp, damp, rand, pick, chance } from './util.js';
-import { PRANK, PRANK_NAMES, QUIRKS } from './data.js';
+import { PRANK, PRANK_NAMES, QUIRKS, MONITOR } from './data.js';
 
 const STEP = 1 / 90;        // physics step: the same for the aim arc and the real throw
 const GRAV = 9.8;
@@ -649,6 +649,7 @@ export const PrankMixin = {
   bonk(target, from, at, npc) {
     if (!target || !this.players.includes(target)) return;
     target.bonkT = 0.6;
+    if (this.monitor && this.monitor.p === target && target.monitor) { this.monitor.stunUntil = this.t + MONITOR.stun; this.uiTo(target, 'status', MONITOR.dropped, 2); } // the class monitor drops the chalk (src/monitor.js)
     this.addLaugh(npc ? PRANK.laugh.npc : PRANK.laugh.player, at, target);
     if (target.local) this.localBonk(from);
     else if (this.mp) this.mp.toPlayer(target, { t: 'bonk', from });

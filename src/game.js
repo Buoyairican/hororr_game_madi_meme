@@ -24,6 +24,7 @@ import { ScoreboardMixin } from './scoreboard.js';
 import { ScaresMixin } from './scares.js';
 import { StuckMixin } from './stuck.js';
 import { TrustMixin } from './trust.js';
+import { MonitorMixin } from './monitor.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
@@ -158,6 +159,7 @@ export class Game {
   removePlayer(id) {
     const p = this.players.find((x) => x.id === id);
     if (!p || p.local) return;
+    if (this.monitor && this.monitor.p === p) this.monitorEnd(); // (the class monitor left: src/monitor.js)
     if (p.talk) this.endTalk(p);
     if (p.choice) this.pickChoice(-1, p);
     this.players = this.players.filter((x) => x !== p);
@@ -179,6 +181,7 @@ export class Game {
   // ------------------------------------------------------------------ setup
   reset(mode, chapter) {
     const T = this.teacher, W = this.world;
+    this.monitorEnd(); // (the class monitor: src/monitor.js)
     this.mode = mode; this.chapter = chapter;
     this.t = 0; this.phase = mode === 'story' ? chapter : 0;
     this.anger = 0; this.mischief = 0; this.strikes = 0;
@@ -495,8 +498,9 @@ export class Game {
   aimFriend(p = this.me) {
     // whoever is closest among the people you are looking right at (Sam can hide the person behind him)
     let best = null, bestDist = 1e9;
+    const from = p.monitor ? p.view : p.camPos; // (the class monitor walks around: src/monitor.js)
     const consider = (who, head) => {
-      v1.subVectors(head, p.camPos);
+      v1.subVectors(head, from);
       const dist = v1.length();
       if (p.camFwd.dot(v1.normalize()) > 0.94 && dist < bestDist) { bestDist = dist; best = who; }
     };
@@ -508,7 +512,7 @@ export class Game {
     return best;
   }
   /** where a player's head is (their avatar if they have one here, else their camera) */
-  headOf(p, out = new THREE.Vector3()) { return p.avatar ? p.avatar.headWorld(out) : out.copy(p.camPos); }
+  headOf(p, out = new THREE.Vector3()) { return p.avatar ? p.avatar.headWorld(out) : out.copy(p.monitor ? p.view : p.camPos); }
   anyTalkWith(f) { return this.players.some((p) => p.talk && p.talk.friend === f); }
 
   updateActions(dt) {
@@ -3706,3 +3710,4 @@ Object.assign(Game.prototype, ChainMixin, GhostMixin, TeamMixin, MicMixin, Score
 Object.assign(Game.prototype, ScaresMixin); // the new jump scares (src/scares.js)
 Object.assign(Game.prototype, StuckMixin); // he gets stuck on a question (src/stuck.js)
 Object.assign(Game.prototype, TrustMixin); // online: telling on a friend (src/trust.js)
+Object.assign(Game.prototype, MonitorMixin); // online: the class monitor (src/monitor.js)

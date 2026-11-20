@@ -906,3 +906,21 @@ export const TRUST = {
   toast: 'HE CAUGHT {name} · told by {by}',
   liar: 'He did not believe you.',
 };
+
+// ---- online: the class monitor (src/monitor.js), on top of the event "he leaves the room"
+export const MONITOR = {
+  trust: 2,                 // trust needed
+  speed: 1.9, eye: 1.5,     // walking: metres per second, eye height (crawling: SNEAK.speed, SNEAK.eye)
+  start: { x: 0, z: -5.4 }, // where the monitor stands first
+  zone: { x: 2.9, z: -4.5 },// "at the board": |x| < zone.x and z < zone.z
+  marks: 4, perFriend: 1, punish: 2, // names per turn, per friend, how many he goes to
+  stun: 2.5,                // seconds without chalk after a paper hit
+  row: 3, slot: 190, size: 46, // where the names go on the board: the last row, pixels per name
+  inCharge: '{name} IS IN CHARGE',
+  you: 'You are in charge. <b>Walk</b> around. Look at a friend and press <span class="desk-only"><b>E</b></span><span class="touch-only"><b>USE</b></span> to write their name on the board. <b>Be at the board when he comes back.</b>',
+  others: '{name} is watching the class for him. A name on the board means trouble.',
+  prompt: 'write {name} on the board',
+  wrote: '{name} is on the board',
+  full: 'No more room on the board.',
+  dropped: 'You dropped the chalk!',
+};

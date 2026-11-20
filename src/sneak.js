@@ -18,7 +18,7 @@
 import * as THREE from 'three';
 import { clamp, lerp, damp, rand, pick, chance, smoothstep, Bag } from './util.js';
 import { ROWS, COLS } from './world.js';
-import { SNEAK, LAPTOP_SECRETS } from './data.js';
+import { SNEAK, LAPTOP_SECRETS, MONITOR } from './data.js';
 
 const V = THREE.Vector3;
 const _a = new V(), _b = new V(), _c = new V(), _d = new V(), _hit = new V();
@@ -95,7 +95,7 @@ export const SneakMixin = {
     if (!p.view) p.view = new V();
     if (!p.seatBox) p.seatBox = new THREE.Box3();
     Object.assign(p, { out: false, carried: false, slipK: 0, spotT: 0, noticed: false, sneakSeen: 0, emptyT: 0, emptyCool: 0, hasGlasses: false,
-      cushions: SNEAK.cushion.perClass, deskJob: null, outSince: -99, satAt: -99, slipNoiseT: 0, crawlT: 0, standK: 0, standY: 0, moving: false });
+      cushions: SNEAK.cushion.perClass, deskJob: null, outSince: -99, satAt: -99, slipNoiseT: 0, crawlT: 0, standK: 0, standY: 0, moving: false, monitor: false });
     p.pos.set(p.eye.x, 0, p.eye.z);
     p.view.copy(p.eye);
   },
@@ -119,7 +119,7 @@ export const SneakMixin = {
   nearSeat(p) {
     return Math.min(flat(this.seatSide(p, -1, _d), p.pos.x, p.pos.z), flat(this.seatSide(p, 1, _d), p.pos.x, p.pos.z)) <= SNEAK.sitReach;
   },
-  canSit(p) { return p.out && !p.carried && p.slipK >= 0.99 && this.nearSeat(p); },
+  canSit(p) { return p.out && !p.carried && !p.monitor && p.slipK >= 0.99 && this.nearSeat(p); }, // (the class monitor stays up: src/monitor.js)
   /** off the chair, onto the floor in the aisle on the side you look at */
   startOut(p, side = 0) {
     if (!side) side = (p.local ? this.yaw : p.yaw) > 0 ? -1 : 1;
@@ -187,14 +187,14 @@ export const SneakMixin = {
   crawl(p, mx, my, yaw, dt) {
     const n = Math.hypot(mx, my);
     if (n < 0.08 || p.slipK < 0.99 || p.carried) return false;
-    const k = Math.min(1, n) * SNEAK.speed * dt / n;
+    const k = Math.min(1, n) * (p.monitor ? MONITOR.speed : SNEAK.speed) * dt / n; // (the class monitor walks)
     const dx = (-Math.sin(yaw) * my + Math.cos(yaw) * mx) * k, dz = (-Math.cos(yaw) * my - Math.sin(yaw) * mx) * k;
     return this.stepTo(p, p.pos.x + dx, p.pos.z + dz);
   },
   /** your eyes: on the chair, on the floor, or in between (and up high: carried, or reaching for the clock) */
   sneakEye(p, out = new V()) {
     const k = smoothstep(0, 1, p.slipK);
-    let y = SNEAK.eye + (p.crawlT > 0 ? Math.abs(Math.sin(p.crawlT * 4.6)) * 0.03 : 0);
+    let y = (p.monitor ? MONITOR.eye : SNEAK.eye) + (p.crawlT > 0 ? Math.abs(Math.sin(p.crawlT * 4.6)) * 0.03 : 0);
     if (p.carried) y = 1.05;
     else if (p.standK > 0) y = lerp(y, p.standY || SNEAK.reachUp.clock, smoothstep(0, 1, p.standK));
     return out.set(lerp(p.eye.x, p.pos.x, k), lerp(p.eye.y, y, k), lerp(p.eye.z, p.pos.z, k));
@@ -214,7 +214,7 @@ export const SneakMixin = {
       } else if (me.out && this.canSit(me)) {
         this.sitDown(me);
         if (host) this.onSit(me);
-      } else if (me.out && !me.carried) this.uiTo(me, 'status', touch ? 'Crawl back to your desk first, then tap <b>SIT</b>.' : 'Crawl back to your desk first, then press <b>C</b>.', 2.5);
+      } else if (me.out && !me.carried && !me.monitor) this.uiTo(me, 'status', touch ? 'Crawl back to your desk first, then tap <b>SIT</b>.' : 'Crawl back to your desk first, then press <b>C</b>.', 2.5);
       else if (!me.out && this.allowSneak && me.slipK <= 0) this.uiTo(me, 'status', '<b>Not now.</b>', 1.4);
     }
     if (!me.out && me.slipK <= 0) { if (me.deskJob || this.sneakAimOn) { this.sneakAimOn = false; ui.aim(null); } me.deskJob = null; return false; }
@@ -231,10 +231,15 @@ export const SneakMixin = {
       this.sneakAimOn = true;
       if (me.deskJob.t >= HOLD[kind]) { me.deskJob = null; me.talkLatch = true; this.noteHold = true; this.sneakUse(me, kind); }
     } else if (me.deskJob || this.sneakAimOn) { me.deskJob = null; this.sneakAimOn = false; ui.aim(null); }
+    // the class monitor (src/monitor.js): look at a friend, press E / USE: their name on the board
+    const aim = me.monitor && !kind && !blocked ? this.aimFriend(me) : null;
+    const mark = aim && this.players.includes(aim) && !aim.ghost ? aim : null;
+    if (mark && pressed.tap) { if (host) this.monitorWrite(me, mark); else this.mp.send({ t: 'press', k: 'mark', id: mark.id }); }
     // (holding E there you come up off the floor to reach it: easier to see)
     me.standK = me.deskJob ? Math.min(1, me.standK + dt / 0.45) : Math.max(0, me.standK - dt / 0.4);
     const sit = me.out && !me.carried && this.nearSeat(me);
     ui.prompt(me.carried || !me.out ? '' : kind ? (touch ? `hold USE · ${PROMPT[kind]}` : `hold [E] · ${PROMPT[kind]}`)
+      : mark ? (touch ? 'tap USE · ' : '[E] · ') + MONITOR.prompt.replace('{name}', mark.name)
       : sit ? (touch ? 'tap SIT · sit down' : '[C] · sit down') : '');
     return true;
   },
@@ -247,18 +252,18 @@ export const SneakMixin = {
   remoteSneak(p, dt) {
     const i = p.in;
     this.animSlip(p, dt);
-    if (i.so && !p.out && !p.carried && this.canLeave(p)) {
+    if (i.so && !p.out && !p.carried && this.canLeave(p) && !(this.t < (p.monitorUntil || 0))) { // (monitorUntil: their screen does not know yet that their turn as the class monitor is over, src/monitor.js)
       const side = i.sx < p.desk.x ? -1 : 1;
       this.startOut(p, side); this.onOut(p);
-    } else if (!i.so && p.out && !p.carried) {
+    } else if (!i.so && p.out && !p.carried && !p.monitor) { // (the class monitor stays up: src/monitor.js)
       // back on their chair (on their screen they sat down next to it; if the two ever disagree, theirs wins after a moment)
       p.sitWait = (p.sitWait || 0) + dt;
       if (this.canSit(p) || flat(p.pos, p.desk.x, p.desk.z + 0.55) < 1.6 || p.sitWait > 2) { this.sitDown(p); this.onSit(p); p.sitWait = 0; }
     }
     if (i.so) p.sitWait = 0;
-    if (!p.out || p.carried || p.slipK < 0.99 || !Number.isFinite(i.sx) || !Number.isFinite(i.sz)) { p.moving = false; return; }
+    if (!p.out || p.carried || p.slipK < 0.99 || (p.monitor && !i.so) || !Number.isFinite(i.sx) || !Number.isFinite(i.sz)) { p.moving = false; return; }
     const dx = i.sx - p.pos.x, dz = i.sz - p.pos.z, d = Math.hypot(dx, dz);
-    const max = SNEAK.speed * 1.6 * dt + 0.01;
+    const max = (p.monitor ? MONITOR.speed : SNEAK.speed) * 1.6 * dt + 0.01;
     const k = d > max ? max / d : 1;
     p.moving = d > 0.02 && this.stepTo(p, p.pos.x + dx * k, p.pos.z + dz * k);
     p.crawlT = p.moving ? p.crawlT + dt : 0;
@@ -279,6 +284,7 @@ export const SneakMixin = {
     for (const o of this.sneakOcc) if (o.kid && o.kid.seat) { const k = o.kid.seat; o.box.min.set(k.x - 0.2, 0.45, k.z - 0.22); o.box.max.set(k.x + 0.2, 1.25, k.z + 0.18); }
     for (const p of this.players) {
       if (!p.local) { if (p.slipK > 0) this.sneakEye(p, p.view); else p.view.copy(p.camPos); }
+      if (p.monitor) { p.spotT = 0; p.sneakSeen = 0; p.emptyT = 0; p.watching = false; continue; } // (the class monitor: he is out of the room, src/monitor.js)
       if (p.slipK <= 0) { p.spotT = Math.max(0, p.spotT - S.forget * dt); p.sneakSeen = 0; p.emptyT = 0; if (p.emptyCool > 0) p.emptyCool -= dt; continue; }
       _c.subVectors(p.view, head);
       const dist = _c.length();
@@ -347,7 +353,7 @@ export const SneakMixin = {
         p.pos.x = damp(p.pos.x, _c.x, 9, dt); p.pos.z = damp(p.pos.z, _c.z, 9, dt);
         continue;
       }
-      if (p.slipK <= 0 || !this.players.includes(p)) continue;
+      if (p.slipK <= 0 || !this.players.includes(p) || p.monitor) continue; // (the class monitor: src/monitor.js)
       // he walks into you
       if (free && p.slipK > 0.9 && this.present && T.root.visible && !this.away && flat(p.pos, T.pos.x, T.pos.z) < SNEAK.bump) {
         this.track.event(this.t, p, 'bumped');
@@ -499,7 +505,7 @@ export const SneakMixin = {
   // ---------------------------------------------------------------- his desk
   /** what you can do where you are (null: nothing); slack: how far off the host still lets it count */
   deskNear(p, slack = 0) {
-    if (!p.out || p.carried || p.slipK < 0.99 || !this.allowSneak) return null;
+    if (!p.out || p.carried || p.slipK < 0.99 || !(this.allowSneak || p.monitor)) return null; // (the class monitor can, any period: src/monitor.js)
     const r = SNEAK.reach + slack, x = p.pos.x, z = p.pos.z;
     let best = null, bd = 1e9;
     const consider = (kind, at, reach) => { const d = flat(at, x, z); if (d < reach && d < bd) { bd = d; best = kind; } };
@@ -764,8 +770,8 @@ export const SneakMixin = {
     this.clockAhead = Number(s[3]) || 0; this.allowSneak = !!s[4]; this.sitting = !!s[5];
     this.teacher.glasses.visible = this.glassesAt !== 'gone';
   },
-  /** one row of a player in the snapshot: [out (0 sitting, 1 out, 2 carried), x, z, the meter, glasses, cushions left, trust (src/stuck.js)] */
-  sneakRow(p) { return [p.out ? (p.carried ? 2 : 1) : 0, Math.round(p.pos.x * 100) / 100, Math.round(p.pos.z * 100) / 100, Math.round(p.spotT * 100) / 100, p.hasGlasses ? 1 : 0, p.cushions | 0, p.trust | 0]; },
+  /** one row of a player in the snapshot: [out (0 sitting, 1 out, 2 carried), x, z, the meter, glasses, cushions left, trust (src/stuck.js), the class monitor (src/monitor.js)] */
+  sneakRow(p) { return [p.out ? (p.carried ? 2 : 1) : 0, Math.round(p.pos.x * 100) / 100, Math.round(p.pos.z * 100) / 100, Math.round(p.spotT * 100) / 100, p.hasGlasses ? 1 : 0, p.cushions | 0, p.trust | 0, p.monitor ? 1 : 0]; },
   /** a friend's screen: your own row (the host may have put you back in your chair, or be carrying you) */
   applyMySneak(r) {
     if (!Array.isArray(r)) return;
@@ -776,12 +782,15 @@ export const SneakMixin = {
     } else if (me.carried) { this.seatNow(me); }
     else if (!st && me.out && this.t - me.outSince > 1.5) this.seatNow(me);  // (you did not get off your chair after all, or he put you back)
     me.spotT = Number(r[3]) || 0; me.hasGlasses = !!r[4]; me.cushions = r[5] | 0; me.trust = r[6] | 0;
+    if (r[7] && !me.out) { this.startOut(me); me.pos.set(Number(r[1]) || 0, 0, Number(r[2]) || 0); } // (in charge: on your feet where the host put you)
+    me.monitor = !!r[7];
   },
   applyOtherSneak(p, r) {
     if (!Array.isArray(r)) return;
     const st = r[0] | 0;
     p.out = st > 0; p.carried = st === 2;
     p.netX = Number(r[1]) || 0; p.netZ = Number(r[2]) || 0;
+    p.monitor = !!r[7];
   },
 
   // ---------------------------------------------------------------- what you see
@@ -803,9 +812,9 @@ export const SneakMixin = {
   /** the meter under the crosshair (only while you are off your chair), and the SEAT button */
   sneakHud() {
     const me = this.me, ui = this.ui, touch = this.input.touch;
-    const seat = !this.allowSneak || this.state !== 'playing' ? '' : me.out || me.slipK > 0 ? 'SIT' : 'SEAT';
+    const seat = !this.allowSneak || this.state !== 'playing' || me.monitor ? '' : me.out || me.slipK > 0 ? 'SIT' : 'SEAT';
     if (seat !== this.sneakSeatOn) { this.sneakSeatOn = seat; ui.seatButton(seat); }
-    if (me.slipK <= 0 && !me.out) { this.sneakUi(null); return; }
+    if ((me.slipK <= 0 && !me.out) || me.monitor) { this.sneakUi(null); return; } // (the class monitor: no meter)
     const k = clamp(me.spotT, 0, 1);
     const seen = this.role === 'guest' ? k > 0.03 : me.sneakSeen > 0 || k > 0.05; // (a friend's screen: the meter from the host)
     const label = me.carried ? 'CAUGHT' : k >= 0.99 ? 'HE SEES YOU' : seen ? 'HE CAN SEE YOU' : 'HIDDEN';

@@ -724,6 +724,7 @@ export const EventMixin = {
       yield* this.turnToClass();
       yield* this.wait(0.5);
       yield* this.say('t_lv_dontmove', 0.5);
+      yield* this.monitorAppoint(); // online: he puts the most trusted player in charge (src/monitor.js)
       yield* this.actStare(1.2);
       T.lookAt(null, 3);
       yield* this.walk(3.9, -5.0, 0.95);
@@ -771,6 +772,7 @@ export const EventMixin = {
       door.openTarget = 0;
       this.timers.after(0.9, () => A.play('door_slam', { pos: door.pos.clone(), vol: 0.35, ref: 2 }));
       yield* this.wait(0.7);
+      if (this.monitor) { yield* this.monitorReturn(); yield* this.walk(rand(-1, 1), -5.4); return; } // (the class monitor instead of "who is still at it")
       const red = this.players.filter((p) => (p.selfNoise || 0) >= 0.6 || p.aiming || p.vid);
       const saw = this.awaySaw && this.players.includes(this.awaySaw) ? this.awaySaw : null;
       const who = red[0] || saw;
@@ -797,6 +799,7 @@ export const EventMixin = {
       this.doorFace.visible = false;
       door.openTarget = 0;
       if (!this.objDone('chaos')) this.dropObjective('chaos');
+      this.monitorEnd();
     }
   },
   /** while he is out the kids turn around and talk; when he is coming back they snap to the front */

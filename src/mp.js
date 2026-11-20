@@ -120,8 +120,8 @@ class Avatar {
       const e = k * k * (3 - 2 * k);
       this.crawled = true;
       r.rotation.order = 'YXZ';
-      r.position.set(lerp(this.home.x, st.x, e), lerp(this.home.y, st.carried ? 0.62 : 0.4, e), lerp(this.home.z, st.z, e));
-      r.rotation.set((st.carried ? 0.3 : 1.22) * e, Math.PI + st.yaw * e, 0);
+      r.position.set(lerp(this.home.x, st.x, e), lerp(this.home.y, st.carried ? 0.62 : st.monitor ? this.home.y : 0.4, e), lerp(this.home.z, st.z, e));
+      r.rotation.set((st.carried ? 0.3 : st.monitor ? 0 : 1.22) * e, Math.PI + st.yaw * e, 0); // (the class monitor walks upright: src/monitor.js)
     } else if (this.crawled) {
       this.crawled = false;
       this.setGhost(false);
@@ -259,6 +259,7 @@ export class MP {
       else if (m.k === 'throw') g.throwFrom(p, { yaw: m.y, pitch: m.p, power: m.pw, kind: PAPER_KINDS[m.kd] || 'ball', curve: m.cv });
       else if (m.k === 'note') g.stickNote(p);
       else if (m.k === 'use') g.deskAct(p, String(m.w)); // his glasses, his laptop, the clock, his chair
+      else if (m.k === 'mark') { const q = g.players.find((x) => x.id === m.id); if (q) g.monitorWrite(p, q); } // the class monitor writes a name (src/monitor.js)
       else if (m.k === 'haunt') g.haunt(p, Number(m.h) | 0); // a ghost in the corner (src/ghost.js)
       else if (m.k === 'scareDone') p.scareDone = this.g.t; // their scare is over (src/scares.js scWatch)
     }
@@ -336,7 +337,7 @@ export class MP {
     this.checkSilent();
     for (const p of g.players) {
       if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: !!p.talk, phone: p.phoneUp, hand: p.handT > 0, aim: p.aiming, tool: p.tool, thr: g.t - p.lastThrow,
-        slip: p.slipK, x: p.pos.x, z: p.pos.z, carried: p.carried, ...g.ghostLook(p) });
+        slip: p.slipK, x: p.pos.x, z: p.pos.z, carried: p.carried, monitor: p.monitor, ...g.ghostLook(p) });
     }
     if (!this.live()) { this.q = []; return; }
     this.snapT -= dt;
@@ -696,7 +697,7 @@ export class MP {
       g.micUpdate(dt);
       for (const p of g.players) {
         if (p.avatar) p.avatar.update(dt, { yaw: p.yaw, pitch: p.pitch, talk: p.netTalk, phone: p.phoneUp, hand: p.netHand, aim: p.netAim, tool: p.netTool, thr: g.t - (p.netThrAt ?? -99),
-          slip: p.slipK, x: p.pos.x, z: p.pos.z, carried: p.carried, ...g.ghostLook(p) });
+          slip: p.slipK, x: p.pos.x, z: p.pos.z, carried: p.carried, monitor: p.monitor, ...g.ghostLook(p) });
       }
       g.updateWatching();
       this.guestShows(dt);
