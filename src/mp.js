@@ -868,7 +868,7 @@ export class MP {
     ui.setLaugh(g.laugh);
     ui.setTrust(g.me.trust);
     ui.setStrikes(g.strikes, g.maxStrikes);
-    ui.echoCue(this.ec >= 0 && !g.cutscene && !g.vidZoom && !this.phoneUp && !g.me.aim && g.me.slipK <= 0 ? clamp(this.ec / 4, 0, 1) : -1, g.input.touch);
+    ui.echoCue(this.ec >= 0 && !g.cutscene && !g.localScare && !g.vidZoom && !this.phoneUp && !g.me.aim && g.me.slipK <= 0 ? clamp(this.ec / 4, 0, 1) : -1, g.input.touch);
     const c = clockLabel(g.clockMin);
     ui.setClock(c.text);
     g.world.clock.set(c.h, c.m, c.s);
