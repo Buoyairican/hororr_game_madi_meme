@@ -70,8 +70,9 @@ export const ScaresMixin = {
     this.eventLock = true;
     try {
       if (v && !v.local) {
+        v.scareDone = -1; // (a report from an older scene, or from the last class, must not end this one)
         this.mp.toPlayer(v, { t: 'gscare', k: id });
-        yield* this.scWatch(v, (SCARES.len[id] || 8) + 1);
+        yield* this.scWatch(v, (SCARES.len[id] || 8) + (SCARES.wait[id] || 0) + 2); // (their scene can wait SCARES.wait for a look)
       } else {
         if (this.mp && !v) this.mp.scareAll(id);
         if (this.canScareMe()) yield* this.scLocal(id);
@@ -107,14 +108,22 @@ export const ScaresMixin = {
 
   /** a friend's screen (mp.js 'gscare'): the same scene, with their own teacher for the moment */
   *scareGuest(id) {
-    if (!SCARES.len[id] || !this.canScareMe() || this.state !== 'playing') return;
     const mp = this.mp;
+    if (!SCARES.len[id] || !this.canScareMe() || this.state !== 'playing') { if (mp) mp.send({ t: 'press', k: 'scareDone' }); return; } // (skipped: the host need not wait)
     if (mp) mp.localTeacher = true;
     this.localScare = true; // (the host's lights and blackout don't overwrite this screen meanwhile)
-    try { yield* this.scLocal(id); } finally {
+    let told = false;
+    try {
+      yield* this.scLocal(id);
+      if (mp) { mp.send({ t: 'press', k: 'scareDone' }); told = true; } // (the host stops standing over your chair)
+      // keep your own teacher and lights until he has left your chair on the host too (no second blackout, no face at your desk)
+      this.localScare = true;
+      const s = this.deskSpot().stand;
+      for (let t = 0; t < 2 && mp && mp.snap && (Math.hypot(mp.snap.T[0] - s.x, mp.snap.T[2] - s.z) < 1.2 || mp.snap.fx[0] > 0); t += this.dt) yield;
+    } finally {
       if (mp) mp.localTeacher = false;
       this.localScare = false;
-      if (mp) mp.send({ t: 'press', k: 'scareDone' }); // (the host stops standing over your chair)
+      if (mp && !told) mp.send({ t: 'press', k: 'scareDone' });
     }
   },
 

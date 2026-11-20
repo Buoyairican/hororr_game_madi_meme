@@ -362,7 +362,8 @@ export class MP {
     const bk = W.fallingBook;
     const w = [r2(W.master), r2(W.gloomTarget), r2(W.gloom), W.showSilhouette ? 1 : 0, W.laptop.openTarget, W.laptop.glowTarget, W.door.openTarget, g.doorFace.visible ? 1 : 0,
       W.lights.banks.map((x) => [r2(Math.max(0, x.flicker)), x.dead ? 1 : 0]), [...va(bk.position), r3(bk.rotation.x), r3(bk.rotation.y), r3(bk.rotation.z)]];
-    const fx = [r2(g.blackoutTarget), r2(g.blackout), r2(g.shake), r2(g.glitch), r2(g.scareFear), r2(g.redFlash)];
+    const lf = g.scLocalOn; // (the host's own scene: its hit stays on the host's screen, the friends only watch: F3)
+    const fx = [r2(g.blackoutTarget), r2(g.blackout), lf ? 0 : r2(g.shake), lf ? 0 : r2(g.glitch), lf ? 0 : r2(g.scareFear), lf ? 0 : r2(g.redFlash)];
     const P = g.players.map((p) => [p.id, r3(p.yaw), r3(p.pitch), p.talk ? 1 : 0, p.phoneUp ? 1 : 0, p.handT > 0 ? 1 : 0, p.aiming ? 1 : 0, r2(Math.min(9, g.t - p.lastThrow)),
       p.aiming ? toolCode(p.tool) : 0, p.notesLeft | 0, ...g.sneakRow(p)]);
     return {
@@ -570,7 +571,7 @@ export class MP {
       case 'choiceClose': if (this.choice) { this.choice = null; g.ui.closeChoices(); } break;
       case 'noteClose': if (g.ui.noteOpen) { g.ui.closeNote(); g.noteLatch = true; } break;
       case 'jump': this.stopScare(); this.jump = this.guestJump(); break;
-      case 'gscare': if (!this.jump && !this.gscare) this.gscare = g.scareGuest(String(e.k)); break;
+      case 'gscare': if (!this.jump && !this.gscare) this.gscare = g.scareGuest(String(e.k)); else if (this.jump) this.send({ t: 'press', k: 'scareDone' }); break;
       case 'bonk': g.localBonk(typeof e.from === 'string' ? e.from.replace(/[<>&"]/g, '').slice(0, 12) : 'Someone'); break;
       case 'slap': g.localSlap(); break;
       case 'vscare': g.localVideoScare(); if (this.helds) for (const h of this.helds.values()) h.face = g.portraitTex && g.portraitTex.image; break;
@@ -645,7 +646,7 @@ export class MP {
     W.gloomTarget = w[1];
     if (Math.abs(W.gloom - w[2]) > 0.15) W.gloom = w[2];
     W.showSilhouette = !!w[3];
-    W.laptop.openTarget = w[4]; W.laptop.glowTarget = w[5]; W.door.openTarget = w[6];
+    W.laptop.openTarget = w[4]; W.laptop.glowTarget = w[5]; if (!g.localScare) W.door.openTarget = w[6]; // (the sprint opens your own door)
     g.doorFace.visible = !!w[7];
     w[8].forEach(([fl, dead], i) => { const b = W.lights.banks[i]; if (!b) return; b.dead = !!dead; if (fl > b.flicker + 0.15) b.flicker = fl; });
     const bk = W.fallingBook, bb = w[9];

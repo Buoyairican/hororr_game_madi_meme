@@ -81,6 +81,9 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
     const g = game; window.gs = []; const op = g.audio.play.bind(g.audio); g.audio.play = (n, o = {}) => { gs.push(n); return op(n, o); };
     window.gw = { rz: 0, head: 9, local: false, fake: '', pencil: null, hint: 0 };
     const V = g.camPos.constructor;
+    // (what the host sends while he hangs upside down in front of the host: his red flash and shake, when you only watch)
+    const a0 = g.mp.applySnapOnce.bind(g.mp);
+    g.mp.applySnapOnce = (s) => { if (!g.localScare && Math.abs(Number(s.T[22]) || 0) > 2.5) { gw.hung = (gw.hung || 0) + 1; gw.hit = Math.max(gw.hit || 0, s.fx[2], s.fx[5]); } return a0(s); };
     setInterval(() => {
       const T = g.teacher;
       if (g.localScare) gw.local = true;
@@ -115,6 +118,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
 
   // ---- the hanging, the friend is the victim: the host watches
   await G.evaluate(() => { gs.length = 0; gw.rz = 0; gw.head = 9; gw.local = false; toasts.length = 0; });
+  await H.evaluate(() => { game.players.find((p) => p.name === 'Bo').scareDone = 999; }); // (left over from the last class: must not end this watch)
   await runScare('hanging', 20, 'Bo');
   await G.waitForTimeout(1200);
   const hostT = await H.evaluate(() => [game.teacher.pos.x, game.teacher.pos.z]);
@@ -131,10 +135,11 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   pass(h.strikes === 0 && h.busy === null, 'nobody got a strike');
 
   // ---- the hanging, the host is the victim: the friend only gets the toast
-  await G.evaluate(() => { gs.length = 0; gw.rz = 0; gw.head = 9; gw.local = false; toasts.length = 0; });
+  await G.evaluate(() => { gs.length = 0; gw.rz = 0; gw.head = 9; gw.local = false; gw.hit = 0; gw.hung = 0; toasts.length = 0; });
   await runScare('hanging', 20, 'Alex');
   await G.waitForTimeout(1200);
   r = await G.evaluate(() => ({ ...gw, snds: gs.join(), toasts: toasts.join('|') }));
+  pass(r.hung > 0 && r.hit === 0, `the host's hit stays on the host's screen: no red flash or shake sent to the friend (${r.hit} in ${r.hung} snapshots)`);
   h = await H.evaluate(() => ({ hrz: window.hrz, snds: hs.join(), strikes: game.strikes, busy: game.scareBusy, toasts: toasts.join('|') }));
   pass(Math.abs(h.hrz) > 2.5 && /rope_creak/.test(h.snds) && /scream/.test(h.snds), 'the host is the victim: he gets the hanging on his own screen');
   pass(!r.local && !/rope_creak/.test(r.snds) && /HE WENT FOR ALEX/.test(r.toasts) && !/HE WENT FOR/.test(h.toasts), `the friend does not get it, only the toast "HE WENT FOR ALEX" (${r.toasts})`);
