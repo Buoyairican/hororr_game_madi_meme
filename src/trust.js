@@ -22,7 +22,7 @@ export const TrustMixin = {
   },
 
   tellOnFriend(p, q) { // (not tellOn: that is the blamed kid's scene in src/blame.js)
-    if (!this.canAsk(p) || !this.players.includes(q) || q.out || q.slipK > 0 || q.ghost) { this.uiTo(p, 'status', 'He is busy right now. <b>Ask him later.</b>', 2.2); return; } // (the menu was open a while)
+    if (!this.canAsk(p) || this.stuck || this.players.some((r) => r.qBusy) || !this.players.includes(q) || q.out || q.slipK > 0 || q.ghost) { this.uiTo(p, 'status', 'He is busy right now. <b>Ask him later.</b>', 2.2); return; } // (the menu was open a while; he is stuck on a question or answering somebody's: src/stuck.js, game.js reactQuestion)
     p.tellAt = this.t; p.handT = 2.8;
     this.interrupt(this.reactTell(p, q));
   },
