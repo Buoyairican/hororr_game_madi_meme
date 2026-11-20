@@ -632,7 +632,7 @@ export const ScaresMixin = {
       if (Math.hypot(T.pos.x - 0.2, T.pos.z + 5.4) > 0.5) yield* this.blinkTo(0.2, -5.4, 0, 0.5); // (he stares from the front: his walk from there is clear of the desks)
       T.root.visible = true; T.setPose('rest');
       T.facePoint(v.camPos, 3); T.lookAt(v.camPos, 4);
-      T.eyeGlow = 1.2; this.dreadSilent = true;
+      T.eyeGlow = 1.2; T.lensGlow = 4; this.dreadSilent = true; // (lensGlow: his glasses glow over his eyes, clear from the back of a dark class; the eyes' own glow is a thin rim)
       this.uiTo(v, 'hint', SCARES.texts.stare, 6);
       for (const q of this.players) if (q !== v) this.uiTo(q, 'hint', SCARES.texts.stareOthers.replace('{name}', v.name), 6);
       const legs = [s.approach, s.stand];
@@ -648,7 +648,7 @@ export const ScaresMixin = {
         T.facePoint(v.camPos, 3);
         yield;
       }
-      T.moveTarget = null;
+      T.moveTarget = null; T.lensGlow = 0; // (the stare is over: no glowing glasses in his lunge)
       if (held >= S.giveUp) {
         // you won: he gives up and walks back
         this.mischief += 30; this.note(v, 'stare_held');
@@ -669,7 +669,7 @@ export const ScaresMixin = {
       }
       yield* this.scBlackoutBack(0.4);
     } finally {
-      T.moveTarget = null; this.dreadSilent = false; T.eyeGlow = 0.12;
+      T.moveTarget = null; this.dreadSilent = false; T.eyeGlow = 0.12; T.lensGlow = 0;
     }
   },
 
