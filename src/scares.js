@@ -78,10 +78,12 @@ export const ScaresMixin = {
         yield* this.scWatch(v, (SCARES.len[id] || 8) + (SCARES.wait[id] || 0) + 2); // (their scene can wait SCARES.wait for a look)
       } else {
         if (this.mp && !v) this.mp.scareAll(id);
+        else if (v && id !== 'stare' && this.canScareMe()) this.mp.scareAll('watch'); // (the host is the victim: the friends watch him bent over the host's chair on their own screens)
         if (this.canScareMe()) yield* this.scLocal(id);
         else yield* this.wait(SCARES.len[id] || 8);
       }
     } finally {
+      if (v && v.local && this.mp) this.mp.broadcastNow({ t: 'scareDone' }); // (the friends watching him at the host's chair: it is over)
       this.scEnd();
       T.place(0.2, -5.4, 0);
       this.eventLock = false; this.scareBusy = null;
@@ -112,7 +114,7 @@ export const ScaresMixin = {
   /** a friend's screen (mp.js 'gscare'): the same scene, with their own teacher for the moment */
   *scareGuest(id) {
     const mp = this.mp;
-    if (!(SCARES.len[id] || id === 'lunge') || !this.canScareMe() || this.state !== 'playing' || (id === 'note' && this.ui.noteOpen)) { if (mp) mp.send({ t: 'press', k: 'scareDone' }); return; } // (skipped: the host need not wait)
+    if (!(SCARES.len[id] || id === 'lunge' || id === 'watch') || !this.canScareMe() || this.state !== 'playing' || (id === 'note' && this.ui.noteOpen)) { if (mp) mp.send({ t: 'press', k: 'scareDone' }); return; } // (skipped: the host need not wait)
     if (mp) mp.localTeacher = true;
     this.localScare = true; // (the host's lights and blackout don't overwrite this screen meanwhile)
     let told = false;
@@ -145,6 +147,7 @@ export const ScaresMixin = {
       else if (id === 'note') yield* this.scNote();
       else if (id === 'stare') yield* this.scStare();
       else if (id === 'lunge') yield* this.scLungeScene();
+      else if (id === 'watch' && this.players.find((p) => p.id === 'host')) yield* this.scWatch(this.players.find((p) => p.id === 'host'), SCARES.len.pencil + SCARES.wait.pencil + 2); // (the host is the victim, until the host says it is over: mp.js 'scareDone')
     } finally {
       this.scLocalOn = false;
       if (id !== 'flash') this.scEnd();

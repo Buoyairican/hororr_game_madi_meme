@@ -573,6 +573,7 @@ export class MP {
       case 'noteClose': if (g.ui.noteOpen) { g.ui.closeNote(); g.noteLatch = true; } break;
       case 'jump': this.stopScare(); this.jump = this.guestJump(); break;
       case 'gscare': if (!this.jump && !this.gscare) this.gscare = g.scareGuest(String(e.k)); else if (this.jump) this.send({ t: 'press', k: 'scareDone' }); break;
+      case 'scareDone': { const h = g.players.find((q) => q.id === 'host'); if (h) h.scareDone = g.t; break; } // (the host's own scare is over: src/scares.js scWatch)
       case 'bonk': g.localBonk(typeof e.from === 'string' ? e.from.replace(/[<>&"]/g, '').slice(0, 12) : 'Someone'); break;
       case 'slap': g.localSlap(); break;
       case 'vscare': g.localVideoScare(); if (this.helds) for (const h of this.helds.values()) h.face = g.portraitTex && g.portraitTex.image; break;

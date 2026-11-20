@@ -1,7 +1,8 @@
 // The new jump scares online (host + friend over a local PeerServer). One victim (IDEAS.md F3, forced here
 // with game.scareVictim): the friend's own screen gets it (his own teacher for the moment: hanging upside
 // down in front of HIS face, his own pencil under his own desk) while the host watches him bent over the
-// friend's chair ("HE WENT FOR BO"); or the host gets it and the friend only gets the toast. The fake bell
+// friend's chair ("HE WENT FOR BO"); or the host gets it and the friend gets the toast and watches him bent over
+// the host's chair (his own teacher for the moment, until the host's blackout). The fake bell
 // (SCARES.everyone) still hits every screen. The host's lights don't overwrite the friend's scene, nobody
 // gets a strike meanwhile, and the friend's teacher goes back to the host's afterwards.
 const { chromium, ROOT, PEER, MP_ARGS, shot } = require('./lib');
@@ -83,10 +84,12 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
     const V = g.camPos.constructor;
     // (what the host sends while he hangs upside down in front of the host: his red flash and shake, when you only watch)
     const a0 = g.mp.applySnapOnce.bind(g.mp);
-    g.mp.applySnapOnce = (s) => { if (!g.localScare && Math.abs(Number(s.T[22]) || 0) > 2.5) { gw.hung = (gw.hung || 0) + 1; gw.hit = Math.max(gw.hit || 0, s.fx[2], s.fx[5]); } return a0(s); };
+    g.mp.applySnapOnce = (s) => { if (Math.abs(Number(s.T[22]) || 0) > 2.5) { gw.hung = (gw.hung || 0) + 1; gw.hit = Math.max(gw.hit || 0, s.fx[2], s.fx[5]); } return a0(s); };
     setInterval(() => {
       const T = g.teacher;
       if (g.localScare) gw.local = true;
+      const hp = g.players.find((p) => p.id === 'host'); // (how near his own teacher came to the host's chair, on the friend's screen)
+      if (hp && g.mp.localTeacher && T.root.visible) { const s = g.deskSpot(hp); gw.atHost = Math.min(gw.atHost ?? 9, Math.hypot(T.pos.x - s.stand.x, T.pos.z - s.stand.z)); }
       if (Math.abs(T.root.rotation.z) > 2.5) { gw.rz = T.root.rotation.z; gw.head = Math.min(gw.head, T.headWorld(new V()).distanceTo(g.camPos)); }
       const fe = document.getElementById('fake-end');
       if (!fe.classList.contains('hidden')) gw.fake += '|' + fe.querySelector('.fe-title').textContent;
@@ -134,15 +137,19 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   pass(!r.localNow && !r.lt && Math.abs(r.rzNow) < 0.01 && r.off < 0.8, 'afterwards the friend\'s teacher is the host\'s again (right way up, where the host has him) ' + JSON.stringify([r.localNow, r.lt, r.rzNow, +r.off.toFixed(2)]));
   pass(h.strikes === 0 && h.busy === null, 'nobody got a strike');
 
-  // ---- the hanging, the host is the victim: the friend only gets the toast
-  await G.evaluate(() => { gs.length = 0; gw.rz = 0; gw.head = 9; gw.local = false; gw.hit = 0; gw.hung = 0; toasts.length = 0; });
+  // ---- the hanging, the host is the victim: the friend gets the toast and watches him bent over the host's chair
+  await G.evaluate(() => { gs.length = 0; gw.rz = 0; gw.head = 9; gw.local = false; gw.hit = 0; gw.hung = 0; gw.atHost = 9; toasts.length = 0; });
   await runScare('hanging', 20, 'Alex');
   await G.waitForTimeout(1200);
-  r = await G.evaluate(() => ({ ...gw, snds: gs.join(), toasts: toasts.join('|') }));
+  const hostT2 = await H.evaluate(() => [game.teacher.pos.x, game.teacher.pos.z]);
+  r = await G.evaluate(() => ({ ...gw, snds: gs.join(), toasts: toasts.join('|'), localNow: game.localScare, lt: game.mp.localTeacher, x: game.teacher.pos.x, z: game.teacher.pos.z }));
+  r.off = Math.hypot(r.x - hostT2[0], r.z - hostT2[1]);
   pass(r.hung > 0 && r.hit === 0, `the host's hit stays on the host's screen: no red flash or shake sent to the friend (${r.hit} in ${r.hung} snapshots)`);
   h = await H.evaluate(() => ({ hrz: window.hrz, snds: hs.join(), strikes: game.strikes, busy: game.scareBusy, toasts: toasts.join('|') }));
   pass(Math.abs(h.hrz) > 2.5 && /rope_creak/.test(h.snds) && /scream/.test(h.snds), 'the host is the victim: he gets the hanging on his own screen');
-  pass(!r.local && !/rope_creak/.test(r.snds) && /HE WENT FOR ALEX/.test(r.toasts) && !/HE WENT FOR/.test(h.toasts), `the friend does not get it, only the toast "HE WENT FOR ALEX" (${r.toasts})`);
+  pass(Math.abs(r.rz) < 0.01 && !/rope_creak/.test(r.snds) && /HE WENT FOR ALEX/.test(r.toasts) && !/HE WENT FOR/.test(h.toasts), `the friend does not get the hanging, he gets the toast "HE WENT FOR ALEX" (${r.toasts})`);
+  pass(r.local && r.atHost < 0.3, `on the friend's screen he stands bent over the host's chair (${r.atHost.toFixed(2)} m from the spot)`);
+  pass(!r.localNow && !r.lt && r.off < 0.8, 'afterwards the friend\'s teacher is the host\'s again ' + JSON.stringify([r.localNow, r.lt, +r.off.toFixed(2)]));
   pass(h.strikes === 0 && h.busy === null, 'nobody got a strike');
 
   // ---- the fake bell (Free Class: "CLASS DISMISSED")
