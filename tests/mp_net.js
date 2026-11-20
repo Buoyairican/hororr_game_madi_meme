@@ -6,7 +6,7 @@
 //    whose game doesn't answer (a phone in another app) and comes back; giving up with clear
 //    words and a console diagnosis; CANCEL
 //  - the host's lobby: keep-open tip, SHARE (navigator.share) with the copy fallback, the lobby
-//    sounds and Mr. Madi's lines, healing the link to the game server with the same class code
+//    sounds and Mr. Past's lines, healing the link to the game server with the same class code
 // Real NAT traversal (two phones on different networks) can't be reproduced on one machine.
 const { chromium, devices, ROOT, PEER, MP_ARGS, shot } = require('./lib');
 const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
@@ -139,7 +139,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   await setHidden(H, false);
   await H.waitForTimeout(900);
   hl = await lobbyLog(H);
-  pass(hl.some((e) => e.kind === 'away' && e.line === 't_dontleave'), 'host back from another app: Mr. Madi says "Do not... leave... my class."');
+  pass(hl.some((e) => e.kind === 'away' && e.line === 't_dontleave'), 'host back from another app: Mr. Past says "Do not... leave... my class."');
   pass(/Welcome back/.test(await status(H)) && /leave/.test(await H.evaluate(() => document.getElementById('mp-madi').innerText)), 'status "Welcome back…" and his line under the lobby: "' + (await H.evaluate(() => document.getElementById('mp-madi').innerText)) + '"');
   pass(await H.evaluate((c) => game.mp.code === c && game.mp.net.peer === window.peerA && !game.mp.net.peer.disconnected, peerBefore), 'the link to the game server was renewed, same class code');
   await H.waitForTimeout(2600);
@@ -247,7 +247,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   await P.tap('#btn-share');
   await P.waitForTimeout(300);
   const sh = await P.evaluate(() => window.shared[0]);
-  pass(!!sh && sh.text.includes(pcode) && sh.url.endsWith('?join=' + pcode) && /MADI CLASS/.test(sh.title), 'SHARE opens the share sheet with the code and the invite link: ' + (sh && sh.text));
+  pass(!!sh && sh.text.includes(pcode) && sh.url.endsWith('?join=' + pcode) && /PAST SUMMIT/.test(sh.title), 'SHARE opens the share sheet with the code and the invite link: ' + (sh && sh.text));
   pass(/Sent! Stay here/.test(await status(P)), 'after sharing: "Sent! Stay here until your friends are in."');
   await P.evaluate(() => { window.shareFails = 'AbortError'; document.getElementById('mp-status').textContent = 'x'; });
   await P.tap('#btn-share'); await P.waitForTimeout(300);

@@ -1,13 +1,15 @@
-# MADI CLASS
+# PAST SUMMIT
 
 A first-person 3D horror game set in Room 13, from **8:30 AM to 12:30 PM**.
 You sit in the front row. Mr. Hale, your teacher, never misses class. Today a
-substitute walks in: **Mr. Madi**. He is too tall, his hands hang past his
+substitute walks in: **Mr. Past**. He is too tall, his hands hang past his
 waist, he wears round glasses that are not his, and he knows nothing about the
 lesson. He stares. He claps the chalk off his hands. He looks everything up on
 his laptop. And he is listening.
 
 Runs in any modern browser on desktop **and iPhone/Android** (no install, no build step).
+
+**His habit**: when he stops to think at the board, he turns a little and pats his stomach in quick soft bursts. When he just stands still, his right hand taps his stomach now and then: lightly, at a human pace, without him noticing, like someone jiggling a leg. Up close you hear the soft pat. He never does it while he walks, leans over a desk, sits, or in a scare.
 
 ## Modes
 
@@ -22,7 +24,7 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 
 **Free Class**: the whole morning in one go (about 5 minutes), getting darker and stranger every hour. Something always happens in the first minute (your pencil, or a knock on the window), and two of his big scares are guaranteed: one from the halfway point, one before the bell.
 
-**Jump scares** (`src/scares.js`): your **pencil** rolls off your desk and his face comes up out of the floor next to it; your friend whispers "Psst! Over here!" and it is **him in their seat**; the door creaks open and he **sprints** at you out of the black corridor; he **hangs upside down** from the ceiling in front of you; three knocks and "Let... me... in." and he slams into the **window**; the **bell** rings, "PERIOD COMPLETE" comes up... and tears; his **face flashes** on the screen for a blink. Each one waits until you look (or comes anyway), and none of them is ever a strike. Online, every player gets it on their own screen at the same moment.
+**Jump scares** (`src/scares.js`): your **pencil** rolls off your desk and his face comes up out of the floor next to it; your friend whispers "Psst! Over here!" and it is **him in their seat**; the door creaks open and he **sprints** at you out of the black corridor; he **hangs upside down** from the ceiling in front of you; three knocks and "Let... me... in." and he slams into the **window**; the **bell** rings, "PERIOD COMPLETE" comes up... and tears; his **face flashes** on the screen for a blink; a breath and a touch on your **shoulder**, and he is right behind you; a chair scrapes **under your desk**; a note says **DON'T LOOK LEFT**; and **the stare**: he only moves while you look away, so don't. Each one waits until you look (or comes anyway), and none of them is ever a strike. Online, most of them go to one player while the others watch him at that player's desk (the face flash and the fake bell hit everybody).
 
 **Scares**: the room acts up in every period (the storm, the lights, a face at the door, a book falling), gently at first. While a scare is on, the task list fades out of its way and the class stops giggling.
 
@@ -37,7 +39,7 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 3. Friends press **PLAY WITH FRIENDS**, type the code and **JOIN**, or just open the invite link. The game keeps trying for about a minute and says what it is doing ("Connecting to the class… try 2"). **CANCEL** stops it.
 4. The host picks Easy or Hard and presses **START FREE CLASS**. Friends who join later drop straight into the running class.
 
-In the lobby Mr. Madi waits at the door. He tells every friend to sit down, he doesn't like it when the host leaves, and the door slams when a class closes on you.
+In the lobby Mr. Past waits at the door. He tells every friend to sit down, he doesn't like it when the host leaves, and the door slams when a class closes on you.
 
 The host can also press **DAILY** before **START**: then everybody plays today's daily class. At the end every player gets **their own report card** (and daily score), graded on what they did; notes, unlocks and best scores are kept in each player's own browser.
 
@@ -130,6 +132,7 @@ On a local server or GitHub Pages there is no `api/turn`, so there is no relay. 
 * **Your phone** has two apps. **PAPER PLANE**: tap to fly between the pencils. Crash and the phone plays a LOUD game-over tune that the whole class (and he) hears: he turns right to you, so put it away. **Memes**: an endless feed of short funny videos. A third app, **PSST!**, can be unlocked: tap to pass a note from desk to desk while the little teacher on your screen writes on his board. When his chalk stops, stop: a note in the air when he turns around is just as LOUD as a crash.
 * **Meme videos**: friends send you videos and classmates hold their phone out to you ("LOOK! look at this!"). Watch them to the end, but **if he sees you watching a video, he comes and takes the phone**. The loud parts of a video can be heard across the room.
 * **Dumb questions**: he stares at you, he doesn't know, he goes to his laptop. While he types he isn't watching you. Ask too many and you're in trouble.
+* **He gets stuck** (Free Class and online): now and then he writes a question on the board (`7 × 8 = ?`), stares at it, pats his stomach: "The answer is... is... is...". Raise your hand (**T** / **ASK**) to help him. **The right answer** calms him and gives you 1 **TRUST**, but you are his pet now: he keeps an eye on you and a kid throws a paper ball at you. **A wrong answer** goes on the board, the class laughs and you get mischief, but later he looks it up and comes to ask who did it. **Nobody helps**: he looks it up himself, and while he types he isn't watching.
 * **Pranks**: hold **G** and a dotted arc shows where your paper goes and what it will hit; hold longer to throw harder, let go to throw. A **paper ball** flies fast and straight; a **paper plane** is slower, glides much farther and curves to one side (every one is folded a little differently). Hit **his back** and he spins around to find who did it (hit him three times and he knows it was you). Hit **his head** and his glasses fly off: he can't see until he finds them on the floor. Hit the **board while he writes** and the chalk screeches. Hit a **kid** and they yell "Ow!" and might throw one back at you; Sam and Nora laugh (or throw back). **If he sees your arm up, you're caught.**
 * **LAUGHS meter**: good pranks make the class laugh. While they laugh, everything you do is worth more mischief (up to ×2), but laughing is noise, and he hears it around whoever it's about. It calms down by itself.
 * **The laser pointer** (from period 3, and in Free Class): hold it on and a red dot sits where you look. When he sees the dot in front of him he **chases it like a cat**, pawing at it on the floor, the desks, the board; the class loses it. Keep it moving. After a while (or if you put it **in his eyes**) he gets it and looks straight down the beam: if it's still on when he looks at you, you're caught. A dot on his back just makes the class giggle.
@@ -146,9 +149,12 @@ On a local server or GitHub Pages there is no `api/turn`, so there is no relay. 
 * **The class clowns**: if you do nothing for a while (a random 30 seconds to over a minute each time; no whispering, phone, repeating or questions; just looking around doesn't count), somebody in the back does a meme noise: snoring, "bruh", an airhorn, a sad trombone, "six seven!", a goat, a whoopee cushion, crickets, a metal pipe… He stops, turns around and goes to find out who did it. He looks slang up on his laptop ("what does bruh mean"), wakes up the snorer by slapping their desk, and once the laptop even tells him who farted. In detention, the ones he catches don't look the same afterwards.
 * **A different teacher every class.** Every class draws 3 or 4 **events** and 2 **quirks** from one seed (the same seed always gives the same class; `?seed=123` picks one).
   * **Events**: his embarrassing **ringtone** (he takes the call with his back to you and hears less), a **fly** he hunts (he only looks at the fly; it can land on your desk and he slaps it; hit it with a paper ball and he thanks you), a **pizza** at the door (his back is turned, then he eats it staring at you), a **fire alarm** that is so loud he hears nothing, and he **leaves the room** for 30 seconds (chaos counts double; watch the door window and listen for his footsteps). A hint tells you what each one means for you, and the line under his eye on the HUD says what he is doing.
-  * **Quirks**: **half deaf** on one side (whisper on his deaf side), **hates laughing** (the class laughing makes him angrier), **dozes off** (he can't see you, but a loud noise wakes him), **obsessed with the clock** (he glances back less), **counts the class** (he points at every head) and **hums** while he writes (he hears you less, then more when he stops). You find them out by playing: the HUD lists the ones you noticed ("TODAY HE").
+  * **Quirks**: **half deaf** on one side (whisper on his deaf side), **hates laughing** (the class laughing makes him angrier), **dozes off** (he can't see you, but a loud noise wakes him), **obsessed with the clock** (he glances back less), **counts the class** (he points at every head) and **hums** while he writes (he hears you less, then more when he stops). You find them out by playing: the first time you notice each one, a tip explains it.
   * **He learns your slang**: class-clown memes and your echoes are remembered (also next class, in this browser). Later he uses them wrong in the lesson, writes them on the board, mocks your squeaky voice, and dances to phonk from his own phone.
   * Online, every player sees and hears all of it, also a friend who joins late.
+* **Online: one victim.** Most jump scares now go to **one** player. The others get a toast ("HE WENT FOR BO") and see him bent over their friend's chair. The face flash and the fake bell still hit everybody.
+* **Online: trust and telling.** The raise-your-hand menu has **"Tell on BO"** (the friend you look at). If it was true (they were whispering, on the phone, aiming, off their chair, or repeated him in the last 5 seconds), he goes to their desk ("I see you."), they get a jump scare, and you get 1 trust. If not: "No... I do not... believe you." and you lose 1.
+* **Online: the class monitor.** When he leaves the room and somebody has 2 trust or more, he puts the most trusted player **in charge**. They walk around freely and write friends' names on the board (look at a friend, **E** / **USE**); he believes every name. But when his footsteps come back, the monitor must be **standing at the board**, or they are caught like anybody out of their seat.
 * **Report card**: after every class (won or lost, story or Free Class) he grades you from **A** to **F** in seven subjects: Whispering, Drama (repeating him), Science (dumb questions), Media Studies (videos, your phone), Gym (throwing, leaving your seat), Behaviour (blaming others, lying to him, his glasses, the cushion…) and Attendance, each with his comment. Drama also counts holding your breath when he leans over you; Science, the red dot and his clock; Media Studies, his laptop. The final grade is the average of your four best subjects (Hard adds a little). He likes the quiet ones, so an **A** is not a compliment ("A… for… awful."), and an **F** is "for… favorite".
 * **Unlocks** (kept in your browser, listed in the notebook):
   * **SPITBALL** (a C or better on a report card): fast and quiet, and it sticks where it lands. He feels his neck and blames the roof ("The roof… is… leaking."). The second time he knows it is not rain. The third: caught.
@@ -225,7 +231,11 @@ src/ghost.js               online: the ghost kid (caught, you haunt the class fr
 src/team.js                online: the decoy (a question keeps him busy while a friend is at his desk), blaming a friend
 src/mic.js                 the optional microphone: only how loud you are, never recorded or sent
 src/scoreboard.js          online: WHO CAUSED THE MOST CHAOS on the end screen (points and titles)
-src/scares.js              the jump scares: the pencil, the wrong seat, the sprint, the hanging, the window, the fake bell, the face flash
+src/scares.js              the jump scares: the pencil, the wrong seat, the sprint, the hanging, the window, the fake bell, the face flash,
+                           the shoulder, under the desk, the note, the stare; online one victim, the others watch
+src/stuck.js               he gets stuck on a question he wrote himself (help him, fool him, or say nothing)
+src/trust.js               online: trust, telling on a friend, trouble
+src/monitor.js             online: the class monitor while he is out of the room
 src/howto.js               HOW TO PLAY: the picture pages (and the short version before your very first class)
 src/profile.js             what your browser keeps between classes (unlocks, notes, best scores), with a fallback when storage is blocked
 src/notebook.js            the notebook screen (notes, unlocks, records) and the DAILY CLASS / NOTEBOOK menu entries
@@ -235,7 +245,7 @@ src/psst.js                PSST!, the third phone app (unlocked): pass the note 
 src/stats.js               what every player did in a class (counts + event log)
 src/data.js                board text, lines, questions, messages, notes, chapter titles, and the tables of every feature
                            (pranks, the report card's grading rows, unlocks, Mr. Hale's notes and how each is found, the daily class)
-src/teacher.js             Mr. Madi: rigged suit body, IK arms and legs, walk cycle
+src/teacher.js             Mr. Past: rigged suit body, IK arms and legs, walk cycle
                            (feet step, hips stay level so he seems to glide), glasses
 src/madi_head.js           the head shaped from the reference photo, jaw, teeth, glasses
 src/students.js            Sam, Nora, the class and Kevin (blink, talk, look, breathe)
@@ -246,7 +256,7 @@ src/models.js              loads the rigged character models
 src/mp.js                  multiplayer: lobby, streaming the class to friends, friends' desks and avatars
 src/net.js                 WebRTC connections (PeerJS): host / join by class code, relay servers (STUN / TURN),
                            patient joining, the host reconnecting with the same code, connection diagnosis
-src/lobby.js               the online lobby: its sounds, and Mr. Madi at the door while friends join
+src/lobby.js               the online lobby: its sounds, and Mr. Past at the door while friends join
 api/turn.js                Vercel function: your own TURN relay for online play (keys in Vercel, see above; switch it on)
 src/audio.js               Web Audio engine: 3D HRTF sound, reverb, live ambience
 src/post.js                retro post-processing (grain, aberration, glitch, blackout)
@@ -258,6 +268,8 @@ assets/videos/             your own .mp4 memes (optional, see assets/videos/READ
 tools/                     scripts that generate all of the assets above + preview pages
 tests/                     browser tests and their runner (bash tests/run.sh quick|full)
 PLAN.md                    the plan for the next updates, phase by phase
+DEBUG.md, IDEAS.md         the bug fixes (D1-D23) and features (F1-F6) of the November update; BUG_REPORT.md the long report
+tools/check.js             quick checks for those fixes and features: node tools/check.js all
 vendor/                    three.js r170 (+ GLTFLoader), PeerJS 1.5.5
 ```
 

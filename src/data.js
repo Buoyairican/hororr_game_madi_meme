@@ -423,7 +423,7 @@ export const ONLINE = {
   welcomeFor: 15000,         // a friend is in when the host says "welcome" (or "full"): wait this long for it
   takenTries: 3,             // host: the game server says "that code belongs to someone else" this often: give up on it
   refreshAfter: 10000,       // host back after this long in another app: renew the link to the game server
-  awayLine: 4000,            // host back in the lobby after this long away: Mr. Madi tells you to stay
+  awayLine: 4000,            // host back in the lobby after this long away: Mr. Past tells you to stay
   text: {
     server: 'Reaching the game server…',
     connect: 'Connecting to the class…',
@@ -444,8 +444,8 @@ export const ONLINE = {
     hostOpen: 'Send the code to your friends. Keep the game open until they are in.',
     keep: 'Keep the game open on this screen until your friends are in. In another app, they can\'t get in.',
     keepShare: 'Keep the game open on this screen until your friends are in. In another app, they can\'t get in. SHARE CODE sends it and you stay here.',
-    shareTitle: 'MADI CLASS',
-    shareText: 'Come to my class in MADI CLASS. Code: {code}',
+    shareTitle: 'PAST SUMMIT',
+    shareText: 'Come to my class in PAST SUMMIT. Code: {code}',
     shared: 'Sent! Stay here until your friends are in.',
     copied: 'Invite link copied. Paste it to your friends, then come right back.',
     copyFailed: 'Send your friends this link: {url}',
@@ -460,7 +460,7 @@ export const ONLINE = {
     taken: 'Your class code was lost. Close the class and host a new one.',
     back: 'Welcome back. Your class is still open. Stay here while friends join.',
   },
-  // what you hear in the lobby: a sound, and sometimes Mr. Madi (at the door) says something
+  // what you hear in the lobby: a sound, and sometimes Mr. Past (at the door) says something
   lobby: {
     joined: { sfx: 'net_join', line: 't_sitdown', fullLine: 't_everyone', gap: 6 },  // a friend sat down (4 of 4: "now everyone is here")
     in: { sfx: 'net_join', line: 't_sitdown', gap: 6 },                                // you got into a class
@@ -486,11 +486,11 @@ export const CHAIN = {
   lostAnger: 12,             // he got the note: this much angrier (and it is a strike, like any note he catches)
   // what is on the paper, and the line he says when he reads it out loud (tools/gen_voices.py)
   notes: [
-    { text: 'Mr. Madi googles<br><b>how to be a teacher.</b>', read: 't_cn_google' },
+    { text: 'Mr. Past googles<br><b>how to be a teacher.</b>', read: 't_cn_google' },
     { text: 'His arms are longer<br>than <b>my future.</b>', read: 't_cn_arms' },
     { text: '2 + 2 = 5.<br><b>Pass it on.</b>', read: 't_cn_five' },
     { text: 'Sir, blink twice<br>if you need <b>help.</b>', read: 't_cn_blink' },
-    { text: 'Mr. Madi smells like<br><b>old soup.</b>', read: 't_cn_soup' },
+    { text: 'Mr. Past smells like<br><b>old soup.</b>', read: 't_cn_soup' },
   ],
   text: {
     start: 'pass it on &rarr;',
@@ -632,6 +632,18 @@ export const ENDINGS = {
 // ================= Phase 6: reasons to replay =================
 // (src/replay.js: report card, unlocks, Mr. Hale's notes, the daily class; src/morepranks.js; src/psst.js; src/secrets.js)
 
+// ---------------- his habit (src/teacher.js): standing still, and above all when he thinks, his right hand taps his
+// stomach. Lightly, at a human pace, without him noticing, like someone jiggling a leg. Never while he walks, leans,
+// crouches or sits.
+export const TAP = {
+  rate: [2.4, 3.2],     // taps per second (a little different every bout)
+  depth: 0.032,         // metres the hand lifts off his stomach between taps
+  still: 1.6,           // seconds standing still before a bout can start
+  bout: [3, 7],         // seconds a bout lasts (standing; while he thinks it goes on)
+  pause: [4, 11],       // seconds between bouts
+  vol: 0.16,            // the soft pat of each tap (heard only up close)
+};
+
 // ---------------- the new jump scares (src/scares.js). Each one plays on every player's own screen.
 // pool: what the scare director (game.js) may pick. min = first hour (0-3) in Free Class, w = weight,
 // cool = seconds before the same one again, once = one per class, strong = one of his big scares,
@@ -666,8 +678,8 @@ export const SCARES = {
     story: [['PERIOD 1 COMPLETE', 'The bell rang. Nobody moved.<br><i>Kevin\'s desk is still empty.</i>'],
       ['PERIOD 2 COMPLETE', 'Mr. Hale has been missing since Friday.<br><i>The substitute is wearing his glasses.</i>'],
       ['PERIOD 3 COMPLETE', 'Kevin was back for a moment.<br><i>His eyes were black.</i>'],
-      ['CLASS DISMISSED', 'You survived Madi\'s class.<br>See you tomorrow.']],
-    free: ['CLASS DISMISSED', 'You survived Madi\'s class.<br>See you tomorrow.'],
+      ['CLASS DISMISSED', 'You survived Mr. Past\'s class.<br>See you tomorrow.']],
+    free: ['CLASS DISMISSED', 'You survived Mr. Past\'s class.<br>See you tomorrow.'],
     next: ['NEXT PERIOD', 'MAIN MENU'],
     tear: 'CLASS IS NOT OVER',
   },
@@ -794,7 +806,7 @@ export const HALE_NOTES = [
   { n: 2, title: 'Monday, later', find: { look: 'teacher', when: 'clap', sec: 1.2 }, hint: 'Watch him clap the chalk off his hands.',
     text: 'Something in the closet claps. Slowly. Like a man knocking chalk dust off his hands. I told the office. They said Room 13 has always had a closet.' },
   { n: 3, title: 'Tuesday', find: { look: 'poster', sec: 2 }, hint: 'Somebody is MISSING. Read the poster by the door.',
-    text: 'A new name on the staff list: MADI. No first name, no subject. The office says he has "always been our substitute". Nobody can tell me what he looks like.' },
+    text: 'A new name on the staff list: PAST. No first name, no subject. The office says he has "always been our substitute". Nobody can tell me what he looks like.' },
   { n: 4, title: 'Wednesday', find: { look: 'doorWindow', when: 'doorFace', sec: 0.4 }, hint: 'Sometimes there is a face in the door window. Look at it.',
     text: 'I stayed late to grade papers. A very tall man stood at the door window and watched me. For an hour. He did not blink once. I counted.' },
   { n: 5, title: 'Wednesday night', find: { stat: 'echoes', n: 3 }, hint: 'Repeat him three times in one class.',

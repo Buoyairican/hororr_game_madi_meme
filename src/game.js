@@ -1,4 +1,4 @@
-// Gameplay for Madi Class: the teacher's brain (coroutines), the story
+// Gameplay for Past Summit: the teacher's brain (coroutines), the story
 // chapters, free class, bully mechanics (repeat him / dumb questions),
 // friends, phone, scares, strikes and endings.
 import * as THREE from 'three';
@@ -28,7 +28,7 @@ import { MonitorMixin } from './monitor.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
-  BELLY, FREE_LENGTH, SCARES, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
+  BELLY, FREE_LENGTH, SCARES, TAP, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
   QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, PRANK, QUIRKS, EVENTS, SLANG, NOTE, SNEAK, mock, clockLabel, TRUST,
 } from './data.js';
 
@@ -109,6 +109,11 @@ export class Game {
       if (!this.teacher.root.visible || this.state !== 'playing') return;
       if (this.dreadSilent) return; // he creeps up on somebody: no footsteps (src/dread.js)
       this.audio.play(pick(STEPS), { pos: new THREE.Vector3(pos.x, 0.05, pos.z), vol: 0.32 + Math.min(0.6, sp * 0.28), ref: 1.6, reverb: 0.3, rate: rand(0.92, 1.08) });
+    };
+    // his habit: the soft pat of his fingers on his stomach (only up close; src/teacher.js)
+    this.teacher.onTap = (pos) => {
+      if (!this.teacher.root.visible || this.state !== 'playing' || this.dreadSilent) return;
+      this.audio.play('belly_tap', { pos: pos.clone(), vol: TAP.vol * rand(0.8, 1.1), ref: 0.9, reverb: 0.1, rate: rand(0.94, 1.06) });
     };
     this.track = new RunStats(); // what every player did this class
     this.setupVideos();
@@ -343,6 +348,7 @@ export class Game {
     if (this.state !== 'playing') return;
     this.fx = this.fx.filter((g) => !g.next().done);
     T.talk = this.t < (this.voiceUntil || 0) ? 0.5 + 0.5 * Math.abs(Math.sin(this.t * 11) * Math.sin(this.t * 4.3 + 1)) : 0;
+    T.tapBlock = !!(this.scareBusy || this.jumping || this.scLocalOn || this.localScare); // (no habit in the middle of a scare)
     T.update(dt, { twitchy: this.phase >= 2 });
     const touched = this.world.board.update(dt);
     this.updateChalkSound(touched);
@@ -1304,6 +1310,7 @@ export class Game {
     T.setPose('rest');
     T.moveTarget = null;
     T.leanTarget = 0; T.stretchTarget = 0; T.rollTarget = 0; T.crouchTarget = 0; T.stanceTarget = 0; T.footFwdTarget = 0;
+    T.thinking = false;
     this.sitting = false;
     if (T.glassesHeld) T.wearGlasses();
     this.blind = false; this.typing = false;
@@ -1541,7 +1548,7 @@ export class Game {
     T.lookAt(v1.clone(), 2.5);
     T.rollTarget = pick([-1, 1]) * rand(0.2, 0.45);
     if (chance(0.5)) { yield* this.wait(1); this.teacherSay('t_hmm', 1.1); }
-    yield* this.bellyPat(rand(3.5, 6));
+    yield* this.bellyPat(rand(3.5, 6)); // (the pat of a man who is thinking; standing about, his light tap: src/teacher.js)
     T.rollTarget = 0;
   }
 
@@ -2775,7 +2782,7 @@ export class Game {
   *introduce() {
     yield* this.actStare(2.2);
     yield* this.say('t_iam', 0.6);
-    yield* this.actWrite('MR. MADI', { row: 0, size: 72 });
+    yield* this.actWrite('MR. PAST', { row: 0, size: 72 });
     this.boardRow = 1;
     yield* this.turnToClass();
     yield* this.say('t_name', 0.6);
@@ -2959,13 +2966,14 @@ export class Game {
     T.faceTo(Math.PI, 3);
     B.toWorld(420, B.rows[0], W.boardAnchor, v1);
     T.lookAt(v1.clone(), 2);
+    T.thinking = true; // (he taps his stomach while he thinks: src/teacher.js)
     yield* this.wait(3);
     T.rollTarget = 0.4;
     this.teacherSay('t_hmm', 1.1);
     yield* this.wait(7);
     T.rollTarget = -0.2;
     yield* this.wait(4);
-    T.rollTarget = 0;
+    T.rollTarget = 0; T.thinking = false;
   }
 
   /** the projector shows everyone what he has been searching for */
@@ -3115,7 +3123,7 @@ export class Game {
       yield* this.wait(2.2);
       yield* this.say('q_you', 0.4);
       yield* this.say('q_name', 0.2);
-      let i = yield* this.choose('What is my name?', ['Mister Madi.', 'Mister Hale.', 'I don\'t know.'], 10);
+      let i = yield* this.choose('What is my name?', ['Mister Past.', 'Mister Hale.', 'I don\'t know.'], 10);
       if (i >= 0) yield* this.waitVoice(this.playerSay(['p_a_madi', 'p_a_hale', 'p_a_dunno'][i]), 0.4);
       if (i === 0) { yield* this.say('q_correct', 0.4); this.quizScore++; this.mischief += 20; }
       else if (i === 1) {
@@ -3584,7 +3592,7 @@ export class Game {
     this.endAction = { label: 'TRY AGAIN', go: () => this.start('free') };
     let [title, text] = ENDINGS[kind] || ENDINGS.caught;
     if (kind === 'caught' && this.hard) text = 'On hard, once is enough.<br>Nobody leaves his class.';
-    if (kind === 'survived') text = 'You survived Madi\'s class.<br><i>See you tomorrow.</i>';
+    if (kind === 'survived') text = 'You survived Mr. Past\'s class.<br><i>See you tomorrow.</i>';
     this.showEnd(title, text);
   }
 

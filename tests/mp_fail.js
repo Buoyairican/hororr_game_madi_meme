@@ -204,7 +204,7 @@ const SERVED = { iceServers: [
   await H.evaluate(() => { Date.now = window.realNow; });
   await H.waitForTimeout(800);
   const lobby = await H.evaluate(() => game.lobbyLog || []);
-  pass(lobby.some((e) => e.kind === 'away') && (await log(H)).some((t) => /Welcome back/.test(t)), 'a minute away on the clock: "Welcome back…" and Mr. Madi\'s line');
+  pass(lobby.some((e) => e.kind === 'away') && (await log(H)).some((t) => /Welcome back/.test(t)), 'a minute away on the clock: "Welcome back…" and Mr. Past\'s line');
   pass(await waitFor(H, () => game.mp.net.peer.socket._socket !== window.sock0 && !game.mp.net.peer.disconnected, 6000), 'and the link to the game server was renewed (same code)');
 
   // ---------------------------------------------------------------- 8. the class code is taken by another browser

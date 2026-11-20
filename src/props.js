@@ -1,4 +1,4 @@
-// Classroom props with behaviour: Madi's laptop, the ceiling projector that
+// Classroom props with behaviour: Mr. Past's laptop, the ceiling projector that
 // mirrors it (he has no idea), and the classroom door.
 import * as THREE from 'three';
 import { damp, rand } from './util.js';

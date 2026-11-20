@@ -1,4 +1,4 @@
-# Madi Class: bug report and fix list
+# Past Summit: bug report and fix list
 
 Written for the engineer (or AI agent) who will fix these. Reviewed at commit `80cf993` (main).
 

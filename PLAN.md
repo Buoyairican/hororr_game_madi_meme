@@ -1,4 +1,4 @@
-# Madi Class: the plan to make it fun to replay
+# Past Summit: the plan to make it fun to replay
 
 The game was scary once and then repetitive: you mostly sit and hold a key, the jokes are
 scripted, he does the same things every time and every run is the same. This plan fixes that in
@@ -107,7 +107,7 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   addresses, relay names that don't resolve, TURN errors); when the host answered but no relay was
   found, the friend reads "this game has no relay server" (or "the relay server did not answer") and
   the host gets the matching note. Lobby sounds (`net_join`, `net_try`, `net_fail`, the door slam when
-  a class closes on you) and Mr. Madi at the door: "Sit... down.", "Do not... leave... my class.",
+  a class closes on you) and Mr. Past at the door: "Sit... down.", "Do not... leave... my class.",
   "Nobody... is... coming." (`src/lobby.js`, `ONLINE` in `src/data.js`). Late joins and leaving are in
   the class log (`track.event`). README: "Friends can't join?" (switch on the own relay, how to check
   it). Tests: `tests/turn_api.js`, `tests/mp_net.js`, `tests/mp_lobby.js`, `tests/mp_fail.js`, `mp_edge`.
@@ -352,3 +352,24 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   `assets/ui/howto/`), keys on a computer and touch buttons on a phone; page 7 "MORE TRICKS" keeps every rule
   as tiles that open. The very first class shows pages 1–6 first (SKIP; `madiclass.howto` in the browser;
   debug URLs skip it unless `?howto=first`). Also in the pause menu. Tests: `tests/ui.js`.
+
+### [x] His habit, and his new name
+- **Mr. Past** (was Mr. Madi) and **PAST SUMMIT** (was MADI CLASS) everywhere you see or hear it: the title, the board,
+  the report card, the lobby, the notes, the share text and the 8 voice lines that say his name
+  (`gen_voices.py --only=...` rebuilds just those). Internal names stay (the 3D model, sound files, the browser's saved
+  progress keys, the daily class seed), so nobody loses progress and the daily class stays the same.
+- **The tap** (`src/teacher.js`, numbers in `TAP`): standing still, and always while he thinks (`T.thinking`: pondering
+  the board, the long stare), his right hand rests on his stomach and taps it lightly, 2.4–3.2 taps a second, in
+  bouts with pauses, with a soft pat up close (`belly_tap`, `gen_sfx.py p9`). Never while he walks, leans, crouches,
+  sits, holds his glasses or in a scare. Online the friends see it through his bones. Tests: `tests/scares.js`.
+
+### [x] The November update: DEBUG.md D1-D23 and IDEAS.md F1-F6
+- 36 commits built on `80cf993` (see `DEBUG.md`, `IDEAS.md`, `BUG_REPORT.md`; `node tools/check.js all` checks them):
+  the story no longer locks up on the last strike, one snore loop, captions per speaker, tips that wait their turn
+  (`showHint`, `uiTo`, `ui.status`), no more online leaks, each player's own control tips, "HE CAUGHT BO / YOU" at
+  once, a friend's own meme videos count, ten small fixes; F2 he gets stuck on a question (`src/stuck.js`), F3 online
+  one victim per scare and the others watch, F4 four new scares (shoulder, under the desk, the note, the stare),
+  F5 trust and telling on a friend (`src/trust.js`), F6 the class monitor (`src/monitor.js`).
+- Merged with his habit and his new name: his pat while he thinks at the board is F1's (`bellyPat`, pose `'belly'`,
+  `BELLY`); the light tap above is what he does when he just stands still (and in the long stare at the board).
+  They never overlap (the tap needs pose `'rest'`), and the tap never starts in a scare (`T.tapBlock`).

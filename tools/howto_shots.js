@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Takes the pictures for HOW TO PLAY (assets/ui/howto/*.jpg) from the real game: each one is a moment staged
-// in debug mode, without the HUD. Run it after the classroom or Mr. Madi change:
+// in debug mode, without the HUD. Run it after the classroom or Mr. Past change:
 //   python3 tests/serve.py 8765 &      (from the repo root)
 //   node tools/howto_shots.js          (needs Playwright with Chromium, like the tests)
 const path = require('path');

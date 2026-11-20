@@ -1,4 +1,4 @@
-// Madi's head: a mesh shaped from the reference photo's silhouette with the
+// Mr. Past's head: a mesh shaped from the reference photo's silhouette with the
 // photo projected onto the front, glossy eyeballs, a jaw that drops, and his
 // round glasses (they are not his).
 import * as THREE from 'three';

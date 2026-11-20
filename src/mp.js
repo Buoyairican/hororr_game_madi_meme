@@ -1,6 +1,6 @@
 // Multiplayer: friends join your class.
 // The host's browser runs the whole game (teacher brain, story, scares). It streams what
-// happens to the friends: Madi's pose, the students, the board, the lights, every sound
+// happens to the friends: Mr. Past's pose, the students, the board, the lights, every sound
 // and subtitle. Friends sit at their own desks, look around with their own camera, and
 // send back what they do (whisper, phone, repeat him, ask). He hears them too.
 import * as THREE from 'three';
@@ -689,7 +689,7 @@ export class MP {
     g.timers.update(dt);
     if (g.state === 'playing') {
       if (this.snap && !this.localTeacher) this.glideTeacher(this.snap, dt);
-      if (this.localTeacher) T.update(dt, {});
+      if (this.localTeacher) { T.tapBlock = true; T.update(dt, {}); } // (your own scare: no stomach tap in it)
       const att = g.present ? T.headWorld(_v).clone() : null;
       for (const c of g.allKids()) { c.attend = att; c.update(dt); }
       g.world.board.update(dt);
@@ -767,7 +767,7 @@ export class MP {
     this.lookShow = 0;
   }
 
-  /** Madi moves smoothly toward the latest pose from the host */
+  /** He moves smoothly toward the latest pose from the host */
   glideTeacher(s, dt) {
     const T = this.g.teacher, t = s.T, k = 1 - Math.exp(-16 * dt);
     T.pos.x += (t[0] - T.pos.x) * k; T.pos.z += (t[2] - T.pos.z) * k;

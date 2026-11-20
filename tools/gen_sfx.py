@@ -582,7 +582,7 @@ def make_misc():
 
 
 def make_v2():
-    """Sounds added for Madi Class: footsteps, typing, door, giggles, projector, glasses."""
+    """Sounds added for Past Summit: footsteps, typing, door, giggles, projector, glasses."""
     # hard-soled footsteps on tile
     for i in range(4):
         r = np.random.default_rng(200 + i)
@@ -1903,9 +1903,21 @@ def make_p8():
     save("bell_bend", y, 0.9)
 
 
+def make_p9():
+    """His habit: the soft pat of his fingers on his stomach (a shirt over a belly, muffled, quiet)."""
+    r = np.random.default_rng(909)
+    d = 0.22; t = t_axis(d)
+    cloth = biquad(r.standard_normal(len(t)), "bp", 700, 0.9) * np.exp(-t / 0.012)
+    thump = np.sin(2 * np.pi * np.cumsum(150 * np.exp(-t * 30) + 70) / SR) * np.exp(-t / 0.035)
+    save("belly_tap", biquad(cloth * 0.6 + thump, "lp", 1600), 0.7)
+
+
 if __name__ == "__main__":
     import sys
     print("Synthesising sound effects ->", OUT)
+    if "p9" in sys.argv:  # his habit: tapping his stomach
+        make_p9()
+        raise SystemExit(0)
     if "p8" in sys.argv:  # the new jump scares
         make_p8()
         raise SystemExit(0)

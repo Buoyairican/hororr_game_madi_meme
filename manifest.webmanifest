@@ -1,7 +1,7 @@
 {
-  "name": "Madi Class",
-  "short_name": "Madi Class",
-  "description": "A first-person classroom horror game. Survive Mr. Madi's class from 8:30 AM to 12:30 PM.",
+  "name": "Past Summit",
+  "short_name": "Past Summit",
+  "description": "A first-person classroom horror game. Survive Mr. Past's class from 8:30 AM to 12:30 PM.",
   "start_url": "./index.html",
   "display": "fullscreen",
   "orientation": "landscape",

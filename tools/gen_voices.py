@@ -3,7 +3,7 @@
 
 Requires: espeak-ng, mbrola voices (mbrola-us1/us2/us3), ffmpeg (with rubberband), numpy.
     sudo apt-get install espeak-ng mbrola mbrola-us1 mbrola-us2 mbrola-us3 ffmpeg
-    python3 tools/gen_voices.py
+    python3 tools/gen_voices.py            (only the missing lines; --all: every line; --only=t_name,s_name: just those)
 
 The teacher speaks with a slowed-down, pitched-down MBROLA voice layered with a
 sub-octave copy. Friends whisper: their MBROLA speech is "whisperised" by
@@ -29,7 +29,7 @@ SR = 44100
 # Segments separated by "|" get a silent gap between them (dramatic pauses).
 TEACHER = {
     "t_iam": "I am | your | teacher.",
-    "t_name": "My name | is | Mister | Madi.",
+    "t_name": "My name | is | Mister | Past.",
     "t_roll": "Roll | call.",
     "t_r_sam": "Sam.",
     "t_r_nora": "Nora.",
@@ -203,7 +203,7 @@ TEACHER = {
 }
 SUBS = {
     "t_iam": "I am... your... teacher.",
-    "t_name": "My name... is... Mister... Madi.",
+    "t_name": "My name... is... Mister... Past.",
     "t_roll": "Roll... call.",
     "t_r_sam": "Sam.",
     "t_r_nora": "Nora.",
@@ -409,7 +409,7 @@ SAM = {
     "s_scared": "I'm not scared. You're scared.",
     "s_sorry": "Sorry, sorry. I'll be quiet.",
     "s_warn": "Stop! He's looking at you!",
-    "s_name": "Mister Madi? What kind of name is that?",
+    "s_name": "Mister Past? What kind of name is that?",
     "s_books": "We don't even have books.",
     "s_meme": "Bro. Who was that?",
     "s_meme2": "Oh no. He heard that.",
@@ -473,7 +473,7 @@ NORA = {
     "n_sorry": "Okay, okay. Shh.",
     "n_warn": "He's coming. Stop talking!",
     "n_door": "There's someone at the door.",
-    "n_name": "Madi. I've never heard of him.",
+    "n_name": "Past. I've never heard of him.",
     "n_meme": "Don't laugh. Don't laugh.",
     "n_going": "He's going to the back...",
     "n_room13": "Room thirteen. That's our room.",
@@ -545,7 +545,7 @@ ALOUD = {
     "p_f_teacher": ("mb-us3", 140, 55, 1.17, "you", "Are you really a teacher?"),
     "p_f_hale": ("mb-us3", 140, 55, 1.17, "you", "Where is Mister Hale?"),
     "p_f_two": ("mb-us3", 140, 55, 1.17, "you", "What is two plus two?"),
-    "p_a_madi": ("mb-us3", 150, 55, 1.17, "you", "Mister Madi."),
+    "p_a_madi": ("mb-us3", 150, 55, 1.17, "you", "Mister Past."),
     "p_a_hale": ("mb-us3", 150, 55, 1.17, "you", "Mister Hale."),
     "p_a_dunno": ("mb-us3", 150, 55, 1.17, "you", "I don't know."),
     "p_a_five": ("mb-us3", 150, 55, 1.17, "you", "Five."),
@@ -559,7 +559,7 @@ MEMES = {
     "m_bruh": ("Bruh.", "Bruh.", ""),
     "m_sus": ("Sus.", "Sus.", ""),
     "m_67": ("Six, seven!", "SIX SEVEN!", ""),
-    "m_rizz": ("Mister Madi has no riz.", "Mister Madi has no rizz.", ""),
+    "m_rizz": ("Mister Past has no riz.", "Mister Past has no rizz.", ""),
     "m_oof": ("Oof.", "Oof.", ""),
     "m_sheesh": ("[[S'i:::::::::S]]", "Sheeeeesh!", ""),
     "m_huh": ("Huh?", "Huh?", ""),
@@ -739,11 +739,11 @@ MEMES.update({
 # ---------------- Phase 7 (src/chain.js, src/ghost.js, src/team.js): he reads the note that went round out loud,
 # the ghost kid's haunts, blaming a friend.
 TEACHER.update({
-    "t_cn_google": "Mister | Madi | googles | how to be | a teacher.",
+    "t_cn_google": "Mister | Past | googles | how to be | a teacher.",
     "t_cn_arms": "His arms | are longer | than | my future.",
     "t_cn_five": "Two | plus two | is five. | Pass it | on.",
     "t_cn_blink": "Sir. | Blink twice | if you need | help.",
-    "t_cn_soup": "Mister | Madi | smells like | old | soup.",
+    "t_cn_soup": "Mister | Past | smells like | old | soup.",
     "t_gh_light": "The lights. | Again.",
     "t_gh_chair": "Who | moved | that?",
     "t_gh_nobody": "Nobody | is | there.",
@@ -751,11 +751,11 @@ TEACHER.update({
     "t_bl_friend": "Your | friend. | Interesting.",
 })
 SUBS.update({
-    "t_cn_google": "Mister... Madi... googles... how to be... a teacher.",
+    "t_cn_google": "Mister... Past... googles... how to be... a teacher.",
     "t_cn_arms": "His arms... are longer... than... my future.",
     "t_cn_five": "Two... plus two... is five. Pass it... on.",
     "t_cn_blink": "Sir. Blink twice... if you need... help.",
-    "t_cn_soup": "Mister... Madi... smells like... old... soup.",
+    "t_cn_soup": "Mister... Past... smells like... old... soup.",
     "t_gh_light": "The lights. Again.",
     "t_gh_chair": "Who... moved... that?",
     "t_gh_nobody": "Nobody... is... there.",
@@ -946,10 +946,12 @@ def norm(x, peak=0.9):
 
 manifest = {}
 ALL = "--all" in sys.argv
+# --only key1,key2: rebuild just these lines (e.g. after their text changed); the rest is only made when missing
+ONLY = set(next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--only=")), "").split(",")) - {""}
 
 
 def need(key):
-    return ALL or not os.path.exists(os.path.join(OUT, key + ".mp3"))
+    return ALL or key in ONLY or not os.path.exists(os.path.join(OUT, key + ".mp3"))
 
 # ---------------- Teacher -----------------
 for key, text in TEACHER.items():

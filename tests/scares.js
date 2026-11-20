@@ -165,6 +165,33 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   pass(!r.c && r.back, 'off your chair (or a ghost): no scare for you right now');
   await page.screenshot({ path: shot('scares_end.png') });
 
+  // ---------------------------------------------------------------- his habit: tapping his stomach (src/teacher.js)
+  r = await page.evaluate(() => {
+    const g = game, T = g.teacher, V = g.camPos.constructor;
+    snds.length = 0;
+    g.interrupt((function* () { T.place(0.2, -4.2, 0); T.setPose('rest'); T.lookAt(null); T.thinking = true; for (;;) yield; })());
+    let taps = 0; const o = T.onTap; T.onTap = (p) => { taps++; o(p); };
+    for (let i = 0; i < 80; i++) g.playTick(0.05);
+    const hand = T.handPos('R', new V()), belly = T.local(-0.05, T.bellyY, T.bellyZ, new V());
+    const think = { k: T.tapK, taps, near: hand.distanceTo(belly), pat: snds.filter((n) => n === 'belly_tap').length };
+    T.moveTo(-1.5, -4.5, 1); for (let i = 0; i < 20; i++) g.playTick(0.05);
+    const walk = T.tapK;
+    T.moveTarget = null; T.leanTarget = 0.9; T.crouchTarget = 0.3; for (let i = 0; i < 40; i++) g.playTick(0.05);
+    const lean = T.tapK;
+    T.leanTarget = 0; T.crouchTarget = 0; T.thinking = false; T.tapWait = 0;
+    let on = 0; for (let i = 0; i < 600; i++) { g.playTick(0.05); if (T.tapOn) on++; }
+    T.onTap = o; g.interrupt((function* () {})());
+    return { think, walk, lean, idle: on / 600 };
+  });
+  pass(r.think.k > 0.95 && r.think.taps >= 6 && r.think.near < 0.2, `while he thinks his right hand is on his stomach and taps it (${r.think.taps} taps in 4 s, hand ${r.think.near.toFixed(2)} m from his stomach)`);
+  pass(r.think.pat >= 6, 'each tap is a soft pat you can hear up close');
+  pass(r.walk < 0.1 && r.lean < 0.1, `never while he walks or leans over a desk (${r.walk.toFixed(2)}, ${r.lean.toFixed(2)})`);
+  pass(r.idle > 0.1 && r.idle < 0.8, `just standing, bouts come and go by themselves (${Math.round(r.idle * 100)}% of the time)`);
+
+  // ---------------------------------------------------------------- his name: Mr. Past, PAST SUMMIT
+  r = await page.evaluate(() => ({ title: document.title, logo: document.querySelector('.logo').textContent, voice: game.audio.voices.t_name.text, html: document.body.innerHTML.includes('Madi') }));
+  pass(r.title === 'Past Summit' && r.logo === 'PAST SUMMIT' && /Mister\.\.\. Past/.test(r.voice) && !r.html, 'his name is Mr. Past and the game is PAST SUMMIT (title, logo, his voice; "Madi" is nowhere on the page) ' + JSON.stringify(r));
+
   console.log('PASS (' + ok.length + '):\n  ' + ok.join('\n  '));
   console.log('FAIL (' + bad.length + '):\n  ' + bad.join('\n  '));
   console.log(logs.slice(0, 12).join('\n') || 'no errors');

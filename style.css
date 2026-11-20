@@ -137,7 +137,7 @@ body:not(.touch) .touch-only { display: none !important; }
   #subtitle { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 30px); width: min(560px, 62vw); }
 }
 
-/* ---------- v2: Madi Class ---------- */
+/* ---------- v2: Past Summit ---------- */
 #hud-left { display: flex; flex-direction: column; gap: 8px; max-width: min(460px, 42vw); }
 /* the task list: big and easy to read */
 #objectives { list-style: none; margin: 0; padding: 10px 14px 10px 12px; font-size: 18px; letter-spacing: 0.3px; line-height: 1.4; color: #f2ecd8;

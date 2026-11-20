@@ -1,9 +1,10 @@
-// Mr. Madi: a tall suited body (rigged GLB) with the photo head on top.
+// Mr. Past: a tall suited body (rigged GLB) with the photo head on top.
 // Arms and legs are driven by two-bone IK. He really walks: feet plant and
 // step, but his hips never bob, so he seems to slide across the room.
 import * as THREE from 'three';
 import { clamp, damp, dampAngle, rand, wrapAngle } from './util.js';
 import { buildHead } from './madi_head.js';
+import { TAP } from './data.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const XAXIS = new THREE.Vector3(1, 0, 0);
@@ -73,6 +74,8 @@ export class Teacher {
     this.ankleH = rest.footL.y;
     this.shoulderY = rest.uarmL.y;
     this.chestY = rest.chest.y + 0.12;
+    this.bellyY = (rest.root.y + rest.chest.y) / 2 - 0.02; // his stomach (the tapping habit)
+    this.bellyZ = 0.1;
 
     // ---- head, neck, chalk
     const H = (this.headParts = buildHead(faceTex, eyesTex));
@@ -103,6 +106,13 @@ export class Teacher {
     // ---- feet
     this.feet = [this.legs.L, this.legs.R].map((leg) => ({ leg, side: leg.side, pos: new THREE.Vector3(), from: new THREE.Vector3(), swing: -1, lift: 0 }));
     this.onStep = null;
+    // his habit: tapping his stomach while he stands still or thinks (TAP in src/data.js)
+    this.thinking = false;       // set by the game while he thinks (ponders the board, "Hmmm...")
+    this.tapBlock = false;       // set by the game during a scare: no habit then
+    this.tapK = 0;               // 0..1: how far his right hand is at his stomach
+    this.tapOn = false; this.tapLeft = 0; this.tapWait = rand(TAP.pause[0], TAP.pause[1]) * 0.4; this.stillT = 0;
+    this.tapPh = 0; this.tapRate = TAP.rate[0];
+    this.onTap = null;           // (pos) each time his fingers touch his stomach
 
     // ---- animation state
     this.pos = root.position;
@@ -268,8 +278,32 @@ export class Teacher {
       this.glasses.quaternion.slerp(_q.identity(), 1 - Math.exp(-12 * dt));
     }
     root.updateMatrixWorld(true);
+    this.updateTap(dt);
     this.updateFeet(dt);
     this.updateArms(dt);
+  }
+
+  /** his habit: standing still (and above all while thinking) he taps his stomach, lightly, at a human pace */
+  updateTap(dt) {
+    // only standing: not walking, leaning, crouching, sitting, upside down or lifted (a scare), and with his hands free
+    const standing = !this.tapBlock && !this.moveTarget && this.pose === 'rest' && this.crouch < 0.06 && Math.abs(this.lean) < 0.2 && this.footFwd < 0.05
+      && Math.abs(this.root.rotation.z) < 0.01 && Math.abs(this.root.position.y) < 0.01 && this.vel.lengthSq() < 0.01 && !this.glassesHeld;
+    this.stillT = standing ? this.stillT + dt : 0;
+    if (!standing) this.tapOn = false;
+    else if (this.thinking) { if (!this.tapOn && this.stillT > 0.5) this.startTap(); this.tapLeft = Math.max(this.tapLeft, 1); }
+    else if (this.tapOn) { this.tapLeft -= dt; if (this.tapLeft <= 0) { this.tapOn = false; this.tapWait = rand(TAP.pause[0], TAP.pause[1]); } }
+    else if (this.stillT > TAP.still) { this.tapWait -= dt; if (this.tapWait <= 0) this.startTap(); }
+    this.tapK = damp(this.tapK, this.tapOn ? 1 : 0, this.tapOn ? 3.5 : 5, dt);
+    if (this.tapK < 0.9) return;
+    // the taps: a quick touch, a slower lift (one finger-pat), a little uneven like a real habit
+    const prev = this.tapPh;
+    this.tapPh += dt * this.tapRate * (1 + Math.sin(this.time * 0.7) * 0.08);
+    if (Math.floor(prev) !== Math.floor(this.tapPh) && this.onTap) this.onTap(this.handPos('R', _w));
+  }
+  startTap() {
+    this.tapOn = true;
+    this.tapLeft = rand(TAP.bout[0], TAP.bout[1]);
+    this.tapRate = rand(TAP.rate[0], TAP.rate[1]);
   }
 
   // ------------------------------------------------------------ IK
@@ -363,7 +397,16 @@ export class Teacher {
       _S.copy(a.a.position).applyMatrix4(a.a.parent.matrixWorld);
       a.desired.copy(_S).add(_v.set(s * 0.05, -hang, 0.04).applyAxisAngle(UP, this.facing));
       this.local(s * 0.9, 1.2, -0.9, a.pole);
-      if (P === 'write' && key === 'R' && d.point) {
+      if (P === 'rest' && key === 'R' && this.tapK > 0.001) {
+        // his habit: the right hand rests on his stomach and taps it (it comes and goes softly: tapK)
+        const f = this.tapPh % 1, lift = f < 0.25 ? f / 0.25 : f < 0.45 ? 1 : Math.max(0, 1 - (f - 0.45) / 0.18);
+        this.local(-0.05, this.bellyY, this.bellyZ + this.handLen * 0.3 + lift * TAP.depth * this.tapK, _T);
+        a.desired.lerp(_T, this.tapK);
+        _pole.copy(this.local(-0.05, this.bellyY - 0.05, this.bellyZ - 0.2, _w));
+        a.aim = _pole.clone();
+        this.local(-0.9, 0.7, -0.4, a.pole);
+        a.k = 7 + 30 * this.tapK;
+      } else if (P === 'write' && key === 'R' && d.point) {
         a.desired.copy(d.point).addScaledVector(d.normal, this.handLen * 0.86);
         a.aim = d.point; a.k = 14;
         this.local(-0.9, 0.9, -0.3, a.pole);

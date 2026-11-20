@@ -1,5 +1,5 @@
 // Life in the online lobby (mixed into Game): what you hear while friends join.
-// Mr. Madi stands at the classroom door behind the menu (the title screen) and watches the
+// Mr. Past stands at the classroom door behind the menu (the title screen) and watches the
 // class fill up: a friend sits down ("Sit... down."; the 4th: "Now... everyone... is... here."),
 // a friend who can't get in hears that nobody is coming, and a host who comes back from another
 // app is told not to leave (a host whose game is not on screen can't let friends in).

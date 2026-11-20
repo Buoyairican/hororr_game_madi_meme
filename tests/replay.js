@@ -111,7 +111,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
     return { done, title: document.getElementById('end-title').innerText, card: card(), text: endText(), wide: document.querySelector('#end .panel').classList.contains('p6-card'),
       stats: document.getElementById('end-stats').innerText.length > 20, again: document.getElementById('btn-again').innerText, p: prof() };`));
   pass(!r.error && r.done && /CLASS DISMISSED/.test(r.title) && r.card && r.card.n === 7 && r.card.win && r.card.kind === 'survived', 'Free Class, survived: a report card with 7 subjects ' + JSON.stringify(r.error || r.card));
-  pass(!r.error && /REPORT CARD/.test(r.text) && /Whispered 5 times/.test(r.text) && /Mr\. Madi/.test(r.text) && r.card.subs.Attendance === 'A' && r.stats && r.again === 'TRY AGAIN',
+  pass(!r.error && /REPORT CARD/.test(r.text) && /Whispered 5 times/.test(r.text) && /Mr\. Past/.test(r.text) && r.card.subs.Attendance === 'A' && r.stats && r.again === 'TRY AGAIN',
     'the card is its own block on the end screen: subjects, his comments, his signature (the old stats and buttons stay)');
   pass(!r.error && r.p.totals && r.p.totals.classes === 1 && r.p.endings.survived === 1 && r.p.best.score === r.card.score, 'the class is kept in the browser (classes, the ending, the best card)');
 

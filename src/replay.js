@@ -388,7 +388,7 @@ export function reportHtml(card, news = {}) {
   return `<div class="rc" id="rc">
     <div class="rc-head"><b>REPORT CARD</b><span>Room 13 · ${esc(card.name)}${card.hard ? ' · HARD' : ''}</span></div>
     <table class="rc-rows">${rows}</table>
-    <div class="rc-final"><div class="rc-stamp g-${card.grade}" id="rc-grade">${card.grade}</div><div class="rc-remark">${esc(card.remark)}<span class="rc-sign">Mr. Madi</span></div></div>
+    <div class="rc-final"><div class="rc-stamp g-${card.grade}" id="rc-grade">${card.grade}</div><div class="rc-remark">${esc(card.remark)}<span class="rc-sign">Mr. Past</span></div></div>
     ${extra}
   </div>`;
 }

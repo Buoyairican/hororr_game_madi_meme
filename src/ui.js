@@ -26,13 +26,13 @@ export class UI {
   }
 
   show(id, on = true) { this.el[id].classList.toggle('hidden', !on); }
-  /** what Mr. Madi says in the online lobby (he stands at the door behind the menu) */
+  /** what Mr. Past says in the online lobby (he stands at the door behind the menu) */
   lobbyLine(text, dur = 3) {
     const el = $('mp-madi');
     if (!el) return;
     clearTimeout(this.lobbyTimer);
     if (!text || !this.subsOn) { el.classList.remove('on'); return; }
-    el.innerHTML = `<span class="who">MR. MADI</span> ${text}`;
+    el.innerHTML = `<span class="who">MR. PAST</span> ${text}`;
     el.classList.add('on');
     this.lobbyTimer = setTimeout(() => el.classList.remove('on'), dur * 1000);
   }

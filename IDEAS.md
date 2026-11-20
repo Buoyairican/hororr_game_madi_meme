@@ -1,4 +1,4 @@
-# IDEAS.md: new features for Madi Class
+# IDEAS.md: new features for Past Summit
 
 For the AI agent (Opus). **Read the Rules at the top of `DEBUG.md` first: they apply here too.** Do `DEBUG.md` Part A (the patch) before any feature: the features use what it adds (`ui.status`, `uiTo`, `classGiggle`, the safe `interrupt`).
 

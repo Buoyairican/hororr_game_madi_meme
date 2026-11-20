@@ -1,4 +1,4 @@
-# DEBUG.md: fixes for Madi Class
+# DEBUG.md: fixes for Past Summit
 
 For the AI agent (Opus) that works on this repo. Read the rules once, then do only the part the owner names.
 

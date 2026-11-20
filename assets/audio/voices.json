@@ -6,8 +6,8 @@
  },
  "t_name": {
   "who": "teacher",
-  "text": "My name... is... Mister... Madi.",
-  "dur": 5.277
+  "text": "My name... is... Mister... Past.",
+  "dur": 5.198
  },
  "t_roll": {
   "who": "teacher",
@@ -1051,8 +1051,8 @@
  },
  "t_cn_google": {
   "who": "teacher",
-  "text": "Mister... Madi... googles... how to be... a teacher.",
-  "dur": 7.393
+  "text": "Mister... Past... googles... how to be... a teacher.",
+  "dur": 7.314
  },
  "t_cn_arms": {
   "who": "teacher",
@@ -1071,8 +1071,8 @@
  },
  "t_cn_soup": {
   "who": "teacher",
-  "text": "Mister... Madi... smells like... old... soup.",
-  "dur": 7.184
+  "text": "Mister... Past... smells like... old... soup.",
+  "dur": 7.131
  },
  "t_gh_light": {
   "who": "teacher",
@@ -1325,9 +1325,9 @@
  },
  "s_name": {
   "who": "sam",
-  "text": "Mister Madi? What kind of name is that?",
+  "text": "Mister Past? What kind of name is that?",
   "whisper": true,
-  "dur": 2.534
+  "dur": 2.586
  },
  "s_books": {
   "who": "sam",
@@ -1787,9 +1787,9 @@
  },
  "n_name": {
   "who": "nora",
-  "text": "Madi. I've never heard of him.",
+  "text": "Past. I've never heard of him.",
   "whisper": true,
-  "dur": 1.802
+  "dur": 1.829
  },
  "n_meme": {
   "who": "nora",
@@ -2185,8 +2185,8 @@
  },
  "p_a_madi": {
   "who": "you",
-  "text": "Mister Madi.",
-  "dur": 0.758
+  "text": "Mister Past.",
+  "dur": 0.81
  },
  "p_a_hale": {
   "who": "you",
@@ -2296,15 +2296,15 @@
  },
  "m_rizz_b": {
   "who": "kid",
-  "text": "Mister Madi has no rizz.",
+  "text": "Mister Past has no rizz.",
   "meme": true,
-  "dur": 1.149
+  "dur": 1.254
  },
  "m_rizz_g": {
   "who": "kid",
-  "text": "Mister Madi has no rizz.",
+  "text": "Mister Past has no rizz.",
   "meme": true,
-  "dur": 1.176
+  "dur": 1.28
  },
  "m_oof_b": {
   "who": "kid",

@@ -469,7 +469,7 @@ async function boot() {
 
   $('btn-mp-leave').onclick = () => { if (joining) stopJoining(); if (mp) { mp.leave(); mp = null; } seen = null; labels(); go('title'); };
   // back from another app: a phone froze the game meanwhile. The host makes sure friends can still
-  // get in (same code), and in the lobby Mr. Madi reminds them to stay. The time away is measured on
+  // get in (same code), and in the lobby Mr. Past reminds them to stay. The time away is measured on
   // the wall clock: a phone's performance.now() can stop while it is locked or asleep.
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => {
