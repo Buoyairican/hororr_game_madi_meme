@@ -1,4 +1,5 @@
 // DOM overlay: HUD, subtitles, hints, objectives, choices, menus.
+import { STUCK } from './data.js';
 const $ = (id) => document.getElementById(id);
 const HINT_READ = 3.2;  // seconds a tip stays up before the next one may take its place
 const CAP_MIN = 1.2;    // seconds a caption stays up at least
@@ -10,7 +11,7 @@ export class UI {
       'subtitle', 'toast', 'blackout', 'flash', 'note', 'note-text', 'title', 'loading', 'load-fill', 'load-text', 'menu', 'how', 'settings',
       'pause', 'end', 'end-title', 'end-text', 'end-stats', 'rotate', 'err', 'crosshair', 'objectives', 'strikes', 'bully', 'echo-cue', 'echo-bar',
       'choices', 'choices-title', 'choices-list', 'choices-bar', 'card', 'card-time', 'card-title', 'card-sub', 'chapters', 'chapter-list', 'btn-again', 'btn-echo', 'mp',
-      'laugh', 'laugh-fill', 'laugh-mult', 'aim-hud', 'aim-kind', 'aim-pow-fill', 'quirks', 'ev-now', 'sneak-hud', 'sneak-label', 'sneak-fill', 'notebook', 'ghost-hud', 'ghost-veil', 'ghost-left', 'ghost-haunts']) this.el[id] = $(id);
+      'laugh', 'laugh-fill', 'laugh-mult', 'trust', 'trust-val', 'aim-hud', 'aim-kind', 'aim-pow-fill', 'quirks', 'ev-now', 'sneak-hud', 'sneak-label', 'sneak-fill', 'notebook', 'ghost-hud', 'ghost-veil', 'ghost-left', 'ghost-haunts']) this.el[id] = $(id);
     this.subTimer = 0; this.caps = [];
     this.hintTimer = 0; this.hintAge = 99; this.hintQ = []; this.statusTimer = 0;
     this.toastTimer = 0;
@@ -56,6 +57,13 @@ export class UI {
       this.el.laugh.classList.toggle('off', x < 1);
       this.el['laugh-fill'].style.width = x + '%';
       this.el['laugh-mult'].textContent = x >= 5 ? '×' + (1 + x / 100).toFixed(1) : '';
+    });
+  }
+  /** TRUST ★★☆ under LAUGHS (src/stuck.js): hidden while it is 0 */
+  setTrust(v) {
+    this.set('trust', v | 0, (x) => {
+      this.el.trust.classList.toggle('off', x < 1);
+      this.el['trust-val'].textContent = '★'.repeat(Math.min(x, STUCK.maxTrust)) + '☆'.repeat(Math.max(0, STUCK.maxTrust - x));
     });
   }
   /** aiming a paper: what you hold and how hard you will throw (null hides it) */

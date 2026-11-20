@@ -764,8 +764,8 @@ export const SneakMixin = {
     this.clockAhead = Number(s[3]) || 0; this.allowSneak = !!s[4]; this.sitting = !!s[5];
     this.teacher.glasses.visible = this.glassesAt !== 'gone';
   },
-  /** one row of a player in the snapshot: [out (0 sitting, 1 out, 2 carried), x, z, the meter, glasses, cushions left] */
-  sneakRow(p) { return [p.out ? (p.carried ? 2 : 1) : 0, Math.round(p.pos.x * 100) / 100, Math.round(p.pos.z * 100) / 100, Math.round(p.spotT * 100) / 100, p.hasGlasses ? 1 : 0, p.cushions | 0]; },
+  /** one row of a player in the snapshot: [out (0 sitting, 1 out, 2 carried), x, z, the meter, glasses, cushions left, trust (src/stuck.js)] */
+  sneakRow(p) { return [p.out ? (p.carried ? 2 : 1) : 0, Math.round(p.pos.x * 100) / 100, Math.round(p.pos.z * 100) / 100, Math.round(p.spotT * 100) / 100, p.hasGlasses ? 1 : 0, p.cushions | 0, p.trust | 0]; },
   /** a friend's screen: your own row (the host may have put you back in your chair, or be carrying you) */
   applyMySneak(r) {
     if (!Array.isArray(r)) return;
@@ -775,7 +775,7 @@ export const SneakMixin = {
       me.pos.set(Number(r[1]) || 0, 0, Number(r[2]) || 0);
     } else if (me.carried) { this.seatNow(me); }
     else if (!st && me.out && this.t - me.outSince > 1.5) this.seatNow(me);  // (you did not get off your chair after all, or he put you back)
-    me.spotT = Number(r[3]) || 0; me.hasGlasses = !!r[4]; me.cushions = r[5] | 0;
+    me.spotT = Number(r[3]) || 0; me.hasGlasses = !!r[4]; me.cushions = r[5] | 0; me.trust = r[6] | 0;
   },
   applyOtherSneak(p, r) {
     if (!Array.isArray(r)) return;

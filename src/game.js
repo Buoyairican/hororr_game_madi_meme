@@ -22,6 +22,7 @@ import { TeamMixin } from './team.js';
 import { MicMixin } from './mic.js';
 import { ScoreboardMixin } from './scoreboard.js';
 import { ScaresMixin } from './scares.js';
+import { StuckMixin } from './stuck.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
@@ -145,7 +146,7 @@ export class Game {
       // pranks: the paper you are aiming, folding the next one, how long he has seen your arm up, hits on him in a row
       showCool: 0, aim: null, aiming: false, foldT: 0, exposeT: 0, prankSeenT: 0, prankStreak: 0, lastPrankHit: -99, lastThrow: -99, crumpleT: 0, bonkT: 0, prankLatch: false,
       // the laser pointer, the KICK ME notes, "Who did it?" (src/blame.js)
-      tool: null, laserOn: false, laserHit: null, laserT: 0, eyesT: 0, lastEyes: -99, notesLeft: NOTE.perClass, watchedT: 0, lastGlare: -99, confessions: 0, lies: 0 });
+      tool: null, laserOn: false, laserHit: null, laserT: 0, eyesT: 0, lastEyes: -99, notesLeft: NOTE.perClass, watchedT: 0, lastGlare: -99, confessions: 0, lies: 0, trust: 0 });
     p.prankKind = p.prankKind || 'ball';
     this.resetSneakPlayer(p); // off your chair (src/sneak.js)
     this.resetDreadPlayer(p);
@@ -258,6 +259,7 @@ export class Game {
     this.resetEvents();
     this.resetQuirks();
     this.resetSlang();
+    this.resetStuck(); // he gets stuck on a question (src/stuck.js)
     this.resetDread();
     this.resetMorePranks(); this.resetSecrets(); this.resetReplay();
     this.resetChain(); this.resetGhost(); this.resetTeam(); this.ui.chaos(null); // Phase 7: the note chain, ghosts, teamwork, the scoreboard
@@ -578,7 +580,8 @@ export class Game {
     if (wantPhone) this.phoneButtons(p, a); // with the phone up: tap, switch app, show a friend
     else {
       if (a.echo && this.canEcho(p)) this.doEcho(p);
-      if (a.ask && this.canAsk(p)) this.openAsk(p);
+      if (a.ask && this.stuck && !this.stuck.by && !p.out && !p.ghost) { this.openStuck(p); } // he is stuck on a question (src/stuck.js)
+      else if (a.ask && this.canAsk(p)) this.openAsk(p);
       else if (a.ask && this.classEvent && this.allowAsk && this.present) this.uiTo(p, 'status', 'He is busy right now. <b>Ask him later.</b>', 2.2);
     }
     const aim = this.aimFriend(p);
@@ -1382,7 +1385,7 @@ export class Game {
       if (this.idleKind !== kind) return;
       if (kind === 'patrol') { yield* this.actPatrol(); continue; }
       // his quirks and his new words (src/quirks.js, src/slang.js), when one is due
-      const habit = this.quirkAct() || this.slangAct() || this.sneakHabit(); // (his glasses on the desk, his chair: src/sneak.js)
+      const habit = this.quirkAct() || this.slangAct() || this.sneakHabit() || this.stuckAct(); // (his glasses on the desk, his chair: src/sneak.js)
       if (habit) { yield* habit; continue; }
       const p = this.phase;
       const canWipe = this.mode === 'free' || this.chapter >= 2;
@@ -3616,6 +3619,7 @@ export class Game {
     ui.setEye(!this.present ? 'away' : this.dozing ? 'asleep' : this.dancing ? 'dance' : this.blind ? 'blind' : this.typing ? 'busy' : this.watching ? 'open' : this.halfBlind ? 'half' : 'closed');
     ui.setAnger(this.anger);
     ui.setLaugh(this.laugh);
+    ui.setTrust(this.me.trust);
     ui.setStrikes(this.strikes, this.maxStrikes);
     ui.echoCue(this.canEcho() && !this.vidZoom && !this.input.phone && !this.me.aim && this.me.slipK <= 0 ? clamp((this.echoable.until - this.t) / 4, 0, 1) : -1, this.input.touch);
     const c = clockLabel(this.clockMin);
@@ -3694,3 +3698,4 @@ function clipLoud(sh) {
 Object.assign(Game.prototype, DreadMixin); // real dread (src/dread.js)
 Object.assign(Game.prototype, ChainMixin, GhostMixin, TeamMixin, MicMixin, ScoreboardMixin); // Phase 7: online extras
 Object.assign(Game.prototype, ScaresMixin); // the new jump scares (src/scares.js)
+Object.assign(Game.prototype, StuckMixin); // he gets stuck on a question (src/stuck.js)

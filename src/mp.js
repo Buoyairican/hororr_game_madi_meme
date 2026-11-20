@@ -861,6 +861,7 @@ export class MP {
     ui.setEye(!g.present ? 'away' : g.dozing ? 'asleep' : g.dancing ? 'dance' : g.blind ? 'blind' : g.typing ? 'busy' : g.watching ? 'open' : g.halfBlind ? 'half' : 'closed');
     ui.setAnger(g.anger);
     ui.setLaugh(g.laugh);
+    ui.setTrust(g.me.trust);
     ui.setStrikes(g.strikes, g.maxStrikes);
     ui.echoCue(this.ec >= 0 && !g.cutscene && !g.vidZoom && !this.phoneUp && !g.me.aim && g.me.slipK <= 0 ? clamp(this.ec / 4, 0, 1) : -1, g.input.touch);
     const c = clockLabel(g.clockMin);

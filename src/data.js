@@ -851,3 +851,35 @@ export const BELLY = {
   pause: [0.45, 0.9],     // seconds between two bursts
   vol: [0.2, 0.3], rate: [1.15, 1.4], // the sound (bl_paw, quiet and a little higher)
 };
+
+// ---- he is stuck on a question he wrote himself (src/stuck.js)
+export const STUCK = {
+  first: [45, 75], every: [80, 120], max: 2, // Free Class: seconds to the first one, between two, how many per class
+  wait: 14,                 // seconds he stares before he looks it up himself
+  choose: 8,                // seconds to pick an answer
+  calm: 25, petWatch: 25,   // right: his anger goes down by this; he keeps an eye on you this long
+  laugh: 40, mischief: 40,  // wrong: the class laughs, your mischief
+  findOut: [35, 55],        // wrong: seconds until he looks it up
+  maxTrust: 3,
+  hint: 'He is stuck. <b>Raise your hand</b> to help him: <span class="desk-only">press <b>T</b></span><span class="touch-only">tap <b>ASK</b></span>.',
+  title: 'Help him: ',
+  nothing: 'Say nothing',
+  list: [
+    { q: '7 × 8 = ?', right: '56', wrong: '54', typed: 'what is 7 times 8' },
+    { q: 'The capital of France is ___', right: 'Paris', wrong: 'F', typed: 'capital of france' },
+    { q: 'H2O is ___', right: 'water', wrong: 'a robot', typed: 'what is h2o' },
+    { q: 'How many days in a week?', right: '7', wrong: '9', typed: 'days in a week' },
+    { q: 'The opposite of hot is ___', right: 'cold', wrong: 'spicy', typed: 'opposite of hot' },
+    { q: 'A triangle has ___ sides', right: '3', wrong: '5', typed: 'how many sides has a triangle' },
+    { q: 'How many legs has a spider?', right: '8', wrong: '2, like me', typed: 'spider legs' },
+    { q: 'What is 6 + 7?', right: '13', wrong: 'six seven!', typed: 'what is 6 plus 7' },
+    { q: 'What does "rizz" mean?', right: 'charm', wrong: 'a kind of rice', typed: 'what does rizz mean' },
+    { q: 'What does "sus" mean?', right: 'suspicious', wrong: 'a soup', typed: 'what does sus mean' },
+    { q: 'What is a "GOAT"?', right: 'the greatest of all time', wrong: 'you, sir', typed: 'what does goat mean' },
+    { q: 'What is "aura"?', right: 'how cool you look', wrong: 'a Wi-Fi brand', typed: 'what is aura' },
+    { q: '"No cap" means ___', right: 'no lie', wrong: 'no hats in class', typed: 'what does no cap mean' },
+    { q: 'Ohio is a ___', right: 'state', wrong: 'final boss', typed: 'what is ohio' },
+    { q: 'A "sigma" is ___', right: 'a Greek letter', wrong: 'a teacher', typed: 'what is a sigma' },
+    { q: 'What is "skibidi"?', right: 'nothing. It means nothing.', wrong: 'the past tense of ski', typed: 'what does skibidi mean' },
+  ],
+};

@@ -326,6 +326,10 @@ body.touch .desk-only { display: none !important; }
 #laugh-bar { display: inline-block; width: 110px; height: 5px; background: rgba(255,255,255,.12); }
 #laugh-fill { display: block; height: 100%; width: 0%; background: #f0c27a; transition: width .2s; box-shadow: 0 0 6px rgba(240,194,122,.6); }
 #laugh-mult { color: #f0c27a; min-width: 30px; }
+#trust { font-size: 12px; letter-spacing: 2px; }
+#trust.off { display: none; }
+#trust .lbl { color: var(--dim); }
+#trust-val { color: #f0c27a; }
 #aim-hud { position: absolute; left: 50%; top: calc(50% + 50px); transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .15s;
   font-size: 11px; letter-spacing: 2px; color: #e9e3cf; text-shadow: 0 0 5px #000; }
 #aim-hud.show { opacity: 1; }
