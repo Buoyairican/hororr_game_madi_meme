@@ -655,5 +655,6 @@ body.statusing #objectives, body.statusing #quirks { opacity: .1; }
 #btn-full { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 5;
   padding: 6px 10px; font-size: 12px; letter-spacing: 1px; min-width: 0; width: auto; }
 #full-note { position: absolute; top: calc(max(10px, env(safe-area-inset-top)) + 40px); right: max(10px, env(safe-area-inset-right)); z-index: 5;
-  max-width: min(320px, 70vw); font-size: 12px; line-height: 1.45; text-align: right; color: #e9e3cf; background: rgba(0,0,0,.72); padding: 8px 10px; }
+  max-width: min(360px, 72vw); font-size: 12px; line-height: 1.5; text-align: left; color: #e9e3cf; background: rgba(0,0,0,.88); padding: 10px 12px; border: 1px solid #444; }
+#full-note a { color: #ffd48a; }
 

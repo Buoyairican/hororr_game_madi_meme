@@ -35,6 +35,8 @@ window.addEventListener('unhandledrejection', (e) => {
 });
 
 const query = new URLSearchParams(location.search);
+// the game's own page (GitHub Pages): on iPhone, installed from there to the Home Screen it plays full screen
+const GAME_HOME = 'https://buoyairican.github.io/hororr_game_madi_meme/';
 const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 // phones get the cheapest settings by default
 const DEFAULTS = { sens: 1, vol: 0.9, retro: true, meter: false, subs: true, shadows: !isTouch, difficulty: 'easy', full: isTouch }; // (full: full screen when a class starts, on phones)
@@ -193,12 +195,22 @@ async function boot() {
   $('btn-full').onclick = () => {
     if (fsCan) { toggleFull(); return; }
     const n = $('full-note');
-    n.innerHTML = 'On iPhone, a web page can\'t hide the browser bar. Tap <b>Share</b>, then <b>Add to Home Screen</b>, and open the game from there: full screen, no bar.';
+    // (inside another page, like a preview, the Home Screen icon would open that page: the game's own address is needed)
+    const framed = window.top !== window.self;
+    n.innerHTML = 'On iPhone no browser (Brave, Safari, Chrome) may hide its bar for a web page: Apple\'s rule. To play <b>full screen</b>, install the game:'
+      + (framed ? `<br>1. Open the game's own page: <a href="${GAME_HOME}" target="_blank" rel="noopener">${GAME_HOME.replace(/^https:\/\//, '')}</a>` : '')
+      + `<br>${framed ? 2 : 1}. Brave: tap <b>•••</b> → <b>Share</b> (Safari: the <b>Share</b> button)`
+      + `<br>${framed ? 3 : 2}. <b>Add to Home Screen</b>, and start the game from its new icon: full screen, no bar, like an app.`;
     n.classList.toggle('hidden');
-    clearTimeout(n.hideT); if (!n.classList.contains('hidden')) n.hideT = setTimeout(() => n.classList.add('hidden'), 9000); // (it goes away by itself)
+    clearTimeout(n.hideT); if (!n.classList.contains('hidden')) n.hideT = setTimeout(() => n.classList.add('hidden'), 20000); // (it goes away by itself)
   };
-  addEventListener('pointerdown', (e) => { if (e.target.id !== 'btn-full') $('full-note').classList.add('hidden'); }, true); // (or with any other tap)
+  addEventListener('pointerdown', (e) => { if (e.target.id !== 'btn-full' && !e.target.closest('#full-note')) $('full-note').classList.add('hidden'); }, true); // (or with any other tap)
   $('btn-pause-full').onclick = toggleFull;
+  // iPhone, in the browser: the steps show once by themselves (later: the FULL SCREEN button)
+  if (isIOS && !standalone && !fsCan && !query.has('debug')) {
+    let seen = false; try { seen = !!localStorage.getItem('madiclass.fullTip'); localStorage.setItem('madiclass.fullTip', '1'); } catch (e) { /* private mode */ }
+    if (!seen) { const wait = setInterval(() => { if (!$('menu').classList.contains('hidden')) { clearInterval(wait); setTimeout(() => $('btn-full').onclick(), 1200); } }, 500); } // (once the menu is up)
+  }
   for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { fullUi(); resize(); });
   fullUi();
 

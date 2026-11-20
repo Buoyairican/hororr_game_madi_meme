@@ -9,7 +9,7 @@ his laptop. And he is listening.
 
 Runs in any modern browser on desktop **and iPhone/Android** (no install, no build step).
 
-**Full screen**: on Android (and on a computer) a class starts full screen, with no browser bar (Settings: "Full screen when a class starts"; the ⛶ FULL SCREEN button on the title screen and in the pause menu). On iPhone a web page can't hide the browser bar: tap Share → Add to Home Screen and open the game from there.
+**Full screen**: on Android (and on a computer) a class starts full screen, with no browser bar (Settings: "Full screen when a class starts"; the ⛶ FULL SCREEN button on the title screen and in the pause menu). On iPhone no browser (Brave, Safari, Chrome) may hide its bar for a web page (Apple's rule): open the game's own page (GitHub Pages, below), tap Share (Brave: ••• → Share) → Add to Home Screen, and start it from the new icon: full screen, like an app. The game shows these steps once by itself on an iPhone, and on the FULL SCREEN button.
 
 **His habit**: when he stops to think at the board, he turns a little and pats his stomach in quick soft bursts. When he just stands still, his right hand taps his stomach now and then: lightly, at a human pace, without him noticing, like someone jiggling a leg. Up close you hear the soft pat. He never does it while he walks, leans over a desk, sits, or in a scare.
 
