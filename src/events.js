@@ -262,7 +262,7 @@ export const EventMixin = {
   eventReady(soft = false) {
     if (!(this.state === 'playing' && this.present && !this.ending && !this.lockBully && !this.eventLock && !this.cutscene && !this.memeBusy && !this.classEvent
       && this.anger < 50 && this.blackout < 0.3 && this.world.master > 0.5 && !this.choice && !this.players.some((p) => p.choice)
-      && this.t - this.lastEventEnd > CLASS_SETUP.freeQuiet && this.calmOk())) return false; // (a calm stretch after his last scene: src/pacing.js)
+      && this.t - this.lastEventEnd > CLASS_SETUP.freeQuiet && (soft || this.calmOk()))) return false; // (a calm stretch after his last scene; an event that waited long enough may cut it short: src/pacing.js)
     if (this.players.some((p) => p.qBusy && this.t - p.qLast < 4)) return false; // (a hand just went up: he answers that first)
     if (!soft && this.scaresOn && this.scareOwed() && this.nextScare <= 0.5) return false; // (a scare he owes the class goes first: src/pacing.js)
     if (!soft && (this.buzz || this.friends.some((f) => f.call))) return false; // (your phone or a friend asks you right now: the event waits a moment)
