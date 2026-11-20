@@ -843,7 +843,7 @@ export class MP {
     const aim = g.aimFriend(me);
     let pr = '';
     if (away) {
-      ui.phoneControls('out', inp.touch); // (localSneak wrote the prompt)
+      ui.phoneControls(me.monitor ? 'monitor' : 'out', inp.touch); // (localSneak wrote the prompt)
       if (this.choice) { const k = inp.takeChoice(); if (k >= 0 && k < this.choice.n) this.pick(k); }
       return;
     }

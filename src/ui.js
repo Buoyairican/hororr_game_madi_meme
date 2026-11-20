@@ -275,16 +275,16 @@ export class UI {
       const T = document.getElementById('btn-talk'), A = document.getElementById('btn-ask'), E = document.getElementById('btn-echo');
       if (lg && this.legendHtml == null) this.legendHtml = lg.innerHTML;
       const tb = document.getElementById('touch-buttons');
-      if (tb) { tb.classList.toggle('out', mode === 'out'); tb.classList.toggle('ghost', mode === 'ghost'); }
+      if (tb) { tb.classList.toggle('out', mode === 'out' || mode === 'monitor'); tb.classList.toggle('ghost', mode === 'ghost'); }
       if (mode === 'ghost') {
         // a ghost in the corner (src/ghost.js): ECHO / ASK / TALK are the three haunts
         if (lg) lg.innerHTML = '<kbd>1</kbd> lights · <kbd>2</kbd> the chair · <kbd>3</kbd> the book · look around';
         if (T) T.textContent = 'BOOK'; if (A) A.textContent = 'CHAIR'; if (E) E.textContent = 'LIGHT';
         return;
       }
-      if (mode === 'out') {
-        // off your chair: the stick crawls, TALK is USE (his desk), SIT sits you back down
-        if (lg) lg.innerHTML = '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> crawl · hold <kbd>E</kbd> use · <kbd>C</kbd> at your desk: sit down';
+      if (mode === 'out' || mode === 'monitor') {
+        // off your chair: the stick crawls, TALK is USE (his desk), SIT sits you back down (the class monitor walks and stays up: those parts hidden, src/monitor.js)
+        if (lg) lg.innerHTML = '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>' + (mode === 'out' ? ' crawl' : '') + ' · hold <kbd>E</kbd> use' + (mode === 'out' ? ' · <kbd>C</kbd> at your desk: sit down' : '');
         if (T) T.textContent = 'USE'; if (A) A.textContent = 'ASK'; if (E) E.textContent = 'ECHO';
         return;
       }

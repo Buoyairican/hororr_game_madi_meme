@@ -547,7 +547,7 @@ export class Game {
     this.playerActs(me, blocked || aiming || away ? { talk: false, phone: false, echo: false, ask: false, tap: false } : { talk: inp.talk && !me.talkLatch, phone: inp.phone, echo: pressed.echo, ask: pressed.ask, tap: pressed.tap }, dt);
     this.remoteActs(dt);
     this.noise = me.noise;
-    if (away) { ui.phoneControls('out', this.input.touch); return; } // (localSneak wrote the prompt)
+    if (away) { ui.phoneControls(me.monitor ? 'monitor' : 'out', this.input.touch); return; } // (localSneak wrote the prompt)
     const aim = this.aimFriend(me);
     let pr = '';
     if (aiming) pr = this.aimLabel;
