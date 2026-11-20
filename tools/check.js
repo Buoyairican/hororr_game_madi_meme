@@ -289,8 +289,10 @@ async function ideas(browser) {
   // F1: the belly pat
   await safe('F1 belly pat', 'he pats his stomach (pose "belly", soft pats) and stops', () => { const g = game; fresh(31);
     let pats = 0; const ap = g.audio.play.bind(g.audio); g.audio.play = (n, o) => { if (n === 'bl_paw') pats++; return ap(n, o); };
-    g.interrupt(g.bellyPat(3)); run(1.6); const pose = g.teacher.pose, mid = pats; run(5); g.audio.play = ap;
-    return { ok: pose === 'belly' && mid >= 3 && g.teacher.pose !== 'belly', why: `pose=${pose}, pats in 1.6 s=${mid}, pose afterwards=${g.teacher.pose}` }; });
+    // (the pose "afterwards" is read the moment HIS pat ends, not at a fixed time: a pat runs up to ~6.2 s, and after it his
+    // idle brain may start a new one (actPonder), which a fixed sample at 6.6 s saw once as "belly")
+    const gen = g.bellyPat(3); g.interrupt(gen); run(1.6); const pose = g.teacher.pose, mid = pats; const ended = run(5, () => g.brain !== gen); g.audio.play = ap;
+    return { ok: pose === 'belly' && mid >= 3 && ended && g.teacher.pose !== 'belly', why: `pose=${pose}, pats in 1.6 s=${mid}, ended=${ended}, pose afterwards=${g.teacher.pose}` }; });
   // F2: stuck on a question
   await safe('F2 stuck: right', 'he writes a question, a right answer gives trust', () => { const g = game, item = DATA.STUCK.list[0]; fresh(32); wrote.length = 0;
     g.interrupt(g.actStuck(item)); const stuck = run(40, () => g.stuck && wrote.some((t) => t.includes(item.q)));
