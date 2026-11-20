@@ -23,11 +23,12 @@ import { MicMixin } from './mic.js';
 import { ScoreboardMixin } from './scoreboard.js';
 import { ScaresMixin } from './scares.js';
 import { StuckMixin } from './stuck.js';
+import { TrustMixin } from './trust.js';
 import { clipByKey } from './memes.js';
 import { RunStats } from './stats.js';
 import {
   BELLY, FREE_LENGTH, SCARES, PHASE_AT, PET_LIMIT, BOARD_TEXT, LECTURE, WARN, FRIEND_LINES, PLAYER_LINES, MESSAGES, NOTES, PLAN_NOTE,
-  QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, PRANK, QUIRKS, EVENTS, SLANG, NOTE, SNEAK, mock, clockLabel,
+  QUESTIONS, HISTORY, CHAPTERS, ENDINGS, STORY_NOTES, FRIEND_EARLY, MEMES, MEME_IDLE, PRANK, QUIRKS, EVENTS, SLANG, NOTE, SNEAK, mock, clockLabel, TRUST,
 } from './data.js';
 
 const CALM = 0.85;           // he walks slowly unless he is angry
@@ -146,7 +147,7 @@ export class Game {
       // pranks: the paper you are aiming, folding the next one, how long he has seen your arm up, hits on him in a row
       showCool: 0, aim: null, aiming: false, foldT: 0, exposeT: 0, prankSeenT: 0, prankStreak: 0, lastPrankHit: -99, lastThrow: -99, crumpleT: 0, bonkT: 0, prankLatch: false,
       // the laser pointer, the KICK ME notes, "Who did it?" (src/blame.js)
-      tool: null, laserOn: false, laserHit: null, laserT: 0, eyesT: 0, lastEyes: -99, notesLeft: NOTE.perClass, watchedT: 0, lastGlare: -99, confessions: 0, lies: 0, trust: 0 });
+      tool: null, laserOn: false, laserHit: null, laserT: 0, eyesT: 0, lastEyes: -99, notesLeft: NOTE.perClass, watchedT: 0, lastGlare: -99, confessions: 0, lies: 0, trust: 0, badAt: -99, tellAt: -99 });
     p.prankKind = p.prankKind || 'ball';
     this.resetSneakPlayer(p); // off your chair (src/sneak.js)
     this.resetDreadPlayer(p);
@@ -593,6 +594,7 @@ export class Game {
     p.vid = ownVid || !!p.showWatch;
     const vidNoise = p.vid ? (vidLoud ? 1 : 0.8) : 0;
     p.selfNoise = wantTalk && aim ? 1 : p.vid ? vidNoise : wantPhone ? 0.65 : 0; // what the player is doing (not their friends)
+    if (p.selfNoise >= 0.6 || p.phoneUp || p.aiming || p.out) p.badAt = this.t; // (a friend can tell on you for a few seconds: src/trust.js)
     if (p.local) ph.up = wantPhone;
     const off = this.offGuard(); // out of the room, asleep, on the phone, blind, typing: everything counts double
     if (off && (p.vid || wantPhone || (wantTalk && aim))) { this.note(p, 'chaos', dt); if (this.away) this.completeObjective('chaos'); }
@@ -771,7 +773,7 @@ export class Game {
     // ...and under the fire alarm (or his own phonk) he hears nothing at all: the class still laughs
     const deaf = this.onDeafSide(p), unheard = this.cantHear();
     if (!deaf && !unheard) p.echoStreak++;
-    p.lastEcho = this.t;
+    p.lastEcho = this.t; p.badAt = this.t;
     if (!unheard) this.learnSlang('mock', p, { line: e.id, text: e.text }); // ...and he learns your squeaky voice
     this.note(p, 'echoes'); this.track.event(this.t, p, 'echo', { streak: p.echoStreak });
     this.idleT = 0;
@@ -894,8 +896,12 @@ export class Game {
     const fresh = QUESTIONS.filter((q) => q.needs && this.eventsDone.includes(q.needs) && !(this.askedAbout || []).includes(q.id));
     if (fresh.length) { qs.push(fresh[0]); (this.askedAbout = this.askedAbout || []).push(fresh[0].id); }
     for (let n = 0; qs.length < 3 && n < 60; n++) { const q = this.qBag.next(); if (!qs.includes(q) && (!q.needs || this.eventsDone.includes(q.needs))) qs.push(q); }
-    this.openChoice('Raise your hand and ask…', qs.map((q) => (this.audio.voices[q.ask] || { text: q.id }).text.replace(/^Sir\? /, '')), 7, (i) => {
-      if (i >= 0) this.askQuestion(qs[i], p);
+    const labels = qs.map((q) => (this.audio.voices[q.ask] || { text: q.id }).text.replace(/^Sir\? /, ''));
+    const tell = this.tellTarget(p); // online: tell on a friend (src/trust.js)
+    if (tell) labels.push(TRUST.label.replace('{name}', tell.name));
+    this.openChoice('Raise your hand and ask…', labels, 7, (i) => {
+      if (i >= 0 && i < qs.length) this.askQuestion(qs[i], p);
+      else if (i === qs.length && tell) this.tellOn(p, tell);
     }, p);
   }
 
@@ -1932,7 +1938,7 @@ export class Game {
     const T = this.teacher, W = this.world, A = this.audio;
     this.cutscene = true;
     if (this.mp) this.mp.caughtToast(p);
-    this.strikes++;
+    this.strikes++; p.trust = 0;
     this.note(p, 'caught'); this.closeArm = null;
     const cf = this.track.of(p).caughtFor; cf[reason] = (cf[reason] || 0) + 1;
     this.track.event(this.t, p, 'caught', { reason });
@@ -3699,3 +3705,4 @@ Object.assign(Game.prototype, DreadMixin); // real dread (src/dread.js)
 Object.assign(Game.prototype, ChainMixin, GhostMixin, TeamMixin, MicMixin, ScoreboardMixin); // Phase 7: online extras
 Object.assign(Game.prototype, ScaresMixin); // the new jump scares (src/scares.js)
 Object.assign(Game.prototype, StuckMixin); // he gets stuck on a question (src/stuck.js)
+Object.assign(Game.prototype, TrustMixin); // online: telling on a friend (src/trust.js)

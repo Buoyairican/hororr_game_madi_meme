@@ -583,11 +583,11 @@ export const CHAOS = {
     sneaks: 6, sneakTime: 0.3, glasses: 14, secrets: 8, clocks: 10, cushions: 12,
     breath_hold: 8, dread_spotted: 6,
     chain_pass: 12, chain_done: 10, chain_lost: 8, ghost: 4, ghost_haunt: 9, mic_noise: 6,
-    blame_friend: 15, team_distract: 20,
+    blame_friend: 15, team_distract: 20, snitched: 14,
   },
   minTitle: 8,               // fewer points than this from a title's keys: not that title
   titles: [
-    { id: 'snitch', name: 'THE SNITCH', keys: ['blame_friend'], why: 'blamed a friend {blame_friend}×' },
+    { id: 'snitch', name: 'THE SNITCH', keys: ['blame_friend', 'snitched'], why: 'blamed a friend {blame_friend}×' },
     { id: 'clown', name: 'THE CLOWN', keys: ['echoes', 'questions'], why: 'repeated him {echoes}×, {questions} dumb questions' },
     { id: 'ghost', name: 'THE GHOST', keys: ['ghost_haunt', 'ghost'], why: 'haunted the class {ghost_haunt}×' },
     { id: 'sniper', name: 'THE SNIPER', keys: ['hitHim', 'hits', 'glassesOff', 'soaked', 'trickShots'], why: 'hit him {hitHim}× with paper' },
@@ -896,4 +896,13 @@ export const STUCK = {
     { q: 'A "sigma" is ___', right: 'a Greek letter', wrong: 'a teacher', typed: 'what is a sigma' },
     { q: 'What is "skibidi"?', right: 'nothing. It means nothing.', wrong: 'the past tense of ski', typed: 'what does skibidi mean' },
   ],
+};
+
+// ---- online: trust (src/trust.js). Telling on a friend; the class monitor (F6) needs trust.
+export const TRUST = {
+  max: 3, recent: 5, cooldown: 20, watch: 25, liarWatch: 15,
+  label: 'Tell on {name}',
+  told: '<b>{name}</b> told on you!',
+  toast: 'HE CAUGHT {name} · told by {by}',
+  liar: 'He did not believe you.',
 };
