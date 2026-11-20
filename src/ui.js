@@ -231,6 +231,8 @@ export class UI {
     this.hintTimer = dur; this.hintAge = 0; this.hintText = text; this.hintIsTip = !!tip;
     this.hintSeq = (this.hintSeq || 0) + 1;
   }
+  /** take this hint down now if it is the one still up (the next update hides it) */
+  clearHint(text) { if (this.hintText === text && this.hintTimer > 0) this.hintTimer = 0.01; }
   choosing() { return !this.el.choices.classList.contains('hidden'); }
   /** one short line under the crosshair for small feedback ("Not now.", "PAPER BALL ready"): it never touches a tip */
   status(text, dur = 1.6) {

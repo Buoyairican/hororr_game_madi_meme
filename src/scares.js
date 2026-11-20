@@ -49,7 +49,7 @@ export const ScaresMixin = {
   /** the director's entries for the new scares (game.js scareList) */
   newScares() {
     return Object.entries(SCARES.pool).map(([id, o]) => ({
-      id, min: o.min, w: (o.solo && this.mp) || (o.free && this.mode !== 'free') ? 0 : o.w, cool: o.cool, once: o.once, strong: o.strong,
+      id, min: o.min, w: (o.solo && this.mp) || (o.free && this.mode !== 'free') || (id === 'note' && this.ui.noteOpen) ? 0 : o.w, cool: o.cool, once: o.once, strong: o.strong,
       ...(o.fx ? { fx: () => this.scareFx(id) } : { brain: () => this.scareScene(id) }),
     }));
   },
@@ -66,7 +66,7 @@ export const ScaresMixin = {
     if (this.mp && !SCARES.everyone.includes(id)) {
       v = this.scareVictim || pick(this.players.filter((p) => !p.out && !(p.slipK > 0) && !p.ghost)); // (scareVictim: tests)
       if (!v) return;
-      for (const q of this.players) if (q !== v) this.uiTo(q, 'toast', SCARES.watchToast.replace('{name}', v.name.toUpperCase()), 3);
+      if (id !== 'stare') for (const q of this.players) if (q !== v) this.uiTo(q, 'toast', SCARES.watchToast.replace('{name}', v.name.toUpperCase()), 3);
     }
     this.scareBusy = id;
     this.eventLock = true;
@@ -112,7 +112,7 @@ export const ScaresMixin = {
   /** a friend's screen (mp.js 'gscare'): the same scene, with their own teacher for the moment */
   *scareGuest(id) {
     const mp = this.mp;
-    if (!(SCARES.len[id] || id === 'lunge') || !this.canScareMe() || this.state !== 'playing') { if (mp) mp.send({ t: 'press', k: 'scareDone' }); return; } // (skipped: the host need not wait)
+    if (!(SCARES.len[id] || id === 'lunge') || !this.canScareMe() || this.state !== 'playing' || (id === 'note' && this.ui.noteOpen)) { if (mp) mp.send({ t: 'press', k: 'scareDone' }); return; } // (skipped: the host need not wait)
     if (mp) mp.localTeacher = true;
     this.localScare = true; // (the host's lights and blackout don't overwrite this screen meanwhile)
     let told = false;
@@ -165,6 +165,7 @@ export const ScaresMixin = {
     // (the blackout itself is reset too, not only its target: the target is only followed while frames are drawn)
     W.setMaster(1); this.blackoutTarget = 0; this.blackout = 0; this.underLight = 0;
     this.audio.fadeBus('amb', 1, 1.5);
+    for (const tx of Object.values(SCARES.texts)) this.ui.clearHint(tx); // (F4: a bait tip still up, "Look behind you", goes with the scene)
   },
 
   // ------------------------------------------------------------- small helpers
@@ -325,13 +326,13 @@ export const ScaresMixin = {
   },
 
   /** his head and shoulders, up out of the floor at x, z, looking up at you; then the dark and "Found... you." (the pencil, under the desk) */
-  *scFloorFace(hx, hz) {
+  *scFloorFace(hx, hz, y = 0.46) {
     const T = this.teacher;
     T.root.visible = true; T.root.rotation.z = 0; T.root.position.y = 0;
     T.place(hx, hz, Math.atan2(this.camPos.x - hx, this.camPos.z - hz));
     T.setPose('grab'); T.lookAt(this.camPos, 80); T.rollTarget = 0.5;
     T.update(0.016, {});
-    T.root.position.y = 0.46 - T.headWorld(_b).y;
+    T.root.position.y = y - T.headWorld(_b).y;
     T.eyeGlow = 1.6; T.faceGlow = 0.35; T.jawTarget = 0.3; T.jitter = 0.25;
     this.scSting();
     yield* this.wait(0.4);
@@ -585,7 +586,7 @@ export const ScaresMixin = {
       this.bonkShake = 0.2;
       this.scUi('hint', SCARES.texts.underdesk, 6);
       const looked = yield* this.scWaitLook(floor, 0.9, SCARES.wait.underdesk);
-      if (looked) { yield* this.scFloorFace(floor.x, floor.z - 0.08); yield* this.wait(1.7); } else yield* this.scComesAnyway();
+      if (looked) { yield* this.scFloorFace(floor.x + 0.2, floor.z + 0.2, 0.15); yield* this.wait(1.7); } else yield* this.scComesAnyway(); // (his face low, between your chair and the desk: the desk top and its book box would hide it)
       yield* this.scBlackoutBack(0.4);
     } finally {
       if (wh) wh.stop(0.3);
@@ -627,7 +628,9 @@ export const ScaresMixin = {
   *scStare(v = this.me) {
     const T = this.teacher, S = SCARES.stare, s = this.deskSpot(v), here = () => this.players.includes(v);
     try {
-      T.moveTarget = null; T.root.visible = true; T.setPose('rest');
+      T.moveTarget = null;
+      if (Math.hypot(T.pos.x - 0.2, T.pos.z + 5.4) > 0.5) yield* this.blinkTo(0.2, -5.4, 0, 0.5); // (he stares from the front: his walk from there is clear of the desks)
+      T.root.visible = true; T.setPose('rest');
       T.facePoint(v.camPos, 3); T.lookAt(v.camPos, 4);
       T.eyeGlow = 1.2; this.dreadSilent = true;
       this.uiTo(v, 'hint', SCARES.texts.stare, 6);
@@ -635,7 +638,7 @@ export const ScaresMixin = {
       const legs = [s.approach, s.stand];
       let leg = 0, held = 0;
       while (leg < legs.length && held < S.giveUp) {
-        if (!here()) return;
+        if (!here()) { yield* this.scBlackoutBack(0.4); return; } // (the friend left: he goes back in the dark)
         const looking = !v.phoneUp && v.camFwd.dot(_a.subVectors(T.headWorld(_b), v.camPos).normalize()) > S.look;
         if (looking) { T.moveTarget = null; held += this.dt; } // (frozen)
         else if (!T.moving) {
