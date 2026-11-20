@@ -653,8 +653,10 @@ export const PACE = {
   callGap: 1.5,         // Sam and Nora call you this much less often than before (CALL_GAP in src/game.js)
   buzzGap: 1.25,        // your phone buzzes this much less often (BUZZ_GAP)
   tipGap: 9,            // seconds between two tips (a tip about right now still shows at once)
+  tipAfter: 3,          // seconds a tip still waits after a scare, his lean or being caught is over (the lights come back first)
   tasks: 3,             // open tasks on the list at a time (plus "Survive until ..."); the newest one always shows
   doneShow: 4,          // seconds a finished task stays on the list (struck through)
+  nags: 3,              // a classmate showing you a video says "Look!" at most this often (each time after a longer wait)
 };
 
 // ---------------- the new jump scares (src/scares.js). Each one plays on every player's own screen.

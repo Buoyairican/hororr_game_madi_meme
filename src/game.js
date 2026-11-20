@@ -1129,9 +1129,9 @@ export class Game {
       const c = this.friends.filter((f) => !f.gone && !f.call);
       if (c.length) {
         const f = pick(c);
-        f.call = { stage: 1, timer: 8 };
+        f.call = { stage: 1, timer: 8, flip: (f.callFlip = !f.callFlip) }; // (the two "psst" lines take turns: not the same words every time)
         f.lookTarget = this.camPos;
-        this.friendSay(f, f.kind === 'sam' ? 's_psst' : 'n_psst', 0.25);
+        this.friendSay(f, (f.kind === 'sam' ? 's_' : 'n_') + (f.call.flip ? 'psst2' : 'psst'), 0.25);
       }
       const g = CALL_GAP[this.phase];
       this.nextCall = rand(g[0], g[1]) * PACE.callGap;
@@ -1147,7 +1147,7 @@ export class Game {
       if (f.call.timer <= 0 && !hold && this.t >= (this.voiceUntil || 0)) { // (a call never runs out while it must wait, nor cuts into his line)
         f.call.stage++;
         if (f.call.stage === 2) {
-          this.friendSay(f, f.kind === 'sam' ? 's_psst2' : 'n_psst2', 0.5);
+          this.friendSay(f, (f.kind === 'sam' ? 's_' : 'n_') + (f.call.flip ? 'psst' : 'psst2'), 0.5);
           f.call.timer = 7;
         } else {
           this.friendSay(f, f.kind === 'sam' ? 's_hey' : 'n_hey', 1);
@@ -3472,8 +3472,8 @@ export class Game {
     h(8, `<span class="touch-only">Look at Sam (left) or Nora (right) and hold <b>TALK</b> to whisper. Hold <b>PHONE</b> to play.</span><span class="desk-only">Look at Sam or Nora and hold <b>E</b> to whisper. Hold <b>Q</b> to play on your phone.</span>`, 7, () => this.didAll('whispers', 'phone'));
     h(18, `<span class="touch-only">Tap <b>ECHO</b> right after he speaks to repeat him. Tap <b>ASK</b> to ask a dumb question.</span><span class="desk-only">Press <b>R</b> right after he speaks to repeat him. Press <b>T</b> to ask a dumb question.</span>`, 7, () => this.didAll('echoes', 'questions'));
     h(30, this.hard ? 'One strike and you are done.' : this.mp ? `${this.maxStrikes} strikes for the whole class.` : 'Three strikes and you are done.', 5);
-    h(44, `<span class="touch-only">Your phone has a game and memes: hold <b>PHONE</b>, tap <b>APP</b> to switch.</span><span class="desk-only">Your phone has a game and memes: hold <b>Q</b>, press <b>T</b> to switch apps.</span> Crash in the game and it gets <b>LOUD</b>.`, 8, () => (this.track.of(this.me).phone || 0) > 4);
-    h(58, `<span class="touch-only">Hold <b>PRANK</b> to aim a paper ball, let go to throw.</span><span class="desk-only">Hold <b>G</b> to aim a paper ball (<b>X</b>: a paper plane), let go to throw.</span> Hit his back while he isn't looking!`, 8, () => this.didAll('throws'));
+    h(60, `<span class="touch-only">Your phone has a game and memes: hold <b>PHONE</b>, tap <b>APP</b> to switch.</span><span class="desk-only">Your phone has a game and memes: hold <b>Q</b>, press <b>T</b> to switch apps.</span> Crash in the game and it gets <b>LOUD</b>.`, 8, () => (this.track.of(this.me).phone || 0) > 4);
+    h(90, `<span class="touch-only">Hold <b>PRANK</b> to aim a paper ball, let go to throw.</span><span class="desk-only">Hold <b>G</b> to aim a paper ball (<b>X</b>: a paper plane), let go to throw.</span> Hit his back while he isn't looking!`, 8, () => this.didAll('throws'));
     this.timers.after(76, () => {
       if (this.state !== 'playing' || this.ending) return;
       this.addObjective({ id: 'kickme', text: 'Stick KICK ME on his back' });

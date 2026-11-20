@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { HeldPhone, ClipBag, clipByKey, CLIPS } from './memes.js';
 import { rand, pick, clamp } from './util.js';
+import { PACE } from './data.js';
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3();
 let SHOW_ID = 1;
@@ -247,9 +248,10 @@ export const VideoMixin = {
         if (sh.npc && Math.random() < dt * 0.6) sh.npc.talking = 0.4; // trying not to laugh
       } else if (!(p.watching && this.present)) { sh.missT += dt; sh.waitT += dt; } // while he watches you, they wait
       // "No, LOOK!"
-      if (sh.npc && !look && !this.cutscene && sh.missT > (sh.state === 'call' ? 7 : 5) && this.t >= (sh.npc.speakUntil || 0)) {
+      // (src/pacing.js: a longer wait each time, only a few times out loud, and never while something holds you)
+      if (sh.npc && !look && !this.cutscene && !this.askHold(p) && sh.missT > (sh.state === 'call' ? 7 : 5) * (1 + sh.nag * 0.5) && this.t >= (sh.npc.speakUntil || 0)) {
         sh.nag++; sh.missT = 0;
-        this.friendSay(sh.npc, sh.npc.kind === 'sam' ? 's_lookagain' : 'n_lookagain', 0.3);
+        if (sh.nag <= PACE.nags) this.friendSay(sh.npc, sh.npc.kind === 'sam' ? 's_lookagain' : 'n_lookagain', 0.3);
       }
       if (sh.t >= sh.dur - 0.02) this.endShow(sh, 'done');
       else if (sh.waitT > (sh.mission ? 70 : 32) || sh.nag > (sh.mission ? 6 : 3)) this.endShow(sh, 'gone');

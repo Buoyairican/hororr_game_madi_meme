@@ -361,7 +361,7 @@ export class UI {
     }
     this.hintAge += dt; this.uiT += dt;
     if (this.hintTimer > 0) { this.hintTimer -= dt; if (this.hintTimer <= 0) this.el.hint.classList.remove('show'); }
-    const held = this.hintQ.length && this.holdTip(); // (a scare, his lean over your desk: tips wait, and the waiting does not make them stale)
+    const held = this.holdTip() && this.hintQ.length > 0; // (a scare, his lean over your desk: tips wait, and the waiting does not make them stale; asked every frame)
     if (this.hintQ.length && !held && !this.choosing() && this.uiT - this.lastTipAt >= PACE.tipGap && (this.hintTimer <= 0.2 || this.hintAge >= HINT_READ)) {
       for (const h of this.hintQ) h[2] += dt;
       const [text, dur, waited] = this.hintQ.shift();

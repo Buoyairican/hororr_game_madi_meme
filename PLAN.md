@@ -389,5 +389,8 @@ work the laser pointer and the KICK ME note), C, W / A / S / D and the arrow key
   class; his habit lines are not repeated within 50 s; the buzz only starts while he is not looking and only counts down then;
   Sam and Nora never call over his lines; no echo cue and no question while he listens at your desk; the task list shows 3 open
   tasks (always the newest) and the bell, a finished one for 4 s; on a short screen the toast sits top left.
+  Also: tips wait 3 s more after a scare, a lean or being caught (the lights come back first); a classmate showing you a
+  video says "Look!" at most 3 times, each time after a longer wait; Sam's and Nora's two "psst" lines take turns; the
+  phone and paper-ball tips come at 60 s and 90 s (the first minute is about looking, whispering and repeating him).
   Tests: `tests/pacing.js`.
 

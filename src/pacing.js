@@ -66,8 +66,10 @@ export const PacingMixin = {
   tipHold() {
     if (this.state !== 'playing') return false;
     const D = this.dread;
-    return this.leanFor(this.me) || !!(this.scareBusy || this.scLocalOn || this.localScare || this.jumping || this.blameBusy
-      || (D && D.creep && D.creep.p === this.me) || this.ending);
+    const tense = this.leanFor(this.me) || !!(this.scareBusy || this.scLocalOn || this.localScare || this.jumping || this.blameBusy
+      || (D && D.creep && D.creep.p === this.me) || this.ending || (this.cutscene && this.mode === 'free')); // (Free Class: being caught)
+    if (tense) this.tenseAt = this.t;
+    return tense || this.t - (this.tenseAt ?? -99) < PACE.tipAfter; // (and a moment after it: the lights come back first)
   },
   /** what this player already did by themselves (a control tip about it is not needed) */
   didAll(...keys) {
