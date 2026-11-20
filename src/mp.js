@@ -566,6 +566,7 @@ export class MP {
         g.ui.openChoices(e.title, e.labels, g.input.touch, (i) => this.pick(i));
         break;
       case 'choiceClose': if (this.choice) { this.choice = null; g.ui.closeChoices(); } break;
+      case 'noteClose': if (g.ui.noteOpen) { g.ui.closeNote(); g.noteLatch = true; } break;
       case 'jump': this.stopScare(); this.jump = this.guestJump(); break;
       case 'gscare': if (!this.jump && !this.gscare) this.gscare = g.scareGuest(String(e.k)); break;
       case 'bonk': g.localBonk(typeof e.from === 'string' ? e.from.replace(/[<>&"]/g, '').slice(0, 12) : 'Someone'); break;
@@ -877,6 +878,7 @@ export class MP {
     g.seatNow(g.me); // (off your chair: back on it, he is right in front of you)
     g.allGhostsBack(); // (a ghost: back in your chair too)
     if (this.choice) { this.choice = null; g.ui.closeChoices(); }
+    if (g.ui.noteOpen) { g.ui.closeNote(); g.noteLatch = true; }
     const dir = new THREE.Vector3(g.camFwd.x, 0, g.camFwd.z).normalize();
     const start = 1.3, end = 0.5;
     T.root.visible = true;

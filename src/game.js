@@ -141,7 +141,7 @@ export class Game {
   resetPlayer(p) {
     if (p.whisperSnd) p.whisperSnd.stop(0.05);
     Object.assign(p, { talk: null, whisperSnd: null, noise: 0, heat: 0, watching: false, near: false, dist: 9, phoneUp: false,
-      echoStreak: 0, lastEcho: -99, qCount: 0, qLast: -99, qBusy: false, choice: null, handT: 0, talkLatch: false,
+      echoStreak: 0, lastEcho: -99, qCount: 0, qLast: -99, qBusy: false, choice: null, handT: 0, talkLatch: false, vidAt: -99, psstAt: -99,
       // pranks: the paper you are aiming, folding the next one, how long he has seen your arm up, hits on him in a row
       showCool: 0, aim: null, aiming: false, foldT: 0, exposeT: 0, prankSeenT: 0, prankStreak: 0, lastPrankHit: -99, lastThrow: -99, crumpleT: 0, bonkT: 0, prankLatch: false,
       // the laser pointer, the KICK ME notes, "Who did it?" (src/blame.js)
@@ -353,6 +353,7 @@ export class Game {
       this.phone.up = false; this.noise = 0; this.input.takePressed();
       for (const p of this.players) { if (p.talk) this.endTalk(p); p.noise = 0; p.phoneUp = false; p.vid = false; p.in.echo = p.in.ask = false; p.aim = null; p.aiming = false; }
       this.me.prankLatch = true;
+      if (this.sneakAimOn) { this.sneakAimOn = false; this.ui.aim(null); } // (the desk-action bar: not frozen through the scene)
     }
     this.updatePranks(dt);
     this.updatePrankVisuals(dt);
@@ -904,6 +905,7 @@ export class Game {
     p.qBusy = true;
     this.mischief += 10;
     const fire = () => {
+      if (!this.players.includes(p)) return;
       if (this.eventLock || this.scareBusy || this.blameBusy) { this.timers.after(0.5, fire); return; }
       if (this.state !== 'playing' || this.cutscene) { p.qBusy = false; return; }
       this.interrupt(this.reactQuestion(q, p.qCount, p));
@@ -1918,7 +1920,7 @@ export class Game {
     this.focus = p;
     this.closeArm = null;
     this.cutscene = true;
-    if (this.mp) this.mp.caughtToast(p);
+    if (this.mp) this.mp.toPlayer(p, { t: 'noteClose' }); // (a note open on a friend's screen too)
     this.interrupt(this.bustedSeq(reason, p));
   }
 
@@ -1926,6 +1928,7 @@ export class Game {
   *bustedSeq(reason, p = this.focus) {
     const T = this.teacher, W = this.world, A = this.audio;
     this.cutscene = true;
+    if (this.mp) this.mp.caughtToast(p);
     this.strikes++;
     this.note(p, 'caught'); this.closeArm = null;
     const cf = this.track.of(p).caughtFor; cf[reason] = (cf[reason] || 0) + 1;
@@ -3468,7 +3471,7 @@ export class Game {
   }
 
   *freeEnding() {
-    if (this.choice) this.pickChoice(-1);
+    for (const q of this.players) if (q.local ? this.choice : q.choice) this.pickChoice(-1, q);
     const T = this.teacher, W = this.world, A = this.audio;
     this.cutscene = true;
     this.ui.clearTransient();
