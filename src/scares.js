@@ -572,7 +572,7 @@ export const ScaresMixin = {
   // Look down: his face comes up out of the floor under your desk, like the pencil.
   *scUnderDesk() {
     const eye = this.me.eye, floor = new V(eye.x, 0.012, eye.z - 0.4); // (the floor under the front edge of your desk)
-    const others = this.players.filter((p) => p !== this.me);
+    const others = this.players.filter((p) => p !== this.me && !p.out && !(p.slipK > 0) && !p.ghost); // (only a friend still in their chair can "whisper"; nobody: the solo start)
     let wh = null;
     try {
       if (this.mp && others.length) {
