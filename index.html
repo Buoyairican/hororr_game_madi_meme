@@ -92,6 +92,9 @@
 
 <!-- ============ TITLE ============ -->
 <div id="title" class="screen">
+  <!-- full screen (no browser bar): a corner button; on iPhone, how to get it (Add to Home Screen). src/main.js -->
+  <button id="btn-full" class="hidden" aria-label="Full screen">⛶ FULL SCREEN</button>
+  <div id="full-note" class="hidden"></div>
   <div class="title-inner">
     <h1 class="logo">PAST SUMMIT</h1>
     <div class="sub">Room 13 &middot; 8:30 AM &ndash; 12:30 PM</div>
@@ -289,6 +292,7 @@
     <label class="row chk"><input id="set-shadows" type="checkbox" checked> Shadows (slower on old phones)</label>
     <label class="row chk"><input id="set-meter" type="checkbox"> Helper HUD (shows when he is watching + his anger)</label>
     <label class="row chk"><input id="set-subs" type="checkbox" checked> Subtitles</label>
+    <label class="row chk" id="set-full-row"><input id="set-full" type="checkbox"> Full screen when a class starts (no browser bar)</label>
     <label class="row chk"><input id="set-mic" type="checkbox"> Microphone: he hears you laugh for real (off every time you start; only how loud you are is measured, nothing is recorded or sent)</label>
     <div id="set-mic-row" class="dim"><div id="set-mic-meter"><div id="set-mic-fill"></div></div><p id="set-mic-note" aria-live="polite"></p></div>
     <button class="back">BACK</button>
@@ -314,6 +318,7 @@
     <button id="btn-pause-settings">SETTINGS</button>
     <button id="btn-pause-notebook">NOTEBOOK</button>
     <button id="btn-pause-how">HOW TO PLAY</button>
+    <button id="btn-pause-full" class="hidden">FULL SCREEN</button>
     <button id="btn-restart">RESTART</button>
     <button id="btn-quit">MAIN MENU</button>
   </div>

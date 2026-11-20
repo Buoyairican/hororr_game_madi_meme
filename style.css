@@ -650,3 +650,10 @@ body.statusing #objectives, body.statusing #quirks { opacity: .1; }
 @media (max-height: 500px) {
   #toast { left: max(16px, env(safe-area-inset-left)); transform: none; top: 22%; max-width: 38vw; font-size: 14px; letter-spacing: 2px; line-height: 1.35; text-align: left; }
 }
+
+/* full screen (src/main.js): a small button in the corner of the title screen, and on iPhone a note on how to get it */
+#btn-full { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 5;
+  padding: 6px 10px; font-size: 12px; letter-spacing: 1px; min-width: 0; width: auto; }
+#full-note { position: absolute; top: calc(max(10px, env(safe-area-inset-top)) + 40px); right: max(10px, env(safe-area-inset-right)); z-index: 5;
+  max-width: min(320px, 70vw); font-size: 12px; line-height: 1.45; text-align: right; color: #e9e3cf; background: rgba(0,0,0,.72); padding: 8px 10px; }
+

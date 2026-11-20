@@ -37,7 +37,7 @@ window.addEventListener('unhandledrejection', (e) => {
 const query = new URLSearchParams(location.search);
 const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 // phones get the cheapest settings by default
-const DEFAULTS = { sens: 1, vol: 0.9, retro: true, meter: false, subs: true, shadows: !isTouch, difficulty: 'easy' };
+const DEFAULTS = { sens: 1, vol: 0.9, retro: true, meter: false, subs: true, shadows: !isTouch, difficulty: 'easy', full: isTouch }; // (full: full screen when a class starts, on phones)
 function loadSettings() {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('madiclass.settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; }
 }
@@ -163,8 +163,48 @@ async function boot() {
   let pending = null;
   const $ = (id) => document.getElementById(id);
   const go = (id) => ui.screen(id);
+
+  // ---------------- full screen (no browser bar) ----------------
+  // Android / desktop: the page asks the browser for full screen (only from a tap or click) and, on a phone, to stay sideways.
+  // iPhone: a web page can't hide the browser bar; added to the Home Screen the game opens full screen like an app
+  // (manifest.webmanifest, display: fullscreen), so the button explains that instead.
+  const docEl = document.documentElement;
+  const fsReq = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
+  const fsCan = !!fsReq && !!(document.fullscreenEnabled ?? document.webkitFullscreenEnabled);
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
+  const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+  const enterFull = () => {
+    if (!fsCan || isFull()) return;
+    const lock = () => { try { const o = screen.orientation; if (input.touch && o && o.lock) o.lock('landscape').catch(() => {}); } catch (e) { /* not on this phone */ } };
+    try { const r = fsReq.call(docEl, { navigationUI: 'hide' }); if (r && r.then) r.then(lock, () => {}); else lock(); } catch (e) { /* not allowed on this page */ }
+  };
+  const exitFull = () => { try { const r = (document.exitFullscreen || document.webkitExitFullscreen).call(document); if (r && r.catch) r.catch(() => {}); } catch (e) { /* already out */ } };
+  const toggleFull = () => (isFull() ? exitFull() : enterFull());
+  const autoFull = () => { if (settings.full && !query.has('debug')) enterFull(); }; // (the setting; not in debug mode: tests resize the window)
+  const fullUi = () => {
+    const can = fsCan && !standalone, label = isFull() ? 'EXIT FULL SCREEN' : 'FULL SCREEN';
+    $('btn-full').classList.toggle('hidden', !(can || (isIOS && !standalone)));
+    $('btn-full').textContent = '⛶ ' + label;
+    $('btn-pause-full').classList.toggle('hidden', !can);
+    $('btn-pause-full').textContent = label;
+    $('set-full-row').classList.toggle('hidden', !can);
+  };
+  $('btn-full').onclick = () => {
+    if (fsCan) { toggleFull(); return; }
+    const n = $('full-note');
+    n.innerHTML = 'On iPhone, a web page can\'t hide the browser bar. Tap <b>Share</b>, then <b>Add to Home Screen</b>, and open the game from there: full screen, no bar.';
+    n.classList.toggle('hidden');
+    clearTimeout(n.hideT); if (!n.classList.contains('hidden')) n.hideT = setTimeout(() => n.classList.add('hidden'), 9000); // (it goes away by itself)
+  };
+  addEventListener('pointerdown', (e) => { if (e.target.id !== 'btn-full') $('full-note').classList.add('hidden'); }, true); // (or with any other tap)
+  $('btn-pause-full').onclick = toggleFull;
+  for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { fullUi(); resize(); });
+  fullUi();
+
   const launch = (mode, ch) => {
     audio.unlock();
+    autoFull(); // (a class starts with a tap: the browser allows full screen now)
     if (input.touch && innerHeight > innerWidth && !launch.rotateOk) { pending = [mode, ch]; ui.show('rotate', true); return; }
     ui.show('rotate', false);
     musicOn = false;
@@ -233,11 +273,11 @@ async function boot() {
   input.onPause = pause;
   $('btn-pause').onclick = pause;
   $('btn-pause').addEventListener('touchend', (e) => { e.preventDefault(); pause(); });
-  $('btn-resume').onclick = resume;
+  $('btn-resume').onclick = () => { autoFull(); resume(); }; // (back from the pause menu: full screen again if you left it)
   $('btn-pause-settings').onclick = () => { backTo = 'pause'; go('settings'); };
   $('btn-pause-how').onclick = () => { backTo = 'pause'; how.open('menu'); go('how'); };
   $('btn-restart').onclick = () => { if (audio.ctx) audio.ctx.resume(); go(null); if (game.daily) game.startDaily(game.daily); else game.start(game.mode, game.chapter); };
-  $('btn-again').onclick = () => { go(null); if (!game.endPrimary()) toTitle(); };
+  $('btn-again').onclick = () => { autoFull(); go(null); if (!game.endPrimary()) toTitle(); };
   // ---------------- Phase 6: the daily class and the notebook (src/replay.js, src/notebook.js) ----------------
   initNotebook(game);
   const openNotebook = (from) => { backTo = from; renderNotebook(game); go('notebook'); };
@@ -359,6 +399,7 @@ async function boot() {
   $('btn-menu').onclick = quitGame;
   $('btn-mp').onclick = () => { audio.unlock(); openMp(); };
   $('btn-host').onclick = async () => {
+    autoFull(); // (online too: the tap that hosts goes full screen)
     audio.unlock();
     if (mp || joining) return;
     const name = mpName();
@@ -386,6 +427,7 @@ async function boot() {
     if (j && mp === j) { mp.leave(); mp = null; }
   };
   $('btn-join').onclick = async () => {
+    autoFull();
     audio.unlock();
     if (joining) { stopJoining(); mpStatus(TX.stopped, true); return; }
     if (mp) return;
@@ -510,6 +552,7 @@ async function boot() {
   bindSetting('set-retro', 'retro', () => resize(), true);
   bindSetting('set-meter', 'meter', (v) => (ui.meterOn = v), true);
   bindSetting('set-subs', 'subs', (v) => (ui.subsOn = v), true);
+  bindSetting('set-full', 'full', (v) => { if (v) enterFull(); }, true);
   bindSetting('set-shadows', 'shadows', (v) => {
     renderer.shadowMap.enabled = v;
     scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); });
