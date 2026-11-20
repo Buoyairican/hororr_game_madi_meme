@@ -184,7 +184,7 @@ export class Game {
     this.anger = 0; this.mischief = 0; this.strikes = 0;
     this.flags = { r40: false, r70: false };
     this.brain = null; this.brainIdle = false; this.script = null; this.fx = [];
-    this.cutscene = false; this.eventLock = false; this.ending = false; this.lockBully = false;
+    this.cutscene = false; this.eventLock = false; this.ending = false; this.lockBully = false; this.tellBusy = false;
     this.idleKind = 'lesson';
     this.present = true;
     this.allowEcho = false; this.allowAsk = false;
@@ -901,7 +901,7 @@ export class Game {
     if (tell) labels.push(TRUST.label.replace('{name}', tell.name));
     this.openChoice('Raise your hand and ask…', labels, 7, (i) => {
       if (i >= 0 && i < qs.length) this.askQuestion(qs[i], p);
-      else if (i === qs.length && tell) this.tellOn(p, tell);
+      else if (i === qs.length && tell) this.tellOnFriend(p, tell);
     }, p);
   }
 
@@ -915,7 +915,7 @@ export class Game {
     this.mischief += 10;
     const fire = () => {
       if (!this.players.includes(p)) return;
-      if (this.eventLock || this.scareBusy || this.blameBusy) { this.timers.after(0.5, fire); return; }
+      if (this.eventLock || this.scareBusy || this.blameBusy || this.tellBusy) { this.timers.after(0.5, fire); return; }
       if (this.state !== 'playing' || this.cutscene) { p.qBusy = false; return; }
       this.interrupt(this.reactQuestion(q, p.qCount, p));
     };

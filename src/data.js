@@ -587,7 +587,7 @@ export const CHAOS = {
   },
   minTitle: 8,               // fewer points than this from a title's keys: not that title
   titles: [
-    { id: 'snitch', name: 'THE SNITCH', keys: ['blame_friend', 'snitched'], why: 'blamed a friend {blame_friend}×' },
+    { id: 'snitch', name: 'THE SNITCH', keys: ['blame_friend', 'snitched'], why: 'blamed a friend {blame_friend}×, told on one {snitched}×' },
     { id: 'clown', name: 'THE CLOWN', keys: ['echoes', 'questions'], why: 'repeated him {echoes}×, {questions} dumb questions' },
     { id: 'ghost', name: 'THE GHOST', keys: ['ghost_haunt', 'ghost'], why: 'haunted the class {ghost_haunt}×' },
     { id: 'sniper', name: 'THE SNIPER', keys: ['hitHim', 'hits', 'glassesOff', 'soaked', 'trickShots'], why: 'hit him {hitHim}× with paper' },

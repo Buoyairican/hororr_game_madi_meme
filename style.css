@@ -637,7 +637,7 @@ body:not(.touch) .k-touch { display: none !important; }
 #phone-alert { left: auto; right: max(18px, env(safe-area-inset-right)); bottom: auto; top: 38%; transform: none; }
 /* a toast or a choice menu: the task list fades out of its way for that moment */
 #hud-left { transition: opacity .25s; }
-body.toasting #objectives, body.toasting #quirks, body.choosing #hud-left, body.choosing #toast { opacity: .1; }
+body.toasting #objectives, body.toasting #quirks, body.choosing #hud-left, body.choosing #toast.show { opacity: .1; }
 /* touch screens: captions stay between the two groups of buttons */
 @media (max-height: 500px) { body.touch #subtitle { width: max(180px, calc(100vw - 380px)); } }
 @media (orientation: portrait) { body.touch #subtitle { bottom: calc(max(22px, env(safe-area-inset-bottom)) + 200px); } }

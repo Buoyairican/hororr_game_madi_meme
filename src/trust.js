@@ -21,15 +21,15 @@ export const TrustMixin = {
     return hot;
   },
 
-  tellOn(p, q) {
-    if (!this.canAsk(p) || !this.players.includes(q)) { this.uiTo(p, 'status', 'He is busy right now. <b>Ask him later.</b>', 2.2); return; } // (the menu was open a while)
+  tellOnFriend(p, q) { // (not tellOn: that is the blamed kid's scene in src/blame.js)
+    if (!this.canAsk(p) || !this.players.includes(q) || q.out || q.slipK > 0 || q.ghost) { this.uiTo(p, 'status', 'He is busy right now. <b>Ask him later.</b>', 2.2); return; } // (the menu was open a while)
     p.tellAt = this.t; p.handT = 2.8;
     this.interrupt(this.reactTell(p, q));
   },
 
   *reactTell(p, q) {
     const T = this.teacher;
-    this.lockBully = true;
+    this.lockBully = true; this.tellBusy = true; // (tellBusy: a question asked just before waits: game.js askQuestion)
     try {
       T.lookAt(q.camPos, 10); T.facePoint(q.camPos, 5);
       yield* this.wait(0.9);
@@ -46,7 +46,7 @@ export const TrustMixin = {
         this.uiTo(p, 'status', TRUST.liar, 3);
       }
     } finally {
-      this.lockBully = false;
+      this.lockBully = false; this.tellBusy = false;
     }
   },
 
@@ -58,23 +58,26 @@ export const TrustMixin = {
       T.clap = null; T.setPose('rest');
       const spot = this.deskSpot(q);
       T.lookAt(q.camPos, 4);
-      yield* this.walk(spot.approach.x, spot.approach.z, 1.4);
-      yield* this.walk(spot.stand.x, spot.stand.z, 1.0);
-      if (!this.players.includes(q)) return;
+      for (const w of [this.walk(spot.approach.x, spot.approach.z, 1.4), this.walk(spot.stand.x, spot.stand.z, 1.0)]) {
+        while (this.players.includes(q) && !w.next().done) yield; // (the friend left on his way: he stops)
+      }
+      if (!this.players.includes(q)) { T.moveTarget = null; return; }
       T.faceTo(spot.face, 5);
       T.setPose('desk', spot.corners); T.leanTarget = 0.9; T.lookAt(q.camPos, 6);
-      yield* this.say('t_see');
+      yield* this.say('t_see'); this.echoable = null; // (nobody repeats it over the scare)
       if (!this.players.includes(q)) return;
+      this.scareBusy = 'lunge'; // (a scare is never a strike: game.js updateAnger)
       if (q.local) { if (this.canScareMe()) yield* this.scLocal('lunge'); }
       else if (this.mp) {
         q.scareDone = -1; // (an older report must not end this one)
         const t0 = this.t;
         this.mp.toPlayer(q, { t: 'gscare', k: 'lunge' });
         yield* this.until(() => q.scareDone > t0 || !this.players.includes(q), 2.5);
+        yield* this.scBlackoutBack(0.4); // (back to the front in the dark, as scStare: their screen already put him there)
       }
       q.watchedT = TRUST.watch; q.heat += 15;
     } finally {
-      T.setPose('rest'); T.leanTarget = 0;
+      T.setPose('rest'); T.leanTarget = 0; this.scareBusy = null;
     }
   },
 };
