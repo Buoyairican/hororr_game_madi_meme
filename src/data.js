@@ -645,13 +645,17 @@ export const SCARES = {
     sprint: { min: 2, w: 2.5, cool: 160, strong: true },
     hanging: { min: 2, w: 2.5, cool: 160, strong: true },
     fakebell: { min: 3, w: 2, once: true, strong: true, free: true },
+    shoulder: { min: 1, w: 2, cool: 160, strong: true },
+    underdesk: { min: 0, w: 2, cool: 150 },
+    note: { min: 1, w: 2, cool: 180, strong: true },
+    stare: { min: 2, w: 2.5, cool: 170, strong: true },
   },
-  wait: { pencil: 25, wrongseat: 14, sprint: 10, window: 12 }, // seconds it waits for you to look before it comes anyway
+  wait: { pencil: 25, wrongseat: 14, sprint: 10, window: 12, shoulder: 12, underdesk: 14, note: 10 }, // seconds it waits for you to look before it comes anyway
   // Free Class: an early scare (one of `first`, after `firstAt` seconds), one of his big ones from the halfway point,
   // and `strong` big ones in all (the last before the bell, at least `strongGap` seconds after the one before)
   free: { firstAt: 40, first: ['pencil', 'window'], halfway: 0.5, strong: 2, strongGap: 35 },
   everyone: ['flash', 'fakebell'], watchToast: 'HE WENT FOR {name}', // online: these hit every screen; the others go to one victim while the rest watch (F3)
-  len: { pencil: 12, wrongseat: 12, sprint: 10, window: 10, hanging: 9, fakebell: 8, flash: 1 }, // (the host waits this long when it can't watch)
+  len: { pencil: 12, wrongseat: 12, sprint: 10, window: 10, hanging: 9, fakebell: 8, flash: 1, shoulder: 12, underdesk: 12, note: 13, stare: 30 }, // (the host waits this long when it can't watch)
   dim: 0.7,            // the lights after he vanishes from the front
   runSpeed: 7.5,       // metres per second (he walks at about 1)
   lunge: [1.0, 0.42, 0.16], // his face in yours: from, to (metres from your eyes), seconds
@@ -667,6 +671,15 @@ export const SCARES = {
     next: ['NEXT PERIOD', 'MAIN MENU'],
     tear: 'CLASS IS NOT OVER',
   },
+  texts: {
+    shoulder: 'Something touched your shoulder. <b>Look behind you.</b>',
+    underdesk: 'Something is under your desk. <b>Look down.</b>',
+    note: "DON'T LOOK LEFT", noteLate: 'TOO LATE',
+    stare: 'He is staring at you. <b>Do not look away.</b>',
+    stareOthers: 'He is staring at {name}. He only moves when they look away. <b>Warn them!</b>',
+    fake: 'psst... look under your desk',
+  },
+  stare: { speed: 1.5, look: 0.8, giveUp: 26 }, // metres per second while unwatched; how straight "looking at him" is; seconds until he gives up
 };
 
 // ---------------- the report card

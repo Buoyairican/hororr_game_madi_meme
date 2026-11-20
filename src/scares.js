@@ -6,6 +6,8 @@
 // own screen (mp.js: 'gscare') while the others watch him bent over the friend's chair (scWatch). Only
 // SCARES.everyone (the flash, the fake bell) still plays on every screen at the same moment. Everything a scene
 // does is local to the screen it runs on (sounds with `local`, subtitles and hints with `.local`).
+// F4 added the shoulder, under the desk, the note and the stare. The stare is the exception online: the host walks
+// him to a friend's desk itself (everybody sees him come) and only the final lunge ('lunge') goes to that friend.
 //
 // He never catches anybody during a scare (scareBusy): a scare is never a strike.
 // Numbers and texts: SCARES in src/data.js. The director (game.js scareList) and the story pick them.
@@ -38,7 +40,7 @@ export const ScaresMixin = {
 
   resetScares() {
     this.scareBusy = null; this.scLocalOn = false; this.localScare = false;
-    this.scPencilHint = false;
+    this.scPencilHint = false; this.scShoulderHint = false;
     if (this.scPencil) this.scPencil.visible = false;
     this.scShowFake(null);
     if (this.scFlashEl) this.scFlashEl.classList.remove('on');
@@ -69,7 +71,8 @@ export const ScaresMixin = {
     this.scareBusy = id;
     this.eventLock = true;
     try {
-      if (v && !v.local) {
+      if (v && !v.local && id === 'stare') yield* this.scStare(v); // (the host walks him: everybody sees him come; only the lunge is on the friend's screen: F4)
+      else if (v && !v.local) {
         v.scareDone = -1; // (a report from an older scene, or from the last class, must not end this one)
         this.mp.toPlayer(v, { t: 'gscare', k: id });
         yield* this.scWatch(v, (SCARES.len[id] || 8) + (SCARES.wait[id] || 0) + 2); // (their scene can wait SCARES.wait for a look)
@@ -109,7 +112,7 @@ export const ScaresMixin = {
   /** a friend's screen (mp.js 'gscare'): the same scene, with their own teacher for the moment */
   *scareGuest(id) {
     const mp = this.mp;
-    if (!SCARES.len[id] || !this.canScareMe() || this.state !== 'playing') { if (mp) mp.send({ t: 'press', k: 'scareDone' }); return; } // (skipped: the host need not wait)
+    if (!(SCARES.len[id] || id === 'lunge') || !this.canScareMe() || this.state !== 'playing') { if (mp) mp.send({ t: 'press', k: 'scareDone' }); return; } // (skipped: the host need not wait)
     if (mp) mp.localTeacher = true;
     this.localScare = true; // (the host's lights and blackout don't overwrite this screen meanwhile)
     let told = false;
@@ -137,6 +140,11 @@ export const ScaresMixin = {
       else if (id === 'window') yield* this.scWindow();
       else if (id === 'fakebell') yield* this.scFakeBell();
       else if (id === 'flash') yield* this.scFlash();
+      else if (id === 'shoulder') yield* this.scShoulder();
+      else if (id === 'underdesk') yield* this.scUnderDesk();
+      else if (id === 'note') yield* this.scNote();
+      else if (id === 'stare') yield* this.scStare();
+      else if (id === 'lunge') yield* this.scLungeScene();
     } finally {
       this.scLocalOn = false;
       if (id !== 'flash') this.scEnd();
@@ -304,22 +312,8 @@ export const ScaresMixin = {
     const looked = yield* this.scWaitLook(floor, 0.9, SCARES.wait.pencil);
     if (looked) {
       // his head and shoulders, up out of the floor right next to it, looking up at you
-      const hx = floor.x + side * 0.22, hz = floor.z - 0.12;
-      T.root.visible = true; T.root.rotation.z = 0; T.root.position.y = 0;
-      T.place(hx, hz, Math.atan2(this.camPos.x - hx, this.camPos.z - hz));
-      T.setPose('grab'); T.lookAt(this.camPos, 80); T.rollTarget = 0.5;
-      T.update(0.016, {});
-      T.root.position.y = 0.46 - T.headWorld(_b).y;
-      T.eyeGlow = 1.6; T.faceGlow = 0.35; T.jawTarget = 0.3; T.jitter = 0.25;
-      this.scSting();
-      yield* this.wait(0.4);
-      T.jitter = 0; T.rollTarget = 0.9;
-      yield* this.wait(0.7);
-      this.world.setMaster(0); this.blackoutTarget = 1; this.blackout = 1;
-      this.scPlay('lights_off', { vol: 0.9 });
+      yield* this.scFloorFace(floor.x + side * 0.22, floor.z - 0.12);
       P.visible = false;
-      T.root.visible = false;
-      this.scTeacherSay('tw_found', _a.set(0, 0.04, 0.35).applyQuaternion(this.camera.quaternion).add(this.camPos), { whisper: true, ear: [0, 0.04, 0.35] });
       yield* this.wait(1.7);
     } else {
       P.visible = false;
@@ -328,6 +322,25 @@ export const ScaresMixin = {
     // the lights: he is at the front, and your pencil is back on your desk
     P.visible = true; P.position.copy(top); P.rotation.set(0, -0.4, 0);
     yield* this.scBlackoutBack(0.4);
+  },
+
+  /** his head and shoulders, up out of the floor at x, z, looking up at you; then the dark and "Found... you." (the pencil, under the desk) */
+  *scFloorFace(hx, hz) {
+    const T = this.teacher;
+    T.root.visible = true; T.root.rotation.z = 0; T.root.position.y = 0;
+    T.place(hx, hz, Math.atan2(this.camPos.x - hx, this.camPos.z - hz));
+    T.setPose('grab'); T.lookAt(this.camPos, 80); T.rollTarget = 0.5;
+    T.update(0.016, {});
+    T.root.position.y = 0.46 - T.headWorld(_b).y;
+    T.eyeGlow = 1.6; T.faceGlow = 0.35; T.jawTarget = 0.3; T.jitter = 0.25;
+    this.scSting();
+    yield* this.wait(0.4);
+    T.jitter = 0; T.rollTarget = 0.9;
+    yield* this.wait(0.7);
+    this.world.setMaster(0); this.blackoutTarget = 1; this.blackout = 1;
+    this.scPlay('lights_off', { vol: 0.9 });
+    T.root.visible = false;
+    this.scTeacherSay('tw_found', _a.set(0, 0.04, 0.35).applyQuaternion(this.camera.quaternion).add(this.camPos), { whisper: true, ear: [0, 0.04, 0.35] });
   },
 
   // ------------------------------------------------------------- 2. the wrong seat (solo)
@@ -534,6 +547,135 @@ export const ScaresMixin = {
     yield* this.wait(0.9);
     yield* this.scBlackoutBack(0.8);
     W.setMaster(1);
+  },
+
+  // ------------------------------------------------------------- 8. the shoulder (F4)
+  // He vanishes. A breath right behind you, a jolt. You turn around... he is right there: "I am... behind you."
+  *scShoulder() {
+    yield* this.scVanish();
+    this.scPlay('dread_breath', { pos: new V(0, 0, 0.4).applyQuaternion(this.camera.quaternion).add(this.camPos) });
+    this.bonkShake = 0.15;
+    if (!this.scShoulderHint) { this.scShoulderHint = true; this.scUi('hint', SCARES.texts.shoulder, 6); }
+    const back = () => Math.abs(this.yaw) > 2.2;
+    yield* this.until(back, SCARES.wait.shoulder);
+    if (back()) {
+      const dir = this.scFaceFront(0.8);
+      yield* this.scLunge(dir);
+      yield* this.waitVoice(this.scTeacherSay('tw_behind', this.teacher.headWorld(new V()), { whisper: true }));
+    } else yield* this.scComesAnyway();
+    yield* this.scBlackoutBack(0.4);
+  },
+
+  // ------------------------------------------------------------- 9. under your desk (F4)
+  // A chair scrapes at your feet (online, first a friend "whispers": look under your desk. They never did).
+  // Look down: his face comes up out of the floor under your desk, like the pencil.
+  *scUnderDesk() {
+    const eye = this.me.eye, floor = new V(eye.x, 0.012, eye.z - 0.4); // (the floor under the front edge of your desk)
+    const others = this.players.filter((p) => p !== this.me);
+    let wh = null;
+    try {
+      if (this.mp && others.length) {
+        this.scUi('subtitle', pick(others).name, SCARES.texts.fake, 'you', 3);
+        wh = this.scPlay('whispers_loop', { loop: true, vol: 0.8 });
+        yield* this.wait(1.5);
+        if (wh) wh.stop(0.3);
+        wh = null;
+      }
+      this.scPlay('chair_scrape', { pos: floor, vol: 0.5 });
+      this.bonkShake = 0.2;
+      this.scUi('hint', SCARES.texts.underdesk, 6);
+      const looked = yield* this.scWaitLook(floor, 0.9, SCARES.wait.underdesk);
+      if (looked) { yield* this.scFloorFace(floor.x, floor.z - 0.08); yield* this.wait(1.7); } else yield* this.scComesAnyway();
+      yield* this.scBlackoutBack(0.4);
+    } finally {
+      if (wh) wh.stop(0.3);
+    }
+  },
+
+  // ------------------------------------------------------------- 10. the note (F4)
+  // A note: "DON'T LOOK LEFT". The lights go. Look left: he is crouched in the aisle, his face at yours.
+  *scNote() {
+    let open = false;
+    try {
+      this.scPlay('paper', { vol: 1.0 });
+      this.scUi('showNote', SCARES.texts.note); open = true;
+      yield* this.until(() => !this.ui.noteOpen, 6);
+      if (this.ui.noteOpen) this.ui.closeNote();
+      yield* this.scVanish();
+      const left = () => this.yaw > 0.9;
+      yield* this.until(left, SCARES.wait.note);
+      if (left()) {
+        const dir = this.scFaceFront(0.9);
+        yield* this.scLunge(dir);
+        yield* this.waitVoice(this.scTeacherSay('t_wrongseat', this.teacher.headWorld(new V())));
+      } else {
+        this.scUi('showNote', SCARES.texts.noteLate);
+        yield* this.wait(1);
+        this.ui.closeNote();
+        yield* this.scComesAnyway();
+      }
+      yield* this.scBlackoutBack(0.4);
+    } finally {
+      if (open && this.ui.noteOpen) this.ui.closeNote();
+    }
+  },
+
+  // ------------------------------------------------------------- 11. the stare (F4)
+  // The slow one. He stares at you from the front, eyes glowing, no footsteps. While you look at him he stands still;
+  // look away (or at your phone) and he walks to your desk. Hold his stare long enough and he gives up.
+  // Online the host runs it for a friend too (everybody sees him come); only the lunge is on the friend's screen.
+  *scStare(v = this.me) {
+    const T = this.teacher, S = SCARES.stare, s = this.deskSpot(v), here = () => this.players.includes(v);
+    try {
+      T.moveTarget = null; T.root.visible = true; T.setPose('rest');
+      T.facePoint(v.camPos, 3); T.lookAt(v.camPos, 4);
+      T.eyeGlow = 1.2; this.dreadSilent = true;
+      this.uiTo(v, 'hint', SCARES.texts.stare, 6);
+      for (const q of this.players) if (q !== v) this.uiTo(q, 'hint', SCARES.texts.stareOthers.replace('{name}', v.name), 6);
+      const legs = [s.approach, s.stand];
+      let leg = 0, held = 0;
+      while (leg < legs.length && held < S.giveUp) {
+        if (!here()) return;
+        const looking = !v.phoneUp && v.camFwd.dot(_a.subVectors(T.headWorld(_b), v.camPos).normalize()) > S.look;
+        if (looking) { T.moveTarget = null; held += this.dt; } // (frozen)
+        else if (!T.moving) {
+          if (Math.hypot(T.pos.x - legs[leg].x, T.pos.z - legs[leg].z) < 0.05) leg++;
+          if (leg < legs.length) T.moveTo(legs[leg].x, legs[leg].z, S.speed);
+        }
+        T.facePoint(v.camPos, 3);
+        yield;
+      }
+      T.moveTarget = null;
+      if (held >= S.giveUp) {
+        // you won: he gives up and walks back
+        this.mischief += 30; this.note(v, 'stare_held');
+        T.eyeGlow = 0.12; this.dreadSilent = false;
+        yield* this.say('tw_dr_looking', 0.3);
+        yield* this.walk(0.2, -5.4);
+      } else if (v.local) {
+        const dir = this.scFaceFront(0.8);
+        yield* this.scLunge(dir);
+        yield* this.wait(0.9);
+      } else {
+        // a friend: bent over their chair for the others, the lunge on the friend's own screen (mp.js 'gscare')
+        T.place(s.stand.x, s.stand.z, s.face); T.setPose('desk', s.corners); T.leanTarget = 0.9; T.lookAt(v.camPos, 8);
+        v.scareDone = -1;
+        const t0 = this.t;
+        this.mp.toPlayer(v, { t: 'gscare', k: 'lunge' });
+        yield* this.until(() => v.scareDone > t0 || !here(), 2.5);
+      }
+      yield* this.scBlackoutBack(0.4);
+    } finally {
+      T.moveTarget = null; this.dreadSilent = false; T.eyeGlow = 0.12;
+    }
+  },
+
+  /** the tiny one: his face in yours, then the lights (the stare's end on a friend's screen; F5) */
+  *scLungeScene() {
+    const dir = this.scFaceFront(0.8);
+    yield* this.scLunge(dir);
+    yield* this.wait(0.9);
+    yield* this.scBlackoutBack(0.4);
   },
 
   /** the fake end screen (null hides it) */

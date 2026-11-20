@@ -28,7 +28,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
     const voices = ['t_wrongseat', 't_norunning', 't_notover2', 'tw_found', 'tw_letmein', 's_pencil', 's_where', 's_stare', 'n_knock', 'n_door', 'n_stare', 'n_psst', 's_psst'];
     return { ids, len: ids.every((id) => D.SCARES.len[id] > 0), noSfx: sfx.filter((n) => !g.audio.buffers[n]), noVoice: voices.filter((n) => !g.audio.voices[n] || !g.audio.buffers[n]) };
   });
-  pass(r.ids.join() === 'pencil,window,flash,wrongseat,sprint,hanging,fakebell' && r.len, 'seven new scares in the table, each with a length: ' + r.ids.join());
+  pass(r.ids.join() === 'pencil,window,flash,wrongseat,sprint,hanging,fakebell,shoulder,underdesk,note,stare' && r.len, 'eleven new scares in the table (F4 added four), each with a length: ' + r.ids.join());
   pass(!r.noSfx.length, 'every new sound is loaded ' + JSON.stringify(r.noSfx));
   pass(!r.noVoice.length, 'every new voice line is loaded, with its subtitle ' + JSON.stringify(r.noVoice));
 
