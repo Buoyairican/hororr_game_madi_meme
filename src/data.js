@@ -220,11 +220,6 @@ export const LONG_CLASS = {
   gap: { calm: [110, 170], normal: [70, 120], busy: [46, 80] }, // after an event ends, the next one (by the pace)
   calm: { calm: 1.6, normal: 1, busy: 0.65 },          // his own scenes: the quiet time between them (PACE.calm) by the pace
   again: 300, tail: 25, bell: 40,                       // the same event this far apart at least; none this close to a stretch's end / the bell
-  text: {                                               // what the class notices when a new stretch starts
-    calm: ['🌧️ The rain gets louder. He slows down…', '😮‍💨 He sighs and sits a while. Something about him changed.'],
-    normal: ['🔄 He seems… different now.', '☕ A sip of cold coffee. He is not quite the same.'],
-    busy: ['⚡ He is restless now. Something about him changed.', '👀 He wakes up. Something is different about him.'],
-  },
   // the second time an event happens, the texts on your phone are about that
   again2: {
     ringtone: [['Sam', 'his phone AGAIN 💀'], ['Nora', 'who keeps calling him??']],

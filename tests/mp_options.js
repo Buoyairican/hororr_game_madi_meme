@@ -117,6 +117,12 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await H.click('#btn-mp-go');
   pass(await waitFor(H, () => game.state === 'playing', 30000) && await waitFor(G, () => game.state === 'playing', 30000), 'the class starts for both');
   r = await H.evaluate(() => ({ len: game.freeLen, dur: game.clock.dur, plan: game.setup.plan.length, last: game.setup.plan[game.setup.plan.length - 1].at }));
+  await H.evaluate(() => {
+    // the habit chips: did they change at the moment he changed a habit?
+    window.chips = []; const sq = game.ui.setQuirks.bind(game.ui), sw = game.quirkSwap.bind(game);
+    let swapAt = -99; game.quirkSwap = (l) => { swapAt = game.t; return sw(l); };
+    game.ui.setQuirks = (l) => { chips.push({ t: game.t, swap: game.t - swapAt < 0.5 }); return sq(l); };
+  });
   await H.evaluate(() => { window.toasts = []; const t = game.ui.toast.bind(game.ui); game.ui.toast = (x, d) => { toasts.push([Math.round(game.t), x]); return t(x, d); }; });
   const g2 = await G.evaluate(() => ({ len: game.freeLen, setupLen: game.setup.len }));
   pass(r.len === 600 && r.dur === 600 && r.last > 240, `the host's class lasts 10 minutes (clock ${r.dur}s, ${r.plan} events, the last at ${r.last}s)`);
@@ -132,11 +138,12 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
     const g = game;
     for (let i = 0; i < 340 * 10 && !g.ending && g.state === 'playing'; i++) { g.playTick(0.1); g.ui.update(0.1); if (g.ui.choosing && g.ui.choosing()) g.input.choiceKey = 0; g.anger = 0; g.strikes = 0; }
     return { t: Math.round(g.t), min: Math.round(g.clockMin), ending: !!g.ending || g.state !== 'playing', events: [...new Set(g.eventsDone)].length, all: g.eventsDone.length,
-      acts: g.actIdx, nActs: g.setup.acts.length, quirks: [...g.quirks].join('+'), first: g.setup.acts[0].quirks.join('+'), toasts: toasts.filter((x) => /different|changed|slows|restless|wakes/.test(x[1])) };
+      acts: g.actIdx, nActs: g.setup.acts.length, quirks: [...g.quirks].join('+'), first: g.setup.acts[0].quirks.join('+'), toasts: toasts.filter((x) => x[0] >= 200 && x[0] <= 420), chips: chips.slice() };
   });
   const gq = await G.evaluate(() => document.getElementById('quirks') ? document.getElementById('quirks').innerText : '');
   pass(r.ending && r.t >= 595 && r.t < 640, `the bell rings at 10 minutes (${r.t}s, ${r.all} events played)`);
-  pass(r.acts === r.nActs && r.nActs >= 2 && r.quirks !== r.first && r.toasts.length === r.nActs - 1, `a new stretch: he changed a habit (${r.first} -> ${r.quirks}), the class was told: ${JSON.stringify(r.toasts)}`);
+  pass(r.acts === r.nActs && r.nActs >= 2 && r.quirks !== r.first, `a new stretch: he changed a habit (${r.first} -> ${r.quirks})`);
+  pass(!r.chips.some((c) => c.swap), `nobody is told: no message, the habit chips don't change when he changes (toasts then: ${JSON.stringify(r.toasts)})`);
 
   // ---------------------------------------------------------------- solo Free Class stays 5 minutes
   await A.evaluate(() => { game.onlineLen = 30; game.start('free'); });

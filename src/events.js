@@ -332,7 +332,8 @@ export const EventMixin = {
     this.startClassEvent(next.id);
   },
 
-  /** a long online class: a new stretch starts. Its pace; he changes one habit; his habits and questions come back. */
+  /** a long online class: a new stretch starts. Its pace; he changes one habit (nobody is told: the class finds out);
+   *  his habits and questions come back. */
   startAct(i) {
     const a = this.setup.acts[i];
     this.actMood = a.mood || 'normal';
@@ -342,7 +343,6 @@ export const EventMixin = {
     for (const id of this.quirks) { const q = QUIRKS[id]; if (q.every && (this.quirkNext[id] ?? 0) >= 1e8) this.quirkNext[id] = this.t + rand(q.every[0], q.every[1]); }
     this.stuckN = Math.max(0, (this.stuckN || 0) - 1); // he can get stuck on a question again
     this.track.event(this.t, null, 'act', { i, mood: this.actMood, quirks: a.quirks.slice() });
-    this.ui.toast(pick(LONG_CLASS.text[this.actMood] || LONG_CLASS.text.normal), 4);
   },
 
   /** story: one of the period's quiet windows. If the setup put an event here, it plays during this stretch of lesson. */
