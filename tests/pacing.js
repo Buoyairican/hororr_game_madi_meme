@@ -161,12 +161,12 @@ const { chromium, ROOT, GL } = require('./lib');
     // calm stretches: runs of 15 s or more with no scene of his
     let run = 0, calm15 = 0; for (const b of busy) { if (!b) run++; else { if (run >= 300) calm15++; run = 0; } } if (run >= 300) calm15++;
     const scenePct = Math.round(100 * busy.filter(Boolean).length / busy.length);
-    return { state: g.state, t: Math.round(g.t), leans: leans.length, asksInLean, heyInLean, tipsInScare, scares: [...scares], strong: g.strongN, first: !!g.firstScare, scenePct, calm15 };
+    return { state: g.state, t: Math.round(g.t), leans: leans.length, asksInLean, heyInLean, tipsInScare, scares: [...scares], jumps: scares.size, strong: g.strongN, first: !!g.firstScare, scenePct, calm15 };
   });
   pass(r.state === 'end', `the class plays to the bell (${r.t} s)`);
   pass(!r.asksInLean.length && !r.heyInLean, `no call or buzz starts while he leans over your desk, and no "HEY!" lands then (${r.leans} leans) ` + JSON.stringify(r.asksInLean));
   pass(!r.tipsInScare.length, 'no tip pops up in the middle of a scare ' + JSON.stringify(r.tipsInScare));
-  pass(r.first && r.strong >= 2, `the scares the class is owed still come: an early one and ${r.strong} big ones (${r.scares.join(', ')} ...)`);
+  pass(r.first && r.strong >= 1 && r.jumps >= 2, `the jump scares of the class's plan still come: ${r.jumps}, ${r.strong} of them big (${r.scares.join(', ')} ...)`);
   // (before the pacing fixes: 79-97 % of a Free Class, 0-2 calm stretches; with them, measured over many classes: 65-77 %)
   pass(r.scenePct <= 80 && r.calm15 >= 2, `room to breathe: he is in a scene ${r.scenePct}% of the class, ${r.calm15} calm stretches of 15 s or more`);
 

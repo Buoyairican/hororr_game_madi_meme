@@ -40,7 +40,7 @@ const MAX_STRIKES = 3;     // per class; every extra player in multiplayer adds 
 // placed so nobody hides behind Sam or Nora
 export const SEATS = [{ row: 0, col: 2 }, { row: 1, col: 0 }, { row: 1, col: 4 }, { row: 1, col: 3 }];
 const SCARE_GAP = [[40, 55], [32, 46], [26, 38], [22, 32]];
-const SCARE_OWED = 80;   // Free Class: this long before the bell, one of his big scares is owed
+const JUMP_OLD = ['behind', 'neck', 'flickapproach']; // his big scares from before src/scares.js (scareList)
 const EAR_LINES = ['tw_shh', 'tw_here', 'tw_dr_breathe', 'tw_dr_looking']; // the whisper in your ear
 const CALL_GAP = [[30, 42], [26, 38], [22, 34], [20, 30]];
 const BUZZ_GAP = [[44, 60], [38, 54], [34, 48], [30, 44]];
@@ -209,6 +209,7 @@ export class Game {
     this.msgIndex = [0, 0, 0, 0];
     this.nextCall = 18; this.nextBuzz = 30; this.nextScare = 36; this.nextWipe = 50;
     this.scareDone = {}; this.lastScare = {}; this.strongN = 0; this.strongT = -1e9; this.firstScare = false; this.lastEar = '';
+    this.scarePlan = null; this.scareOpen = null; // (Free Class: planScares)
     this.notesGiven = 0;
     this.stats = { caught: 0, talk: 0, phone: 0, echoes: 0, questions: 0, memes: 0, videos: 0, fails: 0, throws: 0, hits: 0, hitHim: 0, kickme: 0, paws: 0, blamed: 0,
       sneaks: 0, glasses: 0, secrets: 0, cushions: 0, clocks: 0 };
@@ -2115,7 +2116,8 @@ export class Game {
       { id: 'flickapproach', min: 2, w: this.mp ? 0 : 1.5, cool: 70, strong: true, brain: () => this.scareFlickerApproach() },
       ...this.newScares(), // the pencil, the window, the face flash, the wrong seat, the sprint, the hanging, the fake bell (src/scares.js)
     ];
-    return all.filter((s) => s.w > 0 && (this.scarePool ? this.scarePool.includes(s.id) : p >= s.min) && !(s.once && this.scareDone[s.id]) && !(s.cool && this.t - (this.lastScare[s.id] ?? -1e9) < s.cool));
+    const open = (s) => (this.scareOpen && (s.jump || s.strong) && this.scareOpen[s.id] !== undefined ? this.t >= this.scareOpen[s.id] : p >= s.min); // (Free Class: a random time each)
+    return all.filter((s) => s.w > 0 && (this.scarePool ? this.scarePool.includes(s.id) : open(s)) && !(s.once && this.scareDone[s.id]) && !(s.cool && this.t - (this.lastScare[s.id] ?? -1e9) < s.cool));
   }
 
   updateDirector(dt) {
@@ -2127,8 +2129,12 @@ export class Game {
     if (this.me.slipK > 0 || this.sneakBusy) { this.nextScare = 3; return; } // (his scares are for you in your chair)
     if (this.dread && this.dread.lean) { this.nextScare = Math.max(this.nextScare, 2); return; } // (he is listening at a desk: src/pacing.js)
     let list = this.scareList().filter((s) => s.fx || (this.brainIdle && !busy && (this.calmOk() || owe))); // (calm first, but a scare he owes may cut it short: src/pacing.js)
-    // Free Class: at least one of his big scares before the bell (it waits for a moment he is free)
-    if (owe) { const want = owe === 'first' ? SCARES.free.first : null; list = list.filter((s) => (want ? want.includes(s.id) : s.strong)); if (!list.length) { this.nextScare = 0.5; return; } }
+    // Free Class: a jump scare he owes the class now (planScares: a random time, a big one or any); it waits for a moment he is free
+    if (owe) {
+      const jumps = list.filter((s) => s.jump || s.strong), big = jumps.filter((s) => s.strong);
+      list = owe === 'strong' && big.length ? big : jumps;
+      if (!list.length) { this.nextScare = 0.5; return; }
+    }
     if (!list.length) { this.nextScare = 4; return; }
     const g = SCARE_GAP[this.phase];
     this.nextScare = rand(g[0], g[1]) * (this.mode === 'free' ? 0.7 : 1); // (a Free Class is short: less waiting between scares)
@@ -2136,7 +2142,11 @@ export class Game {
     this.scareDone[s.id] = true;
     this.lastScare[s.id] = this.t;
     if (s.strong) { this.strongN++; this.strongT = this.t; }
-    if (s.strong || SCARES.free.first.includes(s.id)) this.firstScare = true;
+    if (s.jump || s.strong) { // (a jump scare: today's next turn is taken, and one coming up right after it too)
+      this.firstScare = true;
+      const P = this.scarePlan;
+      if (P) while (P.i < P.at.length && P.at[P.i] <= this.t + SCARES.free.apart / 2) P.i++;
+    }
     if (s.fx) this.fx.push(s.fx());
     else this.interrupt(s.brain());
   }
@@ -2381,16 +2391,31 @@ export class Game {
     }
   }
 
-  /** Free Class: what the director owes you. 'first': an early one (the pencil or the window); 'strong': one of his
-   *  big scares from the halfway point, and a second one before the bell (SCARES.free in src/data.js) */
+  /** Free Class: is a jump scare owed now? 'strong' (one of his big ones) or 'any' (planScares, SCARES.free) */
   scareOwed() {
-    const L = this.freeLen;
-    if (this.mode !== 'free' || this.t > L - 14) return null;
-    const F = SCARES.free;
-    if (!this.firstScare && this.t > F.firstAt) return 'first';
-    if (this.t > Math.min(L, FREE_LENGTH) * F.halfway && this.strongN < 1) return 'strong'; // (a long online class: still the first one early)
-    if (this.t > L - SCARE_OWED && this.strongN < F.strong && this.t - this.strongT > F.strongGap) return 'strong';
-    return null;
+    const P = this.scarePlan, F = SCARES.free;
+    if (this.mode !== 'free' || !P || this.t > this.freeLen - 14) return null;
+    while (P.i < P.at.length && this.t > P.at[P.i] + F.late) P.i++; // (no moment came for it: it is dropped, not piled up)
+    return P.i < P.at.length && this.t >= P.at[P.i] ? (P.big[P.i] ? 'strong' : 'any') : null;
+  }
+
+  /** Free Class, every class anew (any length, also online): when the jump scares come and which may come when.
+   *  Random times (not the pencil first, not his big one at half time), so no two classes go the same way. */
+  planScares() {
+    const F = SCARES.free, L = this.freeLen, at = [];
+    const n = Math.max(F.min, Math.round(L / rand(F.every[0], F.every[1])));
+    for (let k = 0; at.length < n && k < 400; k++) {
+      const x = rand(F.from, L - F.before);
+      if (at.every((y) => Math.abs(y - x) >= F.apart)) at.push(x);
+    }
+    at.sort((a, b) => a - b);
+    const big = at.map(() => chance(F.big));
+    if (big.length && !big.some(Boolean)) big[Math.floor(Math.random() * big.length)] = true;
+    this.scarePlan = { at, big, i: 0 };
+    const ids = [...Object.keys(SCARES.pool), ...JUMP_OLD]; // (the jump scares of src/scares.js, and his old big ones)
+    this.scareOpen = {};
+    for (const id of ids) this.scareOpen[id] = rand(0, L * F.openBy);
+    if (ids.length) this.scareOpen[pick(ids)] = 0; // (one of them is there from the start)
   }
 
   /** a story set piece from src/scares.js (you in your chair, him free) */
@@ -3468,6 +3493,7 @@ export class Game {
   // ------------------------------------------------------------- FREE CLASS
   *freeScript() {
     this.setClockRun(0, 240, this.freeLen);
+    this.planScares(); // (the jump scares: random times this class)
     this.idleKind = 'none';
     this.allowEcho = true; this.allowAsk = true; this.allowPrank = true;
     this.giveTools(); // the laser pointer, KICK ME notes, and "Who did it?" (src/blame.js)

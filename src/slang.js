@@ -9,7 +9,7 @@
 // (this browser; online, the host's). Everything is in SLANG / SLANG_USE (src/data.js).
 import * as THREE from 'three';
 import { rand, pick, chance } from './util.js';
-import { SLANG, SLANG_USE, mock } from './data.js';
+import { SLANG, SLANG_USE, mock, NO_TELL } from './data.js';
 import { clipByKey } from './memes.js';
 
 const V = THREE.Vector3;
@@ -57,7 +57,7 @@ export const SlangMixin = {
     this.track.event(this.t, by, 'slang', { id });
     if (by && this.players.includes(by)) this.note(by, 'taught');
     this.ui.toast(fill(SLANG_USE.learnedToast, { word: s.word || id }), 2.6);
-    this.firstHint('slang', SLANG_USE.hint, 5);
+    if (!NO_TELL) this.firstHint('slang', SLANG_USE.hint, 5);
     return true;
   },
   /** after a class clown's meme: the word, if it was one */
@@ -159,7 +159,7 @@ export const SlangMixin = {
       this.ui.subtitle('', SLANG_USE.danceCap, 'teacher', 3);
       this.track.event(this.t, null, 'slangUse', { id: 'phonk' });
       T.setPose('dance', { phone: true });
-      this.firstHint('dance', SLANG_USE.danceHint, 4.5);
+      if (!NO_TELL) this.firstHint('dance', SLANG_USE.danceHint, 4.5);
       yield* this.wait(1.0);
       this.addLaugh(SLANG_USE.danceLaugh, T.headWorld(new V()), null);
       this.friendQuip('sam', 's_dance', 1.4);

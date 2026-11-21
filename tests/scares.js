@@ -36,26 +36,45 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   r = await page.evaluate(() => {
     const g = game, pool = g.scarePool, mode = g.mode, phase = g.phase;
     const ids = () => g.scareList().map((s) => s.id);
+    const open0 = g.scareOpen; g.scareOpen = null; // (the phases first: the story, and a class without a plan)
     g.mode = 'free'; g.scarePool = null; g.phase = 3; g.lastScare = {}; g.scareDone = {};
     const free3 = ids(), strong = g.scareList().filter((s) => s.strong).map((s) => s.id);
     g.phase = 0; const free0 = ids();
     g.mode = 'story'; g.phase = 3; const story = ids();
     g.mp = { scareAll() {} }; g.mode = 'free'; const online = ids(); g.mp = null;
-    // what a Free Class owes you: an early scare, a big one from halfway, a second big one before the bell
-    const t0 = g.t, sn = [g.strongN, g.strongT, g.firstScare];
-    const owe = (t, n, last, first) => { g.t = t; g.strongN = n; g.strongT = last; g.firstScare = first; return g.scareOwed(); };
-    const owed = [owe(20, 0, -1e9, false), owe(45, 0, -1e9, false), owe(100, 0, -1e9, true), owe(160, 0, -1e9, true), owe(200, 1, 160, true), owe(240, 1, 160, true), owe(240, 1, 220, true), owe(250, 2, 230, true), owe(295, 0, -1e9, true)];
+    // a Free Class (any length): the jump scares come at random times, a new plan every class; any of them can come first
+    const t0 = g.t, sn = [g.strongN, g.strongT, g.firstScare], plan0 = g.scarePlan, len0 = g.freeLen;
+    const plans = [];
+    for (const L of [300, 600, 1800]) for (let k = 0; k < 6; k++) {
+      g.freeLen = L; g.planScares();
+      const opened = Object.entries(g.scareOpen).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
+      plans.push({ L, at: g.scarePlan.at.map(Math.round), big: g.scarePlan.big.filter(Boolean).length, first: opened[0], open0: Object.values(g.scareOpen).filter((x) => x === 0).length });
+    }
+    // what it owes: nothing before its time, 'strong' / 'any' at it, dropped when no moment came for it
+    g.freeLen = 300; g.scarePlan = { at: [60, 150], big: [false, true], i: 0 };
+    const owe = (t) => { g.t = t; return g.scareOwed(); };
+    const owed = [owe(50), owe(61), owe(95), owe(149), owe(151), owe(200), owe(290)];
+    g.freeLen = len0; g.scarePlan = plan0; g.scareOpen = open0;
     g.t = t0; [g.strongN, g.strongT, g.firstScare] = sn;
     g.mode = mode; g.scarePool = pool; g.phase = phase;
     const src = ['chapter1', 'chapter2', 'chapter3', 'chapter4'].map((c) => String(g[c]));
-    return { owed, free3, free0, strong, story, online, beats: [/scareBeat\('pencil'\)/.test(src[0]), /scareBeat\('wrongseat'\)/.test(src[1]) && /scareBeat\('fakebell'\)/.test(src[1]), /scareBeat\('sprint'\)/.test(src[2]), /scareBeat\('hanging'\)/.test(src[3])] };
+    return { owed, plans, free3, free0, strong, story, online, beats: [/scareBeat\('pencil'\)/.test(src[0]), /scareBeat\('wrongseat'\)/.test(src[1]) && /scareBeat\('fakebell'\)/.test(src[1]), /scareBeat\('sprint'\)/.test(src[2]), /scareBeat\('hanging'\)/.test(src[3])] };
   });
   pass(['pencil', 'window', 'flash', 'wrongseat', 'sprint', 'hanging', 'fakebell'].every((id) => r.free3.includes(id)), 'Free Class, last hour: the director can pick every new scare ' + r.free3.join());
   pass(r.free0.includes('pencil') && r.free0.includes('window') && !r.free0.includes('sprint') && !r.free0.includes('hanging'), 'Free Class, first hour: the pencil and the window, not his big ones yet');
   pass(['wrongseat', 'sprint', 'hanging', 'fakebell'].every((id) => r.strong.includes(id)), 'the wrong seat, the sprint, the hanging and the fake bell count as his big scares (one is owed before the bell)');
   pass(!r.story.includes('fakebell'), 'in the story the fake bell is a set piece, never random');
   pass(!r.online.includes('wrongseat') && r.online.includes('hanging'), 'online: no wrong seat (Sam and Nora are your friends there); the others stay');
-  pass(JSON.stringify(r.owed) === JSON.stringify([null, 'first', null, 'strong', null, 'strong', null, null, null]), 'Free Class owes you: an early scare after 40 s, one of his big ones from halfway, a second big one in the last 80 s (not right after the first), nothing in the last seconds ' + JSON.stringify(r.owed));
+  pass(JSON.stringify(r.owed) === JSON.stringify([null, 'any', null, null, 'strong', null, null]), 'Free Class owes a jump scare at its time (any, or one of his big ones), drops one no moment came for, nothing near the bell ' + JSON.stringify(r.owed));
+  {
+    const P = r.plans, by = (L) => P.filter((p) => p.L === L);
+    const ok = P.every((p) => p.at.length >= 2 && p.at[0] >= 22 && p.at[p.at.length - 1] <= p.L - 18 && p.at.every((x, i) => !i || x - p.at[i - 1] >= 40) && p.big >= 1 && p.open0 >= 1);
+    const n = (L) => by(L).map((p) => p.at.length);
+    const firsts = new Set(P.map((p) => p.first)), times = new Set(P.map((p) => p.at[0]));
+    pass(ok, `every class: at least 2 jump scares at random times (40 s apart, none in the first 22 s or the last 18 s), one big one at least (5 min: ${n(300)}; 10 min: ${n(600)}; 30 min: ${n(1800)})`);
+    pass(Math.min(...n(1800)) > Math.max(...n(300)) && Math.min(...n(600)) >= 3, 'a longer class gets more of them');
+    pass(firsts.size >= 5 && times.size >= 10, `a different one can come first, at a different time (first to open: ${[...firsts].join(', ')}; the first at ${[...times].slice(0, 8).join(', ')} s…)`);
+  }
   pass(r.beats.every(Boolean), 'the story: the pencil in period 1, the wrong seat and the fake bell in period 2, the sprint in period 3, the hanging in period 4 ' + JSON.stringify(r.beats));
 
   // ---------------------------------------------------------------- every scene, played by a curious player
@@ -108,7 +127,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   // 1. the pencil
   r = await page.evaluate(() => play('pencil', (g, eye, V) => (g.scPencil.position.y < 0.1 ? new V(eye.x + 0.5, 0.012, eye.z - 0.34) : null),
     (s, g, T, h) => { if (g.scPencil.visible && g.scPencil.position.y < 0.1) s.pencilFloor = true; if (T.root.visible && h.y < 0.7 && g.scLocalOn) s.headY = h.y; }));
-  pass(r.pencilFloor && /pencil_roll/.test(r.snds) && /dropped your pencil/.test(r.subs) && /Look down/.test(r.hints), 'the pencil rolls off your desk onto the floor; Sam: "You dropped your pencil"; the hint: look down');
+  pass(r.pencilFloor && /pencil_roll/.test(r.snds) && /dropped your pencil/.test(r.subs) && !/Look down/.test(r.hints), 'the pencil rolls off your desk onto the floor; Sam: "You dropped your pencil" (no hint: you hear it)');
   pass(r.headY !== null && r.headY < 0.7 && /stab/.test(r.snds) && r.maxFear > 0.95, `look down: his face comes up out of the floor next to it (head at ${r.headY && r.headY.toFixed(2)} m), the stab`);
   pass(/tw_found/.test(r.snds) && /Found/.test(r.subs), 'in the dark: "Found... you."');
   pass(clean(r.after) && await page.evaluate(() => game.scPencil.visible && game.scPencil.position.y > 0.7), 'the lights: he is at the front, your pencil is back on your desk ' + JSON.stringify(r.after));

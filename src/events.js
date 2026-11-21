@@ -13,7 +13,7 @@
 // The host (or solo game) runs them for everybody; friends see the props through the snapshots.
 import * as THREE from 'three';
 import { clamp, damp, rand, pick, chance, seededRng, hashStr, Bag } from './util.js';
-import { CLASS_SETUP, EVENTS, QUIRKS, SLANG_USE, FREE_LENGTH, MEMES, MONITOR, LONG_CLASS } from './data.js';
+import { CLASS_SETUP, EVENTS, QUIRKS, SLANG_USE, FREE_LENGTH, MEMES, MONITOR, LONG_CLASS, NO_TELL } from './data.js';
 
 const V = THREE.Vector3;
 const _a = new V(), _b = new V(), _c = new V();
@@ -393,7 +393,6 @@ export const EventMixin = {
       T.lookAt(null, 3);
       yield* this.wait(0.9);
       this.addLaugh(E.laugh, T.headWorld(new V()), null); // the whole class laughs at that tune
-      this.firstHint('ev:ringtone', E.hint);
       // he pats his pockets... it keeps ringing
       T.rollTarget = 0.25;
       T.lookAt(T.local(0, 0.85, 0.35, new V()), 4);
@@ -594,7 +593,6 @@ export const EventMixin = {
       yield* this.wait(1.5);
       yield* this.say('t_fly', 0.3);
       const canHit = this.prankOpen();
-      this.firstHint('ev:fly', canHit ? E.hintPrank : E.hint);
       if (canHit) this.addObjective({ id: 'fly', text: touch && this.role === 'solo' ? E.taskTouch : E.task }); // (online every player has their own controls)
       this.friendQuip(...(chance(0.5) ? ['sam', 's_fly'] : ['nora', 'n_fly']), 1.0);
       for (let i = 0; i < E.tries; i++) {
@@ -665,7 +663,6 @@ export const EventMixin = {
       this.lookAllAt(door.pos);
       T.lookAt(door.pos, 2.5);
       yield* this.wait(1.6);
-      this.firstHint('ev:pizza', E.hint);
       yield* this.walk(3.9, -5.0, 0.95);
       T.faceTo(Math.PI / 2, 4);
       this.lookAllBack();
@@ -743,7 +740,6 @@ export const EventMixin = {
       T.lookAt(new V(T.pos.x * 0.5, 3.1, -3.5), 3); // up at the ceiling
       const look = [this.world.door.pos, new V(0, 3.1, -1), new V(-5, 1.8, -1)];
       for (const k of this.allKids()) if (!k.gone && !k.hollow && !k.call && !this.anyTalkWith(k)) { k.tremble = 0.5; k.talking = 2.5; k.lookTarget = pick(look); k.speed = 4; }
-      this.firstHint('ev:firedrill', E.hint);
       yield* this.wait(1.6);
       this.friendQuip('nora', 'n_alarm', 0);
       this.friendQuip('sam', 's_alarm', 2.6);
@@ -804,7 +800,6 @@ export const EventMixin = {
       door.openTarget = 0;
       this.timers.after(1.1, () => A.play('door_slam', { pos: door.pos.clone(), vol: 0.45, ref: 2 }));
       this.fx.push(this.hallFootsteps(false));
-      this.firstHint('ev:leave', E.hint);
       this.addObjective({ id: 'chaos', text: E.task });
       this.friendQuip('sam', 's_gone', 1.3);
       // the class goes wild (the chatter: eventVisuals, on every screen)
@@ -958,6 +953,7 @@ export const EventMixin = {
   },
   /** the line under his eye while an event goes on (host and friends: from the same state) */
   eventNowText() {
+    if (NO_TELL) return ''; // (nothing on the screen says what is going on: the class finds out)
     const id = this.role === 'guest' ? this.netEvent : this.classEvent && this.classEvent.id;
     if (!id || this.state !== 'playing') return '';
     const E = EVENTS[id];
@@ -968,6 +964,7 @@ export const EventMixin = {
   /** a friend who joins in the middle of something: what it means for them (the hint everybody got) */
   lateHint() {
     if (this.monitor) return MONITOR.others.replace('{name}', this.monitor.p.name); // (a class monitor is in charge: src/monitor.js)
+    if (NO_TELL) return null; // (what he is doing: they see it for themselves)
     if (this.classEvent) return this.classEvent.id === 'fly' && this.prankOpen() ? EVENTS.fly.hintPrank : EVENTS[this.classEvent.id].hint;
     if (this.dozing) return QUIRKS.doze.hint;
     if (this.dancing) return SLANG_USE.danceHint;

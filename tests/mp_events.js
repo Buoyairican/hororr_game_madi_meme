@@ -95,8 +95,8 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   // ---- 1. his ringtone
   await H.evaluate(() => { calm(); game.startClassEvent('ringtone'); });
   await expect(G, 'ringtone: the friend hears his ringtone (played on their own screen from the state)', () => game.madiRinging && !!game.ringSnd && heard('madi_ring'));
-  await expect(G, 'ringtone: the friend gets the hint', () => hinted(/phone is ringing/i), 12000);
-  await expect(G, 'ringtone: his phone at his ear on the friend\'s screen, "ON THE PHONE" under his eye', () => game.madiPhone.visible && !game.teacher.chalk.visible && /ON THE PHONE/.test(evNow()), 15000);
+  await expect(G, 'ringtone: nothing on the friend\'s screen says what is going on (no hint)', () => game.madiPhone.visible && !hinted(/phone is ringing/i), 15000);
+  await expect(G, 'ringtone: his phone at his ear on the friend\'s screen, no line under his eye', () => game.madiPhone.visible && !game.teacher.chalk.visible && !evNow(), 15000);
   await expect(G, 'ringtone: the friend hears the call ("Hello?" and the tiny voice in the phone)', () => said(/Hello\?/) && (heard('phone_voice') || heard('phone_static')), 15000);
   await G.evaluate(() => { const g = game; g.__render(g.scene, g.camera); });
   await G.screenshot({ path: shot('mp_events_ringtone.png') });
@@ -107,7 +107,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await H.evaluate(() => { const g = game; calm(); g.flySpot = () => { const p = bo(); return { player: p, at: new g.camPos.constructor(p.desk.x + 0.1, p.desk.top + 0.012, p.desk.z + 0.02) }; }; g.startClassEvent('fly'); });
   await expect(G, 'fly: the friend sees the fly and hears it buzz', () => game.flyMesh.visible && !!game.netFly && !!game.flySnd, 10000);
   await G.evaluate(() => { game.__slaps = 0; const ls = game.localSlap.bind(game); game.localSlap = () => { game.__slaps++; return ls(); }; });
-  await expect(G, 'fly: "HUNTING A FLY" under his eye, the hint', () => /FLY/.test(evNow()) && hinted(/A fly!/), 15000);
+  await expect(G, 'fly: nothing under his eye, no hint', () => game.netEvent === 'fly' && !evNow() && !hinted(/A fly!/), 15000);
   await expect(G, 'fly: it lands on the FRIEND\'s desk and he slaps it: their view jumps, a hint', () => game.__slaps >= 1 && game.bonkShake > 0 && hinted(/slapped <b>your<\/b> desk/), 40000);
   await check(H, 'fly: counted on the host (a slap on Bo\'s desk)', `game.track.log.some((e) => e.type === 'deskSlap' && e.who === bo().id)`);
   await H.evaluate(() => idle());
@@ -148,7 +148,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   // ---- 4. the fire alarm, and a friend who joins in the middle of it
   await H.waitForTimeout(1000);
   await H.evaluate(() => { calm(); game.startClassEvent('firedrill'); });
-  await expect(G, 'fire alarm: the friend hears the bell, sees "FIRE ALARM", gets the hint', () => game.alarm === 1 && !!game.alarmSnd && /FIRE ALARM/.test(evNow()) && hinted(/can't hear you/), 10000);
+  await expect(G, 'fire alarm: the friend hears the bell; nothing on the screen says so', () => game.alarm === 1 && !!game.alarmSnd && !evNow() && !hinted(/can't hear you/), 10000);
   await expect(G, 'fire alarm: the red strobe by the door flashes on the friend\'s screen', () => game.world.lights.red.intensity > 1, 5000);
   const C = await mk('late');
   await join(C, 'Cy', code);
@@ -156,7 +156,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await spy(C);
   await check(C, 'late join: the friend gets the class\'s setup', `game.setup.seed === 4242 && game.setup.quirks.join() === 'doze,hum,deaf'`);
   await expect(C, 'late join: in the middle of the alarm they hear it too (it rings on every screen from the state)', () => game.alarm === 1 && !!game.alarmSnd, 8000);
-  await expect(C, 'late join: ...and are told what it means', () => hinted(/can't hear you/), 8000);
+  await expect(C, 'late join: ...and nobody tells them what is going on', () => game.state === 'playing' && !hinted(/can't hear you/), 8000);
   await H.evaluate(() => idle());
   await waitFor(H, () => !game.alarmOn, 20000);
   await expect(G, 'fire alarm: silence on the friend\'s screen too', () => game.alarm === 0 && !game.alarmSnd, 6000);
@@ -164,7 +164,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   // ---- 5. he leaves the room; a friend whispers while he is out
   await H.waitForTimeout(1000);
   await H.evaluate(() => { calm(); game.startClassEvent('leave'); });
-  await expect(G, 'leave: he walks out: gone from the friend\'s screen, "OUT OF THE ROOM", the class goes wild (chatter)', () => !game.teacher.root.visible && /OUT OF THE ROOM/.test(evNow()) && !!game.chatterSnd && hinted(/left the room/), 60000);
+  await expect(G, 'leave: he walks out: gone from the friend\'s screen, "OUT OF THE ROOM", the class goes wild (chatter)', () => !game.teacher.root.visible && !evNow() && !!game.chatterSnd && !hinted(/left the room/), 60000);
   await waitFor(G, () => game.players.some((x) => x.name === 'Alex' && x.avatar), 8000);
   await G.evaluate(() => { const g = game; const f = g.players.find((x) => x.name === 'Alex'); const h = g.headOf(f); const d = h.sub(g.camPos); g.yaw = Math.atan2(-d.x, -d.z); g.pitch = Math.atan2(d.y, Math.hypot(d.x, d.z)); g.input.keys.talk = true; });
   const chaos = await waitFor(H, () => (game.track.of(bo()).chaos || 0) > 1.5, 10000);
@@ -176,7 +176,7 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
 
   // ---- his quirks on the friend's screen: asleep, humming, dancing; the "TODAY HE" tags
   await H.evaluate(() => { calm(); quiet(); game.interrupt(game.actDoze()); });
-  await expect(G, 'doze: the friend sees him asleep: the eye on their HUD says ASLEEP, the hint, he snores', () => document.getElementById('eye-label').textContent === 'ASLEEP' && hinted(/dozing off/) && heard('m_snore'), 50000);
+  await expect(G, 'doze: the friend sees him asleep: the eye on their HUD says ASLEEP, no hint, he snores', () => document.getElementById('eye-label').textContent === 'ASLEEP' && !hinted(/dozing off/) && heard('m_snore'), 50000);
   await expect(G, 'doze: no "TODAY HE" list on the friend\'s HUD', () => /dozes off/.test(game.ui.quirkList.join(' ')) && !document.getElementById('quirks').innerText.trim(), 5000);
   await G.evaluate(() => { const g = game; g.__render(g.scene, g.camera); });
   await G.screenshot({ path: shot('mp_events_doze.png') });

@@ -91,10 +91,10 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   // ---- 1. his ringtone
   await ev(() => { fresh(); game.startClassEvent('ringtone'); run(1.2); });
   await check('ringtone: his embarrassing ringtone plays, the class laughs (LAUGHS meter)', `heard('madi_ring') && game.madiRinging && game.laugh > 10`);
-  await check('ringtone: the first time, a hint says what it means for you (after the hint on screen)', `until(() => hinted(/phone is ringing/i), 8)`);
+  await check('ringtone: nothing on the screen says what is going on (no hint)', `(run(8), !hinted(/phone is ringing/i))`);
   await ev(() => until(() => game.onPhone, 6));
   await check('ringtone: his phone is in his hand at his ear, his back to the class, he hears you less', `game.madiPhone.visible && game.teacher.pose === 'phone' && game.hearMul(game.me) < 0.6 && !game.teacher.chalk.visible`);
-  await check('ringtone: under his eye on the HUD: "ON THE PHONE"', `/ON THE PHONE/.test(document.getElementById('ev-now').textContent) && !document.getElementById('ev-now').classList.contains('off')`);
+  await check('ringtone: no line under his eye ("ON THE PHONE" is gone: you see it)', `game.onPhone && (document.getElementById('ev-now').classList.contains('off') || !/ON THE PHONE/.test(document.getElementById('ev-now').textContent))`);
   await ev(() => { aimAt(game.teacher.headWorld()); run(1.5); });
   await snap('ev_ringtone.png');
   await ev(() => until(() => game.echoable && game.canEcho(), 12));
@@ -111,7 +111,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   await ev(() => { const g = game; calm(); fresh(); g.flySpot = () => ({ player: g.me, at: new g.camPos.constructor(g.me.desk.x + 0.12, g.me.desk.top + 0.012, g.me.desk.z) }); g.startClassEvent('fly'); run(2.5); });
   await check('fly: a fly buzzes around the room (you see it, you hear it)', `game.flyMesh.visible && !!game.fly && heard('fly_buzz') && !!game.flySnd && !game.flySnd.ended`);
   await ev(() => run(2));
-  await check('fly: his eyes follow it; "A... fly."; the hint; a task to swat it', `game.teacher.lookTarget === (game.fly && game.fly.pos) && said(/A\\.\\.\\. fly/) && until(() => hinted(/fly/i), 8) && game.objectives.some((o) => o.id === 'fly')`);
+  await check('fly: his eyes follow it; "A... fly."; no hint; a task to swat it', `game.teacher.lookTarget === (game.fly && game.fly.pos) && said(/A\\.\\.\\. fly/) && until(() => game.objectives.some((o) => o.id === 'fly'), 8) && !hinted(/A fly!/)`);
   await snap('ev_fly.png');
   // it lands on your desk: he comes and slaps it
   await check('fly: it lands on YOUR desk, he comes over and SLAPS it (your view jumps, a hint)', `(() => { const g = game; let shook = 0; until(() => g.track.log.some((e) => e.type === 'deskSlap' && e.who === g.me.id), 30); shook = g.bonkShake; return g.track.log.some((e) => e.type === 'deskSlap') && heard('desk_slap') && shook > 0 && hinted(/slapped <b>your<\\/b> desk/) ? true : [heard('desk_slap'), shook, hints.slice(-2)]; })()`);
@@ -143,7 +143,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
 
   // ---- 4. the fire alarm
   await ev(() => { calm(); fresh(); game.startClassEvent('firedrill'); run(1); });
-  await check('fire alarm: it rings (loud), red strobe; "it is so loud he can\'t hear you" hint', `game.alarmOn && game.alarm === 1 && heard('fire_alarm') && hinted(/can't hear you/) && /FIRE ALARM/.test(document.getElementById('ev-now').textContent)`);
+  await check('fire alarm: it rings (loud), red strobe; nothing on the screen says so', `game.alarmOn && game.alarm === 1 && heard('fire_alarm') && !hinted(/can't hear you/) && !/FIRE ALARM/.test(document.getElementById('ev-now').textContent)`);
   await check('fire alarm: whispering while he doesn\'t look adds (almost) no anger: he hears nothing', `(() => { const g = game, uw = g.updateWatching.bind(g); g.updateWatching = function () { uw(); for (const p of g.players) { p.watching = false; p.lookDot = -1; } }; calm(); g.yaw = 1.52; g.pitch = -0.05; g.input.keys.talk = true; run(3); g.input.keys.talk = false; g.updateWatching = uw; const a = g.anger; return a < 1.5 && g.hearMul(g.me) < 0.1 ? true : [a, g.hearMul(g.me)]; })()`);
   await ev(() => { game.yaw = 0; game.pitch = 0.05; run(0.4); });
   await snap('ev_firedrill.png');
@@ -153,7 +153,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
 
   // ---- 5. he leaves the room
   await ev(() => { calm(); fresh(); game.mischief = 0; game.startClassEvent('leave'); until(() => game.away, 25); });
-  await check('leave: "Do not... move." He walks out, the door closes: he is gone', `said(/Do not\\.\\.\\. move/) && game.away && !game.present && !game.teacher.root.visible && hinted(/left the room/) && /OUT OF THE ROOM/.test(document.getElementById('ev-now').textContent)`);
+  await check('leave: "Do not... move." He walks out, the door closes: he is gone', `said(/Do not\\.\\.\\. move/) && game.away && !game.present && !game.teacher.root.visible && !hinted(/left the room/) && !/OUT OF THE ROOM/.test(document.getElementById('ev-now').textContent)`);
   await check('leave: a task for it, the class goes wild (chatter)', `game.objectives.some((o) => o.id === 'chaos') && heard('class_chatter') && heard('door_slam') || heard('door_open')`);
   await check('leave: whisper while he is out: no anger, chaos counted, task done, mischief counts double', `(() => { const g = game; g.yaw = 1.52; g.pitch = -0.05; const m0 = g.mischief; g.input.keys.talk = true; run(4); g.input.keys.talk = false; return g.anger === 0 && g.track.of(g.me).chaos > 2 && g.objDone('chaos') && g.mischief - m0 > 30 ? true : [g.anger, g.track.of(g.me).chaos, g.objDone('chaos'), g.mischief - m0]; })()`);
   await ev(() => until(() => game.doorFace.visible, 25));
@@ -172,7 +172,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   await check('quirks: none on the HUD until you notice them', `document.getElementById('quirks').classList.contains('off')`);
   // half deaf (left): to his left he barely hears you
   await check('half deaf: with you on his LEFT (deaf) side he hears you at 30%; behind him: normal', `(() => { const g = game; stand(1.5, -5.6, Math.PI); run(0.2); const a = g.onDeafSide(g.me), ka = g.hearMul(g.me); stand(0, -5.6, Math.PI); run(0.2); const b = g.onDeafSide(g.me), kb = g.hearMul(g.me); return a && Math.abs(ka - 0.3) < 0.01 && !b && kb === 1 ? true : [a, ka, b, kb]; })()`);
-  await check('half deaf: whisper on his deaf side: he cups his good ear: "What?" / "Speak... up." (hint, HUD tag)', `(() => { const g = game; fresh(); stand(1.5, -5.6, Math.PI, true); calm(); g.yaw = 1.52; g.pitch = -0.05; g.input.keys.talk = true; const okk = until(() => g.teacher.pose === 'cup', 8, () => { calm(); }); g.input.keys.talk = false; run(3); return okk && (said(/^What\\?$/) || said(/Speak\\.\\.\\. up/)) && hinted(/deaf in his <b>LEFT<\\/b> ear/) && /left ear/.test(game.ui.quirkList.join(' ')) ? true : [okk, subs.slice(-3)]; })()`);
+  await check('half deaf: whisper on his deaf side: he cups his good ear: "What?" / "Speak... up." (hint, HUD tag)', `(() => { const g = game; fresh(); stand(1.5, -5.6, Math.PI, true); calm(); g.yaw = 1.52; g.pitch = -0.05; g.input.keys.talk = true; const okk = until(() => g.teacher.pose === 'cup', 8, () => { calm(); }); g.input.keys.talk = false; run(3); return okk && (said(/^What\\?$/) || said(/Speak\\.\\.\\. up/)) && !hinted(/deaf in his/) && /left ear/.test(game.ui.quirkList.join(' ')) ? true : [okk, subs.slice(-3)]; })()`);
   await check('half deaf: an echo from his deaf side: "What?" (it does not count toward "it was you")', `(() => { const g = game; calm(); fresh(); stand(1.5, -5.6, Math.PI); run(0.2); g.echoable = { id: 't_still', text: 'Sit... still.', until: g.t + 4 }; g.echoBusy = false; g.me.echoStreak = 0; g.doEcho(g.me); run(4); return g.me.echoStreak === 0 && said(/^What\\?$/) && !g.searching ? true : [g.me.echoStreak, subs.slice(-3)]; })()`);
   await check('...from his good side it counts, and he goes looking', `(() => { const g = game; calm(); fresh(); idle(); stand(-1.5, -5.6, Math.PI); run(0.2); g.echoable = { id: 't_still', text: 'Sit... still.', until: g.t + 4 }; g.echoBusy = false; g.doEcho(g.me); const s = until(() => g.searching, 6); return g.me.echoStreak === 1 && s ? true : [g.me.echoStreak, s]; })()`);
   await ev(() => until(() => !game.echoBusy, 40, () => calm()));
@@ -185,7 +185,7 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   await ev(() => { quiet(); run(12); calm(); idle(); run(0.1); });
   // dozes off
   await ev(() => { const g = game; fresh(); g.interrupt(g.actDoze()); run(0.1); until(() => g.dozing, 15); run(1); });
-  await check('doze: he leans on his desk, eyes dark, snoring; the eye on the HUD says ASLEEP', `game.dozing && game.teacher.eyeGlow === 0 && heard('m_snore') && document.getElementById('eye-label').textContent === 'ASLEEP' && until(() => hinted(/dozing off/), 6)`);
+  await check('doze: he leans on his desk, eyes dark, snoring; the eye on the HUD says ASLEEP', `game.dozing && game.teacher.eyeGlow === 0 && heard('m_snore') && document.getElementById('eye-label').textContent === 'ASLEEP' && !hinted(/dozing off/)`);
   await check('doze: he can\'t see anybody and barely hears (25%)', `!game.me.watching && game.me.lookDot === -1 && Math.abs(game.hearMul(game.me) - 0.25) < 0.01`);
   await ev(() => { aimAt(game.teacher.headWorld()); run(0.1); });
   await snap('q_doze.png');
@@ -193,14 +193,14 @@ const { chromium, ROOT, GL, shot } = require('./lib');
   await ev(() => { until(() => !game.quirkBusy && game.brainIdle, 20); calm(); game.me.failT = 0; });
   // hums
   await ev(() => { const g = game; fresh(); g.interrupt(g.actWrite('WE LEARN HUMMING')); run(0.1); until(() => g.humming, 12); run(0.5); });
-  await check('hum: he hums while he writes (you hear it at his head), he hears you at 50%', `game.humming && heard('madi_hum') && !!game.humSnd && Math.abs(game.hearMul(game.me) - 0.5) < 0.01 && until(() => hinted(/hums while he writes/), 6)`);
+  await check('hum: he hums while he writes (you hear it at his head), he hears you at 50%', `game.humming && heard('madi_hum') && !!game.humSnd && Math.abs(game.hearMul(game.me) - 0.5) < 0.01 && !hinted(/hums while he writes/)`);
   await ev(() => { until(() => !game.humming, 20); stand(game.teacher.pos.x, game.teacher.pos.z, game.teacher.facing); }); // (and then he stands there: no new line to write)
   await check('hum: the humming stops: for 3 seconds he hears you MORE (x1.7)', `Math.abs(game.hearMul(game.me) - 1.7) < 0.01`);
   await ev(() => run(3.2));
   await check('hum: ...then normal again', `game.hearMul(game.me) === 1`);
   // the clock
   await ev(() => { const g = game; idle(); run(0.1); until(() => g.brainIdle && !g.humming, 15); fresh(); g.interrupt(g.actClock()); run(1.6); });
-  await check('clock: he stares at the clock, checking his watch (his back to the class)', `game.teacher.lookTarget === game.world.clock.pos && game.teacher.pose === 'wrist' && until(() => hinted(/clock/), 8)`);
+  await check('clock: he stares at the clock, checking his watch (his back to the class)', `game.teacher.lookTarget === game.world.clock.pos && game.teacher.pose === 'wrist' && !hinted(/keeps checking the <b>clock/)`);
   await ev(() => until(() => !game.quirkBusy, 10));
   await check('clock: "Tick... tock." / "Not... yet."; he glances back at you less (35%)', `(said(/Tick\\.\\.\\. tock/) || said(/Not\\.\\.\\. yet/)) && Math.abs(game.glanceChance(1) - 0.35) < 0.001`);
   // counts the class

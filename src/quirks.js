@@ -11,7 +11,7 @@
 // The host (or solo game) runs everything; friends get the hints, chips, his poses and sounds.
 import * as THREE from 'three';
 import { clamp, rand, pick, chance } from './util.js';
-import { QUIRKS, EVENTS, SLANG_USE } from './data.js';
+import { QUIRKS, EVENTS, SLANG_USE, NO_TELL } from './data.js';
 
 const V = THREE.Vector3;
 const _a = new V(), _b = new V();
@@ -51,7 +51,7 @@ export const QuirkMixin = {
     if (!this.quirkOn(id) || this.quirkSeen.includes(id) || this.t < 8) return false; // (not over the first controls hint)
     this.quirkSeen.push(id);
     const side = this.deafWord();
-    this.showHint(QUIRKS[id].hint.replace('{SIDE}', side.toUpperCase()).replace('{side}', side), 6.5);
+    if (!NO_TELL) this.showHint(QUIRKS[id].hint.replace('{SIDE}', side.toUpperCase()).replace('{side}', side), 6.5);
     this.ui.setQuirks(this.quirkChips());
     this.track.global.quirks.push(id);
     this.track.event(this.t, null, 'quirk', { id });

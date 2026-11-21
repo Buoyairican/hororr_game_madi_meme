@@ -12,7 +12,7 @@
 // He never catches anybody during a scare (scareBusy): a scare is never a strike.
 // Numbers and texts: SCARES in src/data.js. The director (game.js scareList) and the story pick them.
 import * as THREE from 'three';
-import { SCARES } from './data.js';
+import { SCARES, NO_TELL } from './data.js';
 import { ROOM } from './world.js';
 import { lerp, pick } from './util.js';
 
@@ -49,7 +49,7 @@ export const ScaresMixin = {
   /** the director's entries for the new scares (game.js scareList) */
   newScares() {
     return Object.entries(SCARES.pool).map(([id, o]) => ({
-      id, min: o.min, w: (o.solo && this.mp) || (o.free && this.mode !== 'free') || (id === 'note' && this.ui.noteOpen) ? 0 : o.w, cool: o.cool, once: o.once, strong: o.strong,
+      id, jump: true, min: o.min, w: (o.solo && this.mp) || (o.free && this.mode !== 'free') || (id === 'note' && this.ui.noteOpen) ? 0 : o.w, cool: o.cool, once: o.once, strong: o.strong,
       ...(o.fx ? { fx: () => this.scareFx(id) } : { brain: () => this.scareScene(id) }),
     }));
   },
@@ -66,7 +66,7 @@ export const ScaresMixin = {
     if (this.mp && !SCARES.everyone.includes(id)) {
       v = this.scareVictim || pick(this.players.filter((p) => !p.out && !(p.slipK > 0) && !p.ghost)); // (scareVictim: tests)
       if (!v) return;
-      if (id !== 'stare') for (const q of this.players) if (q !== v) this.uiTo(q, 'toast', SCARES.watchToast.replace('{name}', v.name.toUpperCase()), 3);
+      if (id !== 'stare' && !NO_TELL) for (const q of this.players) if (q !== v) this.uiTo(q, 'toast', SCARES.watchToast.replace('{name}', v.name.toUpperCase()), 3);
     }
     this.scareBusy = id;
     this.eventLock = true;
@@ -312,7 +312,7 @@ export const ScaresMixin = {
     yield* this.wait(0.5);
     const sam = this.scFriend('sam');
     if (sam) this.scFriendSay(sam, 's_pencil');
-    if (!this.scPencilHint) { this.scPencilHint = true; this.scUi('hint', this.input.touch ? SCARES.hintTouch : SCARES.hint, 6); }
+    if (!this.scPencilHint && !NO_TELL) { this.scPencilHint = true; this.scUi('hint', this.input.touch ? SCARES.hintTouch : SCARES.hint, 6); }
     const looked = yield* this.scWaitLook(floor, 0.9, SCARES.wait.pencil);
     if (looked) {
       // his head and shoulders, up out of the floor right next to it, looking up at you

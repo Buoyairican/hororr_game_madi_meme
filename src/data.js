@@ -213,6 +213,9 @@ export const CLASS_SETUP = {
   readyWait: 15,                  // an event waits this long for a moment when he is free...
   softWait: 30,                   // ...then this long for one when he is only busy with you (a reaction, a habit); then it is skipped
 };
+// Nothing on the screen says what is going on (an event, his habits, his dance, who he went for): the class sees
+// and hears it, and finds out. (Prompts about what YOU did or must answer stay: the laser, KICK ME, his question.)
+export const NO_TELL = true;
 // A long online class (10 / 15 / 30 minutes, src/events.js longClass): stretches of random length, each with a pace
 export const LONG_CLASS = {
   firstAct: [180, 300], act: [200, 420], minAct: 150,  // seconds: the first stretch, the others, the shortest last one
@@ -694,9 +697,11 @@ export const SCARES = {
     stare: { min: 2, w: 2.5, cool: 170, strong: true },
   },
   wait: { pencil: 25, wrongseat: 14, sprint: 10, window: 12, shoulder: 12, underdesk: 14, note: 10 }, // seconds it waits for you to look before it comes anyway
-  // Free Class: an early scare (one of `first`, after `firstAt` seconds), one of his big ones from the halfway point,
-  // and `strong` big ones in all (the last before the bell, at least `strongGap` seconds after the one before)
-  free: { firstAt: 40, first: ['pencil', 'window'], halfway: 0.5, strong: 2, strongGap: 35 },
+  // Free Class (any length, also online): the jump scares he owes the class come at random times, drawn anew every
+  // class: about one every `every` seconds (at least `min`), from `from` s on, none in the last `before` s, `apart` s
+  // apart; each is one of his big ones with the chance `big` (one at least). Which jump scares he may use opens at a
+  // random time for each (by `openBy` of the class), so any of them can come first. A turn missed by `late` s is dropped.
+  free: { every: [85, 125], min: 2, from: 22, before: 18, apart: 40, big: 0.6, openBy: 0.55, late: 30 },
   everyone: ['flash', 'fakebell'], watchToast: 'HE WENT FOR {name}', // online: these hit every screen; the others go to one victim while the rest watch (F3)
   len: { pencil: 12, wrongseat: 12, sprint: 10, window: 10, hanging: 9, fakebell: 8, flash: 1, shoulder: 12, underdesk: 12, note: 13, stare: 30 }, // (the host waits this long when it can't watch)
   dim: 0.7,            // the lights after he vanishes from the front
