@@ -1,5 +1,9 @@
 // Mouse (pointer lock or drag), keyboard and touch input for a seated player (and one crawling on the floor).
-const MOVE_KEYS = { w: 'f', s: 'b', a: 'l', d: 'r', arrowup: 'f', arrowdown: 'b', arrowleft: 'l', arrowright: 'r' };
+import { LAYOUT, MOVE_KEYS as LAYOUT_MOVE, PHONE_KEY } from './keys.js';
+const ARROWS = { arrowup: 'f', arrowdown: 'b', arrowleft: 'l', arrowright: 'r' };
+// WASD (ZQSD on AZERTY: Settings, src/keys.js) or the arrow keys
+const moveKey = (k) => ARROWS[k] || LAYOUT_MOVE[LAYOUT.now === 'azerty' ? 'azerty' : 'qwerty'][k];
+const isPhoneKey = (k) => k === 'f' || k === PHONE_KEY[LAYOUT.now === 'azerty' ? 'azerty' : 'qwerty'];
 const clampUnit = (v) => (v > 1 ? 1 : v < -1 ? -1 : v);
 
 export class Input {
@@ -60,25 +64,26 @@ export class Input {
       if (e.repeat) return;
       const k = e.key.toLowerCase();
       if (k === 'e' || k === ' ') { this.keys.talk = true; if (this.enabled) this.pressed.tap = true; }
-      if (k === 'q' || k === 'f') this.keys.phone = true;
+      if (isPhoneKey(k)) this.keys.phone = true;
       if (k === 'g' && this.enabled) this.keys.prank = true;
       if (this.enabled && k === 'x') this.pressed.swap = true;
       if (this.enabled && k === 'c') this.pressed.seat = true;
-      const mk = MOVE_KEYS[k];
+      const mk = moveKey(k);
       if (mk) { this.moveKeys[mk] = true; if (this.enabled && k.startsWith('arrow')) e.preventDefault(); }
       if (this.enabled && k === 'b') this.keys.breath = true;
       if (this.enabled && k === 'r') this.pressed.echo = true;
       if (this.enabled && k === 't') this.pressed.ask = true;
-      if (this.enabled && k >= '1' && k <= '4') this.choiceKey = Number(k) - 1; // (a fourth answer: blaming a friend online)
+      const dig = /^(Digit|Numpad)([1-4])$/.exec(e.code || ''); // (the number row: on AZERTY it types & é " ' without Shift)
+      if (this.enabled && ((k >= '1' && k <= '4' && k.length === 1) || dig)) this.choiceKey = Number(dig ? dig[2] : k) - 1; // (a fourth answer: blaming a friend online)
       if ((k === 'escape' || k === 'p') && this.enabled && this.onPause) this.onPause();
       if (this.enabled && this.onAnyInput) this.onAnyInput();
     });
     window.addEventListener('keyup', (e) => {
       const k = e.key.toLowerCase();
       if (k === 'e' || k === ' ') this.keys.talk = false;
-      if (k === 'q' || k === 'f') this.keys.phone = false;
+      if (isPhoneKey(k)) this.keys.phone = false;
       if (k === 'g') this.keys.prank = false;
-      const mk = MOVE_KEYS[k];
+      const mk = moveKey(k);
       if (mk) this.moveKeys[mk] = false;
       if (k === 'b') this.keys.breath = false;
     });
@@ -188,6 +193,8 @@ export class Input {
     return p;
   }
 
+  /** Settings: QWERTY or AZERTY (src/keys.js); nothing stays held from the old one */
+  setLayout(l) { LAYOUT.now = l === 'azerty' ? 'azerty' : 'qwerty'; this.keys.phone = false; this.stopMove(); }
   takeChoice() { const c = this.choiceKey; this.choiceKey = -1; return c; }
 
   requestLock() {

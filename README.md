@@ -11,6 +11,10 @@ Runs in any modern browser on desktop **and iPhone/Android** (no install, no bui
 
 **Full screen**: on Android (and on a computer) a class starts full screen, with no browser bar (Settings: "Full screen when a class starts"; the ⛶ FULL SCREEN button on the title screen and in the pause menu). On iPhone no browser (Brave, Safari, Chrome) may hide its bar for a web page (Apple's rule): open the game's own page (GitHub Pages, below), tap Share (Brave: ••• → Share) → Add to Home Screen, and start it from the new icon: full screen, like an app. The game shows these steps once by itself on an iPhone, and on the FULL SCREEN button.
 
+**Keyboard** (Settings): QWERTY or AZERTY. On AZERTY you crawl with **Z Q S D** and hold **A** for your phone (the other keys are the same letters); the key names in the tips, the legend and How to Play follow it, and the answer keys 1-4 work from the number row.
+
+**How long an online class lasts**: the host picks **5, 10, 15 or 30 minutes** in the lobby (FREE CLASS LENGTH). The clock still goes 8:30 to 12:30, only slower, and a longer class gets a new round of events every 5 minutes. Solo Free Class and the daily class are always 5 minutes.
+
 **His habit**: when he stops to think at the board, he turns a little and pats his stomach in quick soft bursts. When he just stands still, his right hand taps his stomach now and then: lightly, at a human pace, without him noticing, like someone jiggling a leg. Up close you hear the soft pat. He never does it while he walks, leans over a desk, sits, or in a scare.
 
 ## Modes

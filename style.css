@@ -154,6 +154,11 @@ body:not(.touch) .touch-only { display: none !important; }
 .diff-row { display: flex; gap: 6px; justify-content: center; margin-top: 4px; }
 .diff-row button { min-width: 0; margin: 0; padding: 9px 18px; font-size: 14px; letter-spacing: 2px; opacity: 0.55; }
 .diff-row button.on { opacity: 1; border-color: var(--blood-hi); background: rgba(90, 14, 12, 0.6); color: #fff; }
+#mp-len-row { margin: 0 0 6px; align-items: center; }
+#mp-len-row button { padding: 3px 9px; font-size: 12px; letter-spacing: 1px; }
+#mp-len-row span { font-size: 11px; letter-spacing: 1px; }
+#mp-len-row.off { opacity: 0.35; pointer-events: none; }
+#set-keys { margin-left: 8px; background: #111; color: #ddd; border: 1px solid #555; font: inherit; font-size: 13px; padding: 3px 4px; }
 #diff-note { font-size: 13px; color: var(--dim); margin: 6px 0 2px; min-height: 1.2em; }
 #eye-label { font-size: 10px; letter-spacing: 2px; min-height: 12px; color: var(--dim); }
 #eye-slash { stroke: transparent; stroke-width: 3; }
@@ -277,7 +282,7 @@ body.touch .desk-only { display: none !important; }
 }
 @media (max-height: 500px) {
   #mp-panel.room { padding: 10px 16px; }
-  #mp-panel.room h2, #mp-panel.room .mp-free, #mp-panel.room #mp-diff-note { display: none; }
+  #mp-panel.room h2, #mp-panel.room #mp-diff-note { display: none; }
   #mp .mp-code-box { font-size: 13px; }
   #mp .mp-code-box b { display: inline-block; font-size: 30px; letter-spacing: 8px; margin: 0 0 6px 8px; vertical-align: middle; }
   #mp .mp-keep { font-size: 12px; line-height: 1.35; }

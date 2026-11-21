@@ -270,7 +270,7 @@
         <div id="mp-news-room"></div>
         <ul id="mp-players"></ul>
         <div id="mp-host-ctl" class="hidden">
-          <div class="dim mp-free">Online play is Free Class (8:30 to 12:30).</div>
+          <div class="diff-row" id="mp-len-row" title="How long the class lasts (Free Class, 8:30 to 12:30)"><span class="dim" id="mp-len-note">FREE CLASS LENGTH</span><button data-len="5">5</button><button data-len="10">10</button><button data-len="15">15</button><button data-len="30">30</button><span class="dim">MIN</span></div>
           <div class="diff-row"><button id="mp-easy">EASY</button><button id="mp-hard">HARD</button><button id="mp-daily">DAILY</button></div>
           <div id="mp-diff-note" class="dim"></div>
           <button id="btn-mp-go" class="big">START FREE CLASS</button>
@@ -292,6 +292,7 @@
     <label class="row chk"><input id="set-shadows" type="checkbox" checked> Shadows (slower on old phones)</label>
     <label class="row chk"><input id="set-meter" type="checkbox"> Helper HUD (shows when he is watching + his anger)</label>
     <label class="row chk"><input id="set-subs" type="checkbox" checked> Subtitles</label>
+    <label class="row" id="set-keys-row">Keyboard <select id="set-keys"><option value="qwerty">QWERTY (WASD, Q phone)</option><option value="azerty">AZERTY (ZQSD, A phone)</option></select></label>
     <label class="row chk" id="set-full-row"><input id="set-full" type="checkbox"> Full screen when a class starts (no browser bar)</label>
     <label class="row chk"><input id="set-mic" type="checkbox"> Microphone: he hears you laugh for real (off every time you start; only how loud you are is measured, nothing is recorded or sent)</label>
     <div id="set-mic-row" class="dim"><div id="set-mic-meter"><div id="set-mic-fill"></div></div><p id="set-mic-note" aria-live="polite"></p></div>

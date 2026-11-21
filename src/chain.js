@@ -5,7 +5,7 @@
 // strike, and he reads it out loud. It also has to be done in time. When it gets to the last player,
 // the class laughs, he calms down a little, and everyone in the chain gets mischief.
 // Numbers and texts: CHAIN (src/data.js). The host runs it; friends get it in the snapshot (cn).
-import { CHAIN, FREE_LENGTH } from './data.js';
+import { CHAIN } from './data.js';
 import { rand, randInt, clamp } from './util.js';
 
 const r2 = (x) => Math.round(x * 100) / 100;
@@ -30,7 +30,7 @@ export const ChainMixin = {
     if (!ch) {
       if (this.t < this.chainNext || !this.extrasAuto) return;
       // not close to the bell (the clock may have been moved forward)
-      if (this.t > FREE_LENGTH - C.stopBefore || this.clockMin > 240 * (1 - C.stopBefore / FREE_LENGTH)) return;
+      if (this.t > this.freeLen - C.stopBefore || this.clockMin > 240 * (1 - C.stopBefore / this.freeLen)) return;
       if (!this.present || this.cutscene || this.ending || this.eventLock || this.lockBully || this.choice) { this.chainNext = this.t + 3; return; }
       const ps = this.chainPlayers();
       if (ps.length < C.minPlayers) { this.chainNext = this.t + 8; return; }

@@ -282,7 +282,7 @@ export class MP {
     this.hook('lobby');
   }
 
-  sendLobby() { this.net.broadcast({ t: 'lobby', players: this.lobby, code: this.code, diff: this.difficulty || 'easy' }); }
+  sendLobby() { this.net.broadcast({ t: 'lobby', players: this.lobby, code: this.code, diff: this.difficulty || 'easy', len: this.len || 5 }); }
 
   async makeAvatar(p) {
     const model = await instantiate(AVATAR_MODELS[p.seat] || 'kid_a');
@@ -474,7 +474,7 @@ export class MP {
         this.welcomed();
         break;
       case 'full': if (!this.refused(ONLINE.text.classFull) && CURRENT === this) this.hook('lost', ONLINE.text.classFull); break;
-      case 'lobby': this.lobby = m.players || []; this.difficulty = m.diff === 'hard' ? 'hard' : 'easy'; this.syncPlayers(); this.hook('lobby'); break;
+      case 'lobby': this.lobby = m.players || []; this.difficulty = m.diff === 'hard' ? 'hard' : 'easy'; this.len = [5, 10, 15, 30].includes(m.len) ? m.len : 5; this.syncPlayers(); this.hook('lobby'); break;
       case 'start': this.startGuest(m); break;
       case 'b': for (const e of m.e) this.apply(e); break;
       case 'bye': if (!this.refused(ONLINE.text.closed) && CURRENT === this) this.hook('lost', ONLINE.text.closed); break;
@@ -532,7 +532,7 @@ export class MP {
     if (m.projOn) W.projector.setOn(true);
     if (m.proj && PROJ_EVENTS.has(m.proj[0])) W.projector[m.proj[0]](...m.proj[1]);
     if (m.objs) g.ui.setObjectives(m.objs);
-    if (m.setup && typeof m.setup === 'object') { g.setup = { ...g.setup, ...m.setup }; g.quirks = new Set(g.setup.quirks || []); } // (the host's class, not the one reset() just drew)
+    if (m.setup && typeof m.setup === 'object') { g.freeLen = Number(m.setup.len) > 0 ? Number(m.setup.len) : g.freeLen; g.setup = { ...g.setup, ...m.setup }; g.quirks = new Set(g.setup.quirks || []); } // (the host's class, not the one reset() just drew)
     g.ui.setQuirks(Array.isArray(m.quirks) ? m.quirks : []);
     if (m.late && typeof m.evHint === 'string') g.timers.after(1.5, () => g.state === 'playing' && g.ui.hint(m.evHint, 6));
     this.hook('started');

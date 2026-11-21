@@ -8,7 +8,7 @@
 //  - nobody: he looks it up himself (while he types he is not watching).
 // The host (or solo game) runs everything; the choice goes only to the player who raised a hand.
 import { rand, pick, Bag } from './util.js';
-import { STUCK, FREE_LENGTH } from './data.js';
+import { STUCK } from './data.js';
 
 export const StuckMixin = {
   resetStuck() {
@@ -21,8 +21,8 @@ export const StuckMixin = {
   stuckAct() {
     if (this.stuckFind && this.t >= this.stuckFind.at) return this.stuckFoundOut();
     const ev = this.eventsOn && this.setup && this.setup.plan && this.setup.plan[this.eventIdx]; // (a class event due soon would cut his question short: src/events.js)
-    if (this.mode === 'free' && this.t >= this.stuckNext && this.stuckN < STUCK.max && this.anger < 40 && this.t < FREE_LENGTH - 60
-      && this.clockMin < 240 * (1 - 60 / FREE_LENGTH) && !(ev && ev.at < this.t + STUCK.wait + 10)) return this.actStuck(); // (the clock may have been moved forward: src/chain.js)
+    if (this.mode === 'free' && this.t >= this.stuckNext && this.stuckN < STUCK.max && this.anger < 40 && this.t < this.freeLen - 60
+      && this.clockMin < 240 * (1 - 60 / this.freeLen) && !(ev && ev.at < this.t + STUCK.wait + 10)) return this.actStuck(); // (the clock may have been moved forward: src/chain.js)
     return null;
   },
 

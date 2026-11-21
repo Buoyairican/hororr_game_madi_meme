@@ -127,6 +127,7 @@ export class Game {
     this.setupGhost(); this.setupMic(); // Phase 7: the ghost kid's corner (the spare chair), the microphone
     this.setupScares(); // the new jump scares (src/scares.js)
     this.setupPacing(); // (src/pacing.js)
+    this.freeLen = FREE_LENGTH; this.onlineLen = 0; // Free Class: seconds 8:30 -> 12:30. Online the host picks 5, 10, 15 or 30 minutes (onlineLen)
     this.extrasAuto = true; // Phase 7 online: the note going round by itself, a ghost after a strike, the decoy hints (tests of other things turn them off)
     this.reset('free', 0);
   }
@@ -227,7 +228,7 @@ export class Game {
     this.camOverride = null;
     this.endAction = null;
     this.yaw = 0; this.pitch = 0.0;
-    this.clock = { from: 0, to: 240, t0: 0, dur: FREE_LENGTH, fixed: null };
+    this.clock = { from: 0, to: 240, t0: 0, dur: this.freeLen, fixed: null };
     this.clockMin = 0; this.lastTick = -1;
     this.teacherVoice = null; this.chalkSnd = null; this.voiceUntil = 0;
     this.jumping = false; this.inBrain = false; this.pendingBrain = null; this.glaring = false; this.noteWasOpen = false;
@@ -285,6 +286,8 @@ export class Game {
   /** opts: { seed, events, quirks, deafSide } for this class's setup (default: a random one) */
   start(mode = 'free', chapter = 0, opts = null) {
     this.nextSetup = opts;
+    // online, the host's Free Class lasts as long as the lobby says (the daily class is always the same 5 minutes)
+    this.freeLen = mode === 'free' && this.mp && this.role === 'host' && this.onlineLen > 0 && !this.dailyNext ? Math.round(this.onlineLen * 60) : FREE_LENGTH;
     this.reset(mode, chapter);
     this.state = 'playing';
     this.input.enable(true);
@@ -2381,11 +2384,12 @@ export class Game {
   /** Free Class: what the director owes you. 'first': an early one (the pencil or the window); 'strong': one of his
    *  big scares from the halfway point, and a second one before the bell (SCARES.free in src/data.js) */
   scareOwed() {
-    if (this.mode !== 'free' || this.t > FREE_LENGTH - 14) return null;
+    const L = this.freeLen;
+    if (this.mode !== 'free' || this.t > L - 14) return null;
     const F = SCARES.free;
     if (!this.firstScare && this.t > F.firstAt) return 'first';
-    if (this.t > FREE_LENGTH * F.halfway && this.strongN < 1) return 'strong';
-    if (this.t > FREE_LENGTH - SCARE_OWED && this.strongN < F.strong && this.t - this.strongT > F.strongGap) return 'strong';
+    if (this.t > Math.min(L, FREE_LENGTH) * F.halfway && this.strongN < 1) return 'strong'; // (a long online class: still the first one early)
+    if (this.t > L - SCARE_OWED && this.strongN < F.strong && this.t - this.strongT > F.strongGap) return 'strong';
     return null;
   }
 
@@ -3463,7 +3467,7 @@ export class Game {
 
   // ------------------------------------------------------------- FREE CLASS
   *freeScript() {
-    this.setClockRun(0, 240, FREE_LENGTH);
+    this.setClockRun(0, 240, this.freeLen);
     this.idleKind = 'none';
     this.allowEcho = true; this.allowAsk = true; this.allowPrank = true;
     this.giveTools(); // the laser pointer, KICK ME notes, and "Who did it?" (src/blame.js)
@@ -3501,7 +3505,7 @@ export class Game {
     this.scaresOn = true;
     this.eventsOn = true; // today's events start at their times (src/events.js)
     // (the bell rings when the clock says 12:30: sooner if somebody moved it forward)
-    yield* this.until(() => (this.t >= FREE_LENGTH || this.clockMin >= 240) && !this.cutscene);
+    yield* this.until(() => (this.t >= this.freeLen || this.clockMin >= 240) && !this.cutscene);
     this.ending = true;
     this.allSeated();
     this.interrupt(this.freeEnding());
@@ -3578,7 +3582,7 @@ export class Game {
     const side = this.deafWord ? this.deafWord() : 'left';
     const q = (this.setup ? this.setup.quirks : []).map((id) => QUIRKS[id].chip.replace('{side}', side).replace(/^\S+\s/, ''));
     const ev = { ringtone: 'his phone rang', fly: 'a fly', pizza: 'pizza', firedrill: 'a fire alarm', leave: 'he left the room' };
-    const done = (this.eventsDone || []).map((id) => ev[id] || id);
+    const done = [...new Set(this.eventsDone || [])].map((id) => ev[id] || id); // (a long online class can have one twice)
     if (q.length || done.length) out.push(`Today ${q.length ? 'he ' + q.join(' and ') : ''}${q.length && done.length ? ' &nbsp;·&nbsp; ' : ''}${done.join(', ')}`);
     const learned = this.track.global.learned.map((id) => (SLANG[id] && SLANG[id].word) || id);
     if (learned.length) out.push(`New words he learned: <b>${learned.join(', ')}</b>`);

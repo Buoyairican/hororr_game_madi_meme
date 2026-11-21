@@ -13,6 +13,7 @@ import { Game } from './game.js';
 import { preloadModels, instantiate } from './models.js';
 import { CHAPTERS, ONLINE, MIC } from './data.js';
 import { MP, cleanName } from './mp.js';
+import { LAYOUT } from './keys.js';
 import { cleanCode } from './net.js';
 import { initNotebook, renderNotebook } from './notebook.js';
 import { setupHowTo, howSeen } from './howto.js';
@@ -39,7 +40,8 @@ const query = new URLSearchParams(location.search);
 const GAME_HOME = 'https://buoyairican.github.io/hororr_game_madi_meme/';
 const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 // phones get the cheapest settings by default
-const DEFAULTS = { sens: 1, vol: 0.9, retro: true, meter: false, subs: true, shadows: !isTouch, difficulty: 'easy', full: isTouch }; // (full: full screen when a class starts, on phones)
+const LENGTHS = [5, 10, 15, 30]; // minutes an online Free Class can last
+const DEFAULTS = { sens: 1, vol: 0.9, retro: true, meter: false, subs: true, shadows: !isTouch, difficulty: 'easy', full: isTouch, keys: 'qwerty', onlineLen: 5 }; // (full: full screen when a class starts, on phones)
 function loadSettings() {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('madiclass.settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; }
 }
@@ -221,6 +223,7 @@ async function boot() {
     ui.show('rotate', false);
     musicOn = false;
     game.difficulty = settings.difficulty === 'hard' ? 'hard' : 'easy';
+    game.onlineLen = LENGTHS.includes(settings.onlineLen) ? settings.onlineLen : 5; // (online Free Class: the host's pick in the lobby)
     if (mode === 'daily') game.startDaily(); // the daily class: the day decides Easy or Hard (src/replay.js)
     else game.start(mode, ch);
   };
@@ -347,6 +350,7 @@ async function boot() {
     }
     $('mp-code-show').textContent = mp.code || '-----';
   };
+  const waitText = () => `Waiting for the host to start Free Class (${mp.difficulty === 'hard' ? 'HARD' : 'Easy'} · ${mp.len || 5} min)…`;
   const roomView = () => {
     showEl('mp-pick', false); showEl('mp-room', true);
     placeRoom(true);
@@ -355,7 +359,7 @@ async function boot() {
     showEl('mp-keep', host); $('mp-keep').textContent = canShare() ? TX.keepShare : TX.keep; // only name SHARE CODE when it is there
     showEl('btn-share', canShare());
     renderLobby();
-    if (!host) $('mp-wait').textContent = `Waiting for the host to start Free Class (${mp.difficulty === 'hard' ? 'HARD' : 'Easy'})…`;
+    if (!host) $('mp-wait').textContent = waitText();
     $('btn-mp-leave').textContent = host ? 'CLOSE THE CLASS' : 'LEAVE';
     labels();
   };
@@ -379,7 +383,7 @@ async function boot() {
     seen = now;
   };
   const hooks = {
-    lobby: () => { renderLobby(); lobbyDiff(); if (mp && mp.role === 'guest') $('mp-wait').textContent = `Waiting for the host to start Free Class (${mp.difficulty === 'hard' ? 'HARD' : 'Easy'})…`; },
+    lobby: () => { renderLobby(); lobbyDiff(); if (mp && mp.role === 'guest') $('mp-wait').textContent = waitText(); },
     lost: (msg) => {
       const guest = mp && mp.role === 'guest';
       if (mp) { mp.leave(); mp = null; }
@@ -418,6 +422,7 @@ async function boot() {
     mpStatus('Opening your class…', true);
     $('btn-host').disabled = true;
     const me = mp = new MP(game, hooks);
+    me.len = LENGTHS.includes(settings.onlineLen) ? settings.onlineLen : 5; // (how long the class lasts: the lobby buttons)
     seen = null;
     try {
       await me.host(name, query.has('debug') ? cleanCode(query.get('hostcode') || '') : '');
@@ -509,6 +514,7 @@ async function boot() {
   let mpDaily = false;
   const showMpDaily = () => {
     $('mp-daily').classList.toggle('on', mpDaily);
+    $('mp-len-row').classList.toggle('off', mpDaily);
     $('btn-mp-go').textContent = mpDaily ? 'START DAILY CLASS' : 'START FREE CLASS';
     if (!mpDaily) return;
     $('mp-easy').classList.remove('on'); $('mp-hard').classList.remove('on');
@@ -525,6 +531,15 @@ async function boot() {
     if (mp && mp.role === 'host') { mp.difficulty = d; mp.sendLobby(); }
     if (mpDaily) showMpDaily(); // (the daily class brings its own difficulty)
   };
+  // how long an online Free Class lasts (the host picks in the lobby; the clock still goes 8:30 -> 12:30, slower)
+  const showLen = () => {
+    const n = LENGTHS.includes(settings.onlineLen) ? settings.onlineLen : 5;
+    for (const b of document.querySelectorAll('#mp-len-row button')) b.classList.toggle('on', Number(b.dataset.len) === n);
+    game.onlineLen = n;
+    if (mp && mp.role === 'host' && mp.len !== n) { mp.len = n; mp.sendLobby(); }
+  };
+  for (const b of document.querySelectorAll('#mp-len-row button')) b.onclick = () => { settings.onlineLen = Number(b.dataset.len); saveSettings(settings); showLen(); };
+  showLen();
   const setDifficulty = (d) => { settings.difficulty = d; saveSettings(settings); showDifficulty(); };
   for (const [id, v] of [['btn-easy', 'easy'], ['btn-hard', 'hard'], ['mp-easy', 'easy'], ['mp-hard', 'hard']]) $(id).onclick = () => setDifficulty(v);
   for (const id of ['mp-easy', 'mp-hard']) $(id).addEventListener('click', () => { mpDaily = false; showMpDaily(); }); // picking Easy / Hard: not the daily class
@@ -565,6 +580,22 @@ async function boot() {
   bindSetting('set-meter', 'meter', (v) => (ui.meterOn = v), true);
   bindSetting('set-subs', 'subs', (v) => (ui.subsOn = v), true);
   bindSetting('set-full', 'full', (v) => { if (v) enterFull(); }, true);
+  // the keyboard: QWERTY or AZERTY (src/keys.js). The key names on the screen follow it.
+  {
+    const sel = $('set-keys');
+    for (const el of document.querySelectorAll('kbd, .key')) {
+      const t = el.textContent.trim();
+      if (t === 'Q') el.dataset.key = 'phone'; else if (t === 'WASD') el.dataset.key = 'move';
+    }
+    const applyKeys = (v) => {
+      input.setLayout(v);
+      const az = LAYOUT.now === 'azerty';
+      for (const el of document.querySelectorAll('[data-key]')) el.textContent = el.dataset.key === 'phone' ? (az ? 'A' : 'Q') : (az ? 'ZQSD' : 'WASD');
+    };
+    sel.value = settings.keys === 'azerty' ? 'azerty' : 'qwerty';
+    applyKeys(sel.value);
+    sel.addEventListener('change', () => { settings.keys = sel.value; applyKeys(sel.value); saveSettings(settings); });
+  }
   bindSetting('set-shadows', 'shadows', (v) => {
     renderer.shadowMap.enabled = v;
     scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); });

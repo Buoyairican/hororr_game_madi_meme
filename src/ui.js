@@ -1,5 +1,6 @@
 // DOM overlay: HUD, subtitles, hints, objectives, choices, menus.
 import { STUCK, PACE } from './data.js';
+import { keyLabels } from './keys.js';
 const $ = (id) => document.getElementById(id);
 const HINT_READ = 3.2;  // seconds a tip stays up before the next one may take its place
 const CAP_MIN = 1.2;    // seconds a caption stays up at least
@@ -227,7 +228,7 @@ export class UI {
     this.putHint(text, dur, tip);
   }
   putHint(text, dur, tip = false) {
-    this.el.hint.innerHTML = text;
+    this.el.hint.innerHTML = keyLabels(text); // (WASD / Q as this player's keyboard has them: Settings)
     this.el.hint.classList.add('show');
     this.hintTimer = dur; this.hintAge = 0; this.hintText = text; this.hintIsTip = !!tip;
     if (tip) this.lastTipAt = this.uiT;
@@ -314,10 +315,10 @@ export class UI {
         return;
       }
       if (lg) {
-        lg.innerHTML = mode === 'game' ? '<kbd>E</kbd> / <kbd>SPACE</kbd> / click: fly · <kbd>T</kbd> meme app · let go of <kbd>Q</kbd> to hide it'
+        lg.innerHTML = keyLabels(mode === 'game' ? '<kbd>E</kbd> / <kbd>SPACE</kbd> / click: fly · <kbd>T</kbd> meme app · let go of <kbd>Q</kbd> to hide it'
           : mode === 'memes' ? '<kbd>E</kbd> next video · <kbd>R</kbd> show the friend you look at · <kbd>T</kbd> next app'
             : mode === 'psst' ? '<kbd>E</kbd> / <kbd>SPACE</kbd> / click: pass the note · <kbd>T</kbd> game app · let go of <kbd>Q</kbd> to hide it'
-              : 'let go of <kbd>Q</kbd> to hide it';
+              : 'let go of <kbd>Q</kbd> to hide it');
       }
       if (T) T.textContent = mode === 'memes' ? 'NEXT' : 'TAP';
       if (A) A.textContent = 'APP';

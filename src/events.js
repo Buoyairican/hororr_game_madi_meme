@@ -64,13 +64,25 @@ export function classSetup(seed, mode = 'free', chapter = 0, force = {}) {
     if (mode !== 'story') {
       const wins = CLASS_SETUP.freeWindows[events.length] || spread(events.length);
       events.forEach((id, i) => { const w = wins[i]; plan.push({ id, at: Math.round(w[0] + rp() * (w[1] - w[0])) }); });
+      // a longer class (online: 10, 15 or 30 minutes) gets a new round of events every 5 minutes, the ones it hasn't had first
+      const len = Number(force.len) || FREE_LENGTH, pool = Object.keys(EVENTS).filter((k) => EVENTS[k].in.includes('free'));
+      let fresh = pool.filter((k) => !events.includes(k));
+      for (let c = 1; (c + 1) * FREE_LENGTH <= len + 1; c++) {
+        const k = rp() < CLASS_SETUP.four ? CLASS_SETUP.events[1] : CLASS_SETUP.events[0], round = [];
+        while (round.length < k) {
+          if (!fresh.length) fresh = pool.filter((x) => !round.includes(x));
+          round.push(fresh.splice(Math.floor(rp() * fresh.length), 1)[0]);
+        }
+        const w2 = CLASS_SETUP.freeWindows[k];
+        round.forEach((id, i) => plan.push({ id, at: c * FREE_LENGTH + Math.round(w2[i][0] + rp() * (w2[i][1] - w2[i][0])) }));
+      }
     } else {
       const rs = seededRng(Math.floor(story * 4294967296));
       const idx = slots.map((_, i) => i);
       while (idx.length > events.length) idx.splice(Math.floor(rs() * idx.length), 1);
       idx.forEach((s, i) => { slots[s] = events[i]; });
     }
-    return { seed, mode, chapter, where, events: events.slice(), quirks: quirks.slice(), deafSide: side, plan, slots };
+    return { seed, mode, chapter, where, events: events.slice(), quirks: quirks.slice(), deafSide: side, plan, slots, len: mode !== 'story' ? Number(force.len) || FREE_LENGTH : 0 };
   }
 }
 /** windows for an unusual number of events (a forced list): spread over the morning */
@@ -220,12 +232,12 @@ export const EventMixin = {
     const o = this.nextSetup || {};
     this.nextSetup = null;
     const seed = Number.isFinite(Number(o.seed)) && o.seed !== null && o.seed !== '' ? Number(o.seed) : (Math.random() * 4294967296) >>> 0;
-    return classSetup(seed, mode, chapter, o);
+    return classSetup(seed, mode, chapter, { ...o, len: mode === 'free' ? this.freeLen : 0 });
   },
   /** a plain copy for the network and the tests */
   setupInfo() {
     const s = this.setup || {};
-    return { seed: s.seed, mode: s.mode, chapter: s.chapter, events: (s.events || []).slice(), quirks: (s.quirks || []).slice(), deafSide: s.deafSide, plan: (s.plan || []).map((x) => ({ ...x })), slots: (s.slots || []).slice() };
+    return { seed: s.seed, mode: s.mode, chapter: s.chapter, events: (s.events || []).slice(), quirks: (s.quirks || []).slice(), deafSide: s.deafSide, plan: (s.plan || []).map((x) => ({ ...x })), slots: (s.slots || []).slice(), len: s.len || FREE_LENGTH };
   },
 
   /** the first time something shows in this class: a hint for everybody */
@@ -277,7 +289,7 @@ export const EventMixin = {
     if (this.mode !== 'free' || !this.eventsOn || !this.setup) return;
     const next = this.setup.plan[this.eventIdx];
     if (!next || this.t < next.at) return;
-    if (this.t + EVENTS[next.id].len > FREE_LENGTH - CLASS_SETUP.freeEnd) { this.eventIdx++; return; } // too late for this one today
+    if (this.t + EVENTS[next.id].len > this.freeLen - CLASS_SETUP.freeEnd) { this.eventIdx++; return; } // too late for this one today
     if (!this.eventReady(this.t - next.at > CLASS_SETUP.readyWait)) return; // (after a while it cuts into whatever he is doing)
     this.eventIdx++;
     this.startClassEvent(next.id);
