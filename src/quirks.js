@@ -28,6 +28,21 @@ export const QuirkMixin = {
     for (const p of this.players) p.deafT = 0;
     if (this.ui && this.ui.setQuirks) this.ui.setQuirks([]);
   },
+  /** a long online class, a new stretch (src/events.js startAct): he has these habits now. A habit he drops ends
+   *  quietly (the humming stops), its chip goes; a new one starts on its own clock and shows when somebody notices it. */
+  quirkSwap(list) {
+    const now = new Set(list.filter((k) => QUIRKS[k]));
+    if (this.humming && !now.has('hum')) this.humOn(false);
+    const added = [...now].filter((id) => !this.quirks.has(id));
+    this.quirks = now;
+    this.quirkSeen = this.quirkSeen.filter((id) => now.has(id));
+    for (const id of added) { const q = QUIRKS[id]; delete this.quirkNext[id]; if (q.first) this.quirkNext[id] = this.t + rand(q.first[0], q.first[1]); }
+    if (added.includes('deaf')) { this.deafNext = this.t + 8; this.deafTell = QUIRKS.deaf.tell + rand(0, 15); for (const p of this.players) p.deafT = 0; }
+    if (added.includes('hum')) this.humStopped = false;
+    if (added.includes('clock')) this.clockQuipped = false;
+    if (added.includes('count')) this.countQuipped = false;
+    this.ui.setQuirks(this.quirkChips());
+  },
   quirkOn(id) { return !!(this.quirks && this.quirks.has(id)); },
   deafWord() { return (this.setup && this.setup.deafSide) || 'left'; },
 

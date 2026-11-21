@@ -74,17 +74,33 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   // ---------------------------------------------------------------- a 5-minute class is the same as before; longer ones get more events
   r = await A.evaluate(async () => {
     const { classSetup } = await import('./src/events.js');
-    const a = classSetup(12345, 'free'), b = classSetup(12345, 'free', 0, { len: 300 }), c = classSetup(12345, 'free', 0, { len: 1800 });
-    const d = classSetup(777, 'free', 0, { len: 600 });
+    const a = classSetup(12345, 'free'), b = classSetup(12345, 'free', 0, { len: 300 });
     const sorted = (p) => p.every((x, i) => !i || x.at >= p[i - 1].at);
-    return {
-      same: JSON.stringify(a.plan) === JSON.stringify(b.plan), first: JSON.stringify(c.plan.slice(0, a.plan.length)) === JSON.stringify(a.plan),
-      n5: a.plan.length, n30: c.plan.length, last30: c.plan[c.plan.length - 1].at, n10: d.plan.length, last10: d.plan[d.plan.length - 1].at,
-      sorted: sorted(c.plan) && sorted(d.plan), noRepeatRound: [1, 2, 3, 4, 5].every(() => true),
+    const check = (seed, len) => {
+      const s = classSetup(seed, 'free', 0, { len }), p = s.plan, acts = s.acts || [];
+      const ids = p.map((x) => x.id), gaps = p.slice(1).map((x, i) => x.at - p[i].at);
+      const lastAt = {}; let far = true;
+      for (const x of p) { if (x.at - (lastAt[x.id] ?? -1e9) < 300) far = false; lastAt[x.id] = x.at; }
+      const oneChange = acts.slice(1).every((x, i) => x.quirks.filter((q) => !acts[i].quirks.includes(q)).length === 1);
+      return {
+        n: p.length, last: p.length ? p[p.length - 1].at : 0, sorted: sorted(p), far, noTwice: ids.every((x, i) => !i || x !== ids[i - 1]),
+        firstFive: new Set(ids.slice(0, 5)).size === Math.min(5, ids.length), spread: gaps.length ? Math.max(...gaps) - Math.min(...gaps) : 0,
+        acts: acts.length, starts: acts.map((x) => x.at).join('/'), moods: acts.map((x) => x.mood[0]).join(''), finale: acts.length ? acts[acts.length - 1].mood : '', oneChange,
+        habits: new Set(acts.flatMap((x) => x.quirks)).size,
+      };
     };
+    return { same: JSON.stringify(a.plan) === JSON.stringify(b.plan) && !b.acts, c30: check(12345, 1800), d30: check(999, 1800), c10: check(777, 600), c15: check(4242, 900) };
   });
-  pass(r.same && r.first, 'a 5-minute class: the same events at the same times as before');
-  pass(r.n30 >= 18 && r.last30 > 1500 && r.last30 < 1800 && r.n10 >= 6 && r.last10 > 300 && r.sorted, `more events in longer classes (10 min: ${r.n10}, last at ${r.last10}s; 30 min: ${r.n30}, last at ${r.last30}s)`);
+  pass(r.same, 'a 5-minute class (and the daily class): the same events at the same times as before');
+  {
+    const c = r.c30, d = r.d30;
+    pass(c.n >= 10 && c.last > 1500 && c.last < 1800 && c.sorted, `30 min: ${c.n} events over the whole class (the last at ${c.last}s)`);
+    pass(c.far && d.far && c.noTwice && d.noTwice && c.firstFive && d.firstFive, 'all 5 events once before any comes back; never the same one twice in a row or within 5 minutes');
+    pass(c.spread > 60 && d.spread > 60, `uneven gaps between events, not a 5-minute loop (spread ${c.spread}s / ${d.spread}s)`);
+    pass(c.acts >= 4 && c.finale === 'busy' && c.oneChange && c.habits >= 4, `stretches of their own pace (${c.moods} at ${c.starts}), the last one busy; he changes one habit each time (${c.habits} habits in all)`);
+    pass(c.starts !== d.starts || c.moods !== d.moods, `another class, another shape (${d.moods} at ${d.starts})`);
+    pass(r.c10.n >= 4 && r.c10.last > 240 && r.c10.acts >= 2 && r.c15.n >= 6 && r.c15.acts >= 2, `10 min: ${r.c10.n} events, ${r.c10.acts} stretches; 15 min: ${r.c15.n} events, ${r.c15.acts} stretches`);
+  }
 
   // ---------------------------------------------------------------- online: the host picks 10 minutes
   const H = await mk('H'), G = await mk('G');
@@ -101,8 +117,9 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   await H.click('#btn-mp-go');
   pass(await waitFor(H, () => game.state === 'playing', 30000) && await waitFor(G, () => game.state === 'playing', 30000), 'the class starts for both');
   r = await H.evaluate(() => ({ len: game.freeLen, dur: game.clock.dur, plan: game.setup.plan.length, last: game.setup.plan[game.setup.plan.length - 1].at }));
+  await H.evaluate(() => { window.toasts = []; const t = game.ui.toast.bind(game.ui); game.ui.toast = (x, d) => { toasts.push([Math.round(game.t), x]); return t(x, d); }; });
   const g2 = await G.evaluate(() => ({ len: game.freeLen, setupLen: game.setup.len }));
-  pass(r.len === 600 && r.dur === 600 && r.last > 300, `the host's class lasts 10 minutes (clock ${r.dur}s, ${r.plan} events, the last at ${r.last}s)`);
+  pass(r.len === 600 && r.dur === 600 && r.last > 240, `the host's class lasts 10 minutes (clock ${r.dur}s, ${r.plan} events, the last at ${r.last}s)`);
   pass(g2.len === 600 && g2.setupLen === 600, 'the friend\'s game knows it too');
   // the clock: after 300 s it is only half way (10:30), the class goes on; at 600 s the bell
   r = await H.evaluate(() => {
@@ -114,9 +131,12 @@ const BASE = ROOT + '/index.html?debug=1&peer=' + PEER;
   r = await H.evaluate(() => {
     const g = game;
     for (let i = 0; i < 340 * 10 && !g.ending && g.state === 'playing'; i++) { g.playTick(0.1); g.ui.update(0.1); if (g.ui.choosing && g.ui.choosing()) g.input.choiceKey = 0; g.anger = 0; g.strikes = 0; }
-    return { t: Math.round(g.t), min: Math.round(g.clockMin), ending: !!g.ending || g.state !== 'playing', events: [...new Set(g.eventsDone)].length, all: g.eventsDone.length };
+    return { t: Math.round(g.t), min: Math.round(g.clockMin), ending: !!g.ending || g.state !== 'playing', events: [...new Set(g.eventsDone)].length, all: g.eventsDone.length,
+      acts: g.actIdx, nActs: g.setup.acts.length, quirks: [...g.quirks].join('+'), first: g.setup.acts[0].quirks.join('+'), toasts: toasts.filter((x) => /different|changed|slows|restless|wakes/.test(x[1])) };
   });
+  const gq = await G.evaluate(() => document.getElementById('quirks') ? document.getElementById('quirks').innerText : '');
   pass(r.ending && r.t >= 595 && r.t < 640, `the bell rings at 10 minutes (${r.t}s, ${r.all} events played)`);
+  pass(r.acts === r.nActs && r.nActs >= 2 && r.quirks !== r.first && r.toasts.length === r.nActs - 1, `a new stretch: he changed a habit (${r.first} -> ${r.quirks}), the class was told: ${JSON.stringify(r.toasts)}`);
 
   // ---------------------------------------------------------------- solo Free Class stays 5 minutes
   await A.evaluate(() => { game.onlineLen = 30; game.start('free'); });

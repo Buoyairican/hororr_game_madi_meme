@@ -3582,7 +3582,8 @@ export class Game {
     const side = this.deafWord ? this.deafWord() : 'left';
     const q = (this.setup ? this.setup.quirks : []).map((id) => QUIRKS[id].chip.replace('{side}', side).replace(/^\S+\s/, ''));
     const ev = { ringtone: 'his phone rang', fly: 'a fly', pizza: 'pizza', firedrill: 'a fire alarm', leave: 'he left the room' };
-    const done = [...new Set(this.eventsDone || [])].map((id) => ev[id] || id); // (a long online class can have one twice)
+    const n = {}; for (const id of this.eventsDone || []) n[id] = (n[id] || 0) + 1;
+    const done = Object.keys(n).map((id) => (ev[id] || id) + (n[id] > 1 ? ` (×${n[id]})` : '')); // (a long online class can have one twice)
     if (q.length || done.length) out.push(`Today ${q.length ? 'he ' + q.join(' and ') : ''}${q.length && done.length ? ' &nbsp;·&nbsp; ' : ''}${done.join(', ')}`);
     const learned = this.track.global.learned.map((id) => (SLANG[id] && SLANG[id].word) || id);
     if (learned.length) out.push(`New words he learned: <b>${learned.join(', ')}</b>`);

@@ -213,6 +213,27 @@ export const CLASS_SETUP = {
   readyWait: 15,                  // an event waits this long for a moment when he is free...
   softWait: 30,                   // ...then this long for one when he is only busy with you (a reaction, a habit); then it is skipped
 };
+// A long online class (10 / 15 / 30 minutes, src/events.js longClass): stretches of random length, each with a pace
+export const LONG_CLASS = {
+  firstAct: [180, 300], act: [200, 420], minAct: 150,  // seconds: the first stretch, the others, the shortest last one
+  firstLead: [34, 64], lead: [14, 48],                  // the first event of a stretch comes this long after it starts
+  gap: { calm: [110, 170], normal: [70, 120], busy: [46, 80] }, // after an event ends, the next one (by the pace)
+  calm: { calm: 1.6, normal: 1, busy: 0.65 },          // his own scenes: the quiet time between them (PACE.calm) by the pace
+  again: 300, tail: 25, bell: 40,                       // the same event this far apart at least; none this close to a stretch's end / the bell
+  text: {                                               // what the class notices when a new stretch starts
+    calm: ['🌧️ The rain gets louder. He slows down…', '😮‍💨 He sighs and sits a while. Something about him changed.'],
+    normal: ['🔄 He seems… different now.', '☕ A sip of cold coffee. He is not quite the same.'],
+    busy: ['⚡ He is restless now. Something about him changed.', '👀 He wakes up. Something is different about him.'],
+  },
+  // the second time an event happens, the texts on your phone are about that
+  again2: {
+    ringtone: [['Sam', 'his phone AGAIN 💀'], ['Nora', 'who keeps calling him??']],
+    fly: [['Sam', 'the fly is BACK'], ['Group: Room 13', 'fly 2 - mr past 0']],
+    pizza: [['Nora', 'MORE pizza??'], ['Sam', 'second pizza. who keeps ordering these']],
+    firedrill: [['Group: Room 13', 'the alarm AGAIN??'], ['Nora', 'is the school actually on fire']],
+    leave: [['Sam', 'he left AGAIN'], ['Nora', 'where does he keep going 👀']],
+  },
+};
 // The event deck. len: about how long it lasts (seconds). Texts: the hint the first time, phone messages after it.
 export const EVENTS = {
   ringtone: {

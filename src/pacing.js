@@ -9,7 +9,7 @@
 //    and a control tip is skipped when you already found that control by yourself.
 //  - His habits slow down each time and stop after a few per class; his habit lines don't come back to back.
 //  - The task list shows a few open tasks at a time.
-import { PACE } from './data.js';
+import { PACE, LONG_CLASS } from './data.js';
 import { rand } from './util.js';
 
 export const PacingMixin = {
@@ -32,7 +32,7 @@ export const PacingMixin = {
   /** every frame (host / solo): when a scene of his ends, a calm stretch of lesson begins */
   updatePacing() {
     const busy = this.inScene();
-    if (this.paceBusy && !busy) this.calmUntil = Math.max(this.calmUntil, this.t + rand(PACE.calm[0], PACE.calm[1]));
+    if (this.paceBusy && !busy) this.calmUntil = Math.max(this.calmUntil, this.t + rand(PACE.calm[0], PACE.calm[1]) * (LONG_CLASS.calm[this.actMood] || 1)); // (a long online class: by the stretch's pace)
     this.paceBusy = busy;
   },
   /** may he start a scene of his own now? */

@@ -13,7 +13,7 @@
 // The host (or solo game) runs them for everybody; friends see the props through the snapshots.
 import * as THREE from 'three';
 import { clamp, damp, rand, pick, chance, seededRng, hashStr, Bag } from './util.js';
-import { CLASS_SETUP, EVENTS, QUIRKS, SLANG_USE, FREE_LENGTH, MEMES, MONITOR } from './data.js';
+import { CLASS_SETUP, EVENTS, QUIRKS, SLANG_USE, FREE_LENGTH, MEMES, MONITOR, LONG_CLASS } from './data.js';
 
 const V = THREE.Vector3;
 const _a = new V(), _b = new V(), _c = new V();
@@ -26,6 +26,48 @@ const CHATTER_AT = new V(0, 1.2, 0.6);       // the class, talking all at once
 // sounds every screen plays by itself from the class's state (so a friend who joins late hears them too)
 const LOOPS = ['flySnd', 'humSnd', 'ringSnd', 'alarmSnd', 'danceSnd', 'chatterSnd'];
 const HINT_READ = 3.2;   // seconds a hint stays up before the next one may replace it
+
+/**
+ * A long online class (10, 15 or 30 minutes): not a 5-minute class played again and again, but a few stretches
+ * ("acts") of random length, each with its own pace (calm, normal, busy; the last one is always busy), and
+ * between two of them he changes one of his habits. The events come at uneven times: all of them once before
+ * any comes back, never the same one twice in a row, and the same one at least LONG.again seconds apart.
+ * Every class draws a new shape (the seed); a 5-minute class (and the daily class) is not touched.
+ */
+function longClass(len, quirks, rp) {
+  const L = LONG_CLASS, pool = Object.keys(EVENTS).filter((k) => EVENTS[k].in.includes('free'));
+  const qPool = Object.keys(QUIRKS).filter((k) => QUIRKS[k].in.includes('free'));
+  const r = (a) => a[0] + rp() * (a[1] - a[0]);
+  const plan = [], acts = [], count = {}, lastAt = {}, usedQ = new Set(quirks);
+  let t = 0, i = 0, mood = 'normal', last = null, q = quirks.slice();
+  while (t < len - 1) {
+    let end = Math.min(len, t + r(i ? L.act : L.firstAct));
+    if (len - end < L.minAct) end = len; // (no tiny last stretch)
+    if (end >= len) mood = 'busy'; // the end of the class: everything at once
+    else if (i) mood = (mood === 'calm' ? ['normal', 'busy'] : ['calm', 'normal', 'busy'])[Math.floor(rp() * (mood === 'calm' ? 2 : 3))];
+    if (i && q.length) { // he changes one habit (a new one first)
+      const keep = q.slice(), out = Math.floor(rp() * keep.length);
+      let pick = qPool.filter((k) => !keep.includes(k) && !usedQ.has(k));
+      if (!pick.length) pick = qPool.filter((k) => !keep.includes(k));
+      if (pick.length) { keep[out] = pick[Math.floor(rp() * pick.length)]; usedQ.add(keep[out]); }
+      q = keep;
+    }
+    acts.push({ at: Math.round(t), mood, quirks: q.slice() });
+    const gap = L.gap[mood];
+    let at = t + r(i ? L.lead : L.firstLead);
+    while (at < end - L.tail && at < len - L.bell) {
+      const ok = pool.filter((k) => k !== last && at - (lastAt[k] ?? -1e9) >= L.again);
+      if (!ok.length) { at += 20; continue; }
+      const least = Math.min(...ok.map((k) => count[k] || 0)), c = ok.filter((k) => (count[k] || 0) === least);
+      const id = c[Math.floor(rp() * c.length)];
+      plan.push({ id, at: Math.round(at) });
+      count[id] = (count[id] || 0) + 1; lastAt[id] = at; last = id;
+      at += EVENTS[id].len + r(gap);
+    }
+    t = end; i++;
+  }
+  return { plan, acts };
+}
 
 /**
  * The class setup: which events and quirks this class has, from one seed.
@@ -60,29 +102,20 @@ export function classSetup(seed, mode = 'free', chapter = 0, force = {}) {
 
   function finish(side) {
     const plan = [], slots = new Array(CLASS_SETUP.storySlots).fill(null);
+    let acts = null;
     const rp = seededRng(Math.floor(free * 4294967296));
     if (mode !== 'story') {
       const wins = CLASS_SETUP.freeWindows[events.length] || spread(events.length);
       events.forEach((id, i) => { const w = wins[i]; plan.push({ id, at: Math.round(w[0] + rp() * (w[1] - w[0])) }); });
-      // a longer class (online: 10, 15 or 30 minutes) gets a new round of events every 5 minutes, the ones it hasn't had first
-      const len = Number(force.len) || FREE_LENGTH, pool = Object.keys(EVENTS).filter((k) => EVENTS[k].in.includes('free'));
-      let fresh = pool.filter((k) => !events.includes(k));
-      for (let c = 1; (c + 1) * FREE_LENGTH <= len + 1; c++) {
-        const k = rp() < CLASS_SETUP.four ? CLASS_SETUP.events[1] : CLASS_SETUP.events[0], round = [];
-        while (round.length < k) {
-          if (!fresh.length) fresh = pool.filter((x) => !round.includes(x));
-          round.push(fresh.splice(Math.floor(rp() * fresh.length), 1)[0]);
-        }
-        const w2 = CLASS_SETUP.freeWindows[k];
-        round.forEach((id, i) => plan.push({ id, at: c * FREE_LENGTH + Math.round(w2[i][0] + rp() * (w2[i][1] - w2[i][0])) }));
-      }
+      const len = Number(force.len) || FREE_LENGTH;
+      if (len > FREE_LENGTH) { const long = longClass(len, quirks, rp); plan.length = 0; plan.push(...long.plan); acts = long.acts; }
     } else {
       const rs = seededRng(Math.floor(story * 4294967296));
       const idx = slots.map((_, i) => i);
       while (idx.length > events.length) idx.splice(Math.floor(rs() * idx.length), 1);
       idx.forEach((s, i) => { slots[s] = events[i]; });
     }
-    return { seed, mode, chapter, where, events: events.slice(), quirks: quirks.slice(), deafSide: side, plan, slots, len: mode !== 'story' ? Number(force.len) || FREE_LENGTH : 0 };
+    return { seed, mode, chapter, where, events: events.slice(), quirks: quirks.slice(), deafSide: side, plan, slots, len: mode !== 'story' ? Number(force.len) || FREE_LENGTH : 0, acts };
   }
 }
 /** windows for an unusual number of events (a forced list): spread over the morning */
@@ -196,6 +229,7 @@ export const EventMixin = {
 
   resetEvents() {
     this.classEvent = null; this.eventsDone = []; this.eventIdx = 0; this.eventsOn = false; this.lastEventEnd = -99; this.lessonDebt = 0;
+    this.actIdx = 0; this.actMood = 'normal'; // (a long online class: its stretches, longClass)
     this.hinted = new Set();
     this.fly = null; this.netFly = null; this.netEvent = null; this.flyKilledBy = null;
     this.pizza = 'none'; this.pizzaOpen = false;
@@ -237,7 +271,8 @@ export const EventMixin = {
   /** a plain copy for the network and the tests */
   setupInfo() {
     const s = this.setup || {};
-    return { seed: s.seed, mode: s.mode, chapter: s.chapter, events: (s.events || []).slice(), quirks: (s.quirks || []).slice(), deafSide: s.deafSide, plan: (s.plan || []).map((x) => ({ ...x })), slots: (s.slots || []).slice(), len: s.len || FREE_LENGTH };
+    return { seed: s.seed, mode: s.mode, chapter: s.chapter, events: (s.events || []).slice(), quirks: (s.quirks || []).slice(), deafSide: s.deafSide, plan: (s.plan || []).map((x) => ({ ...x })), slots: (s.slots || []).slice(), len: s.len || FREE_LENGTH,
+      acts: s.acts ? s.acts.map((a) => ({ ...a, quirks: a.quirks.slice() })) : null };
   },
 
   /** the first time something shows in this class: a hint for everybody */
@@ -287,12 +322,27 @@ export const EventMixin = {
     this.eventVisuals(dt);
     this.pumpHints(dt);
     if (this.mode !== 'free' || !this.eventsOn || !this.setup) return;
+    const acts = this.setup.acts;
+    if (acts && this.actIdx < acts.length && this.t >= acts[this.actIdx].at && (this.actIdx === 0 || (!this.inScene() && !this.dozing))) this.startAct(this.actIdx++);
     const next = this.setup.plan[this.eventIdx];
     if (!next || this.t < next.at) return;
     if (this.t + EVENTS[next.id].len > this.freeLen - CLASS_SETUP.freeEnd) { this.eventIdx++; return; } // too late for this one today
     if (!this.eventReady(this.t - next.at > CLASS_SETUP.readyWait)) return; // (after a while it cuts into whatever he is doing)
     this.eventIdx++;
     this.startClassEvent(next.id);
+  },
+
+  /** a long online class: a new stretch starts. Its pace; he changes one habit; his habits and questions come back. */
+  startAct(i) {
+    const a = this.setup.acts[i];
+    this.actMood = a.mood || 'normal';
+    if (!i) return;
+    this.quirkSwap(a.quirks);
+    this.quirkRuns = {}; // (src/pacing.js: his habits slow down and stop; a new stretch, they start again)
+    for (const id of this.quirks) { const q = QUIRKS[id]; if (q.every && (this.quirkNext[id] ?? 0) >= 1e8) this.quirkNext[id] = this.t + rand(q.every[0], q.every[1]); }
+    this.stuckN = Math.max(0, (this.stuckN || 0) - 1); // he can get stuck on a question again
+    this.track.event(this.t, null, 'act', { i, mood: this.actMood, quirks: a.quirks.slice() });
+    this.ui.toast(pick(LONG_CLASS.text[this.actMood] || LONG_CLASS.text.normal), 4);
   },
 
   /** story: one of the period's quiet windows. If the setup put an event here, it plays during this stretch of lesson. */
@@ -328,8 +378,9 @@ export const EventMixin = {
     if (!this.classEvent || this.classEvent.id !== id) return;
     this.classEvent = null;
     this.lastEventEnd = this.t;
-    const m = EVENTS[id].msgs;
-    if (m && m.length) this.msgQueue.push(pick(m)); // the next text on your phone is about it
+    const again = this.eventsDone.filter((x) => x === id).length > 1 && LONG_CLASS.again2[id];
+    const m = again || EVENTS[id].msgs;
+    if (m && m.length) this.msgQueue.push(pick(m)); // the next text on your phone is about it (the second time: that it is back)
   },
 
   // ---------------------------------------------------------------- 1. his ringtone
